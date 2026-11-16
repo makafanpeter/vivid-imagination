@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.Rekognition" Version="4.0.3.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\VividImagination.Shared.Infrastructure\VividImagination.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\VividImagination.Modules.Moderation.Contracts\VividImagination.Modules.Moderation.Contracts.csproj" />
+    <ProjectReference Include="..\..\Media\VividImagination.Modules.Media.Contracts\VividImagination.Modules.Media.Contracts.csproj" />
+    <ProjectReference Include="..\..\Social\VividImagination.Modules.Social.Contracts\VividImagination.Modules.Social.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Features\Reviews\Dtos\" />
+  </ItemGroup>
+
+</Project>

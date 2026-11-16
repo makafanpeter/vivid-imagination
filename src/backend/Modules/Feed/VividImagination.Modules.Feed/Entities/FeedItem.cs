@@ -1,0 +1,33 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace VividImagination.Modules.Feed.Entities;
+
+public class FeedItem
+{
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    [BsonRepresentation(BsonType.String)]
+    public Guid PhotoId { get; set; }
+
+    [BsonRepresentation(BsonType.String)]
+    public Guid UserId { get; set; }
+
+    public string StorageKey { get; set; } = string.Empty;
+    public string BlurHash { get; set; } = string.Empty;
+    public string Caption { get; set; } = string.Empty;
+
+    public int Upvotes { get; set; }
+    public int Downvotes { get; set; }
+    public double Score { get; set; }
+
+    public bool IsUnsafe { get; set; }
+    public bool BlurRequired { get; set; }
+    public string? SafetyCategory { get; set; }
+    public string Verdict { get; set; } = "Approved";
+
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
+}

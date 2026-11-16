@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>ba8d71db-650e-4be2-9078-2b5c8730cb22</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    <DockerfileContext>..\..\..\..</DockerfileContext>
+    <DockerComposeProjectPath>..\..\..\..\docker-compose.dcproj</DockerComposeProjectPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.24.2-preview.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\BuildingBlocks\VividImagination.Shared.Infrastructure\VividImagination.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\VividImagination.Modules.Identity\VividImagination.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\Modules\Media\VividImagination.Modules.Media\VividImagination.Modules.Media.csproj" />
+    <ProjectReference Include="..\..\Modules\Moderation\VividImagination.Modules.Moderation\VividImagination.Modules.Moderation.csproj" />
+    <ProjectReference Include="..\..\Modules\Social\VividImagination.Modules.Social\VividImagination.Modules.Social.csproj" />
+    <ProjectReference Include="..\..\Modules\Feed\VividImagination.Modules.Feed\VividImagination.Modules.Feed.csproj" />
+  </ItemGroup>
+
+</Project>

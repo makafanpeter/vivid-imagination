@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.3.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\VividImagination.Shared.Infrastructure\VividImagination.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\VividImagination.Modules.Media.Contracts\VividImagination.Modules.Media.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
