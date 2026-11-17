@@ -5,10 +5,10 @@ namespace VividImagination.Mobile.ViewModels;
 
 public partial class FeedItemViewModel : ObservableObject
 {
-    private readonly FeedItem _model;
+    private readonly FeedItemDto _model;
     private ImageSource? _blurHashImage;
 
-    public FeedItemViewModel(FeedItem model)
+    public FeedItemViewModel(FeedItemDto model)
     {
         _model = model;
         Upvotes = model.Upvotes;

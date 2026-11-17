@@ -6,20 +6,17 @@ namespace VividImagination.Mobile.ViewModels;
 
 public partial class FeedViewModel : ObservableObject
 {
-    private readonly IFeedService _feedService;
-    private readonly ISocialService _socialService;
+    private readonly IVividImaginationClient _apiClient;
     private readonly IAuthService _authService;
     private int _currentPage = 1;
     private const int PageSize = 10;
     private bool _hasMoreItems = true;
 
     public FeedViewModel(
-        IFeedService feedService,
-        ISocialService socialService,
+        IVividImaginationClient apiClient,
         IAuthService authService)
     {
-        _feedService = feedService;
-        _socialService = socialService;
+        _apiClient = apiClient;
         _authService = authService;
         Items = [];
     }
@@ -53,7 +50,7 @@ public partial class FeedViewModel : ObservableObject
             _currentPage = 1;
             _hasMoreItems = true;
 
-            var rawItems = await _feedService.GetRankedFeedAsync(_currentPage, PageSize);
+            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize);
             Items.Clear();
 
             var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
@@ -104,8 +101,8 @@ public partial class FeedViewModel : ObservableObject
             IsLoadingMore = true;
             _currentPage++;
 
-            var rawItems = await _feedService.GetRankedFeedAsync(_currentPage, PageSize);
-            if (rawItems.Count == 0)
+            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize);
+            if (rawItems == null || rawItems.Count == 0)
             {
                 _hasMoreItems = false;
                 return;
@@ -165,7 +162,7 @@ public partial class FeedViewModel : ObservableObject
             var newVote = previousVote == value ? 0 : value;
             item.UserVote = newVote;
 
-            var result = await _socialService.VoteAsync(item.PhotoId, newVote);
+            var result = await _apiClient.VoteOnPhotoAsync(item.PhotoId, new VoteRequest { Value = newVote });
             if (result != null)
             {
                 item.ApplyVote(result.Upvotes, result.Downvotes);
@@ -206,7 +203,7 @@ public partial class FeedViewModel : ObservableObject
 
         try
         {
-            var result = await _socialService.ReportPhotoAsync(item.PhotoId, reason);
+            var result = await _apiClient.ReportPhotoAsync(item.PhotoId, new ReportRequest { Reason = reason });
             if (result != null)
             {
                 item.IsReported = true;

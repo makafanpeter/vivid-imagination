@@ -1,0 +1,617 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Vivid Imagination API",
+    "version": "v1",
+    "description": "API for Vivid Imagination Modular Monolith Services"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5101"
+    }
+  ],
+  "paths": {
+    "/api/v1/feed": {
+      "get": {
+        "tags": ["Feed"],
+        "summary": "Retrieve ranked public feed",
+        "operationId": "GetRankedFeed",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedItemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media": {
+      "post": {
+        "tags": ["Media"],
+        "summary": "Upload a document/photo",
+        "operationId": "UploadPhoto",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["FormFile"],
+                "properties": {
+                  "FormFile": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "Name": {
+                    "type": "string"
+                  },
+                  "Description": {
+                    "type": "string"
+                  },
+                  "Container": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadDocumentViewModel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/{id}/download": {
+      "get": {
+        "tags": ["Media"],
+        "summary": "Download a document/photo",
+        "operationId": "DownloadPhoto",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/media/{id}": {
+      "get": {
+        "tags": ["Media"],
+        "summary": "Get document/photo metadata",
+        "operationId": "GetPhotoMetadata",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadDocumentViewModel"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Media"],
+        "summary": "Delete a photo",
+        "operationId": "DeletePhoto",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/social-service/photos/{photoId}/vote": {
+      "post": {
+        "tags": ["Social"],
+        "summary": "Vote on a photo",
+        "operationId": "VoteOnPhoto",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Social"],
+        "summary": "Get current vote on photo",
+        "operationId": "GetVoteOnPhoto",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/social-service/photos/{photoId}/report": {
+      "post": {
+        "tags": ["Social"],
+        "summary": "Report a photo",
+        "operationId": "ReportPhoto",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Social"],
+        "summary": "Get report status for photo",
+        "operationId": "GetPhotoReport",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/users/me": {
+      "get": {
+        "tags": ["Identity"],
+        "summary": "Get current user profile",
+        "operationId": "GetCurrentUser",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "description": "OpenIddict Bearer Token",
+        "flows": {
+          "password": {
+            "tokenUrl": "/v1/connect/token",
+            "scopes": {
+              "openid": "OpenID",
+              "profile": "User Profile"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "FeedItemDto": {
+        "type": "object",
+        "required": ["id", "photoId", "userId", "storageKey", "blurHash", "caption", "upvotes", "downvotes", "score", "isUnsafe", "blurRequired", "uploadedAt"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "photoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "storageKey": {
+            "type": "string"
+          },
+          "blurHash": {
+            "type": "string"
+          },
+          "caption": {
+            "type": "string"
+          },
+          "upvotes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downvotes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          },
+          "isUnsafe": {
+            "type": "boolean"
+          },
+          "blurRequired": {
+            "type": "boolean"
+          },
+          "safetyCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "sensitiveContentWarning": {
+            "type": "string",
+            "nullable": true
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UploadDocumentViewModel": {
+        "type": "object",
+        "required": ["id", "fileName", "contentType", "fileExtension"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "containerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "encrypted": {
+            "type": "boolean"
+          },
+          "ownerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileExtension": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "organizationId": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "VoteRequest": {
+        "type": "object",
+        "required": ["value"],
+        "properties": {
+          "value": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "VoteResult": {
+        "type": "object",
+        "required": ["photoId", "upvotes", "downvotes"],
+        "properties": {
+          "photoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "upvotes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "downvotes": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ReportRequest": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ReportResult": {
+        "type": "object",
+        "required": ["photoId", "totalReports"],
+        "properties": {
+          "photoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "totalReports": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "Profile": {
+        "type": "object",
+        "properties": {
+          "sub": {
+            "type": "string",
+            "nullable": true
+          },
+          "encryptedSub": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "preferredUsername": {
+            "type": "string",
+            "nullable": true
+          },
+          "isEmailVerified": {
+            "type": "boolean"
+          },
+          "isPhoneVerified": {
+            "type": "boolean"
+          },
+          "phoneNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "phoneNumberCountryCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "userType": {
+            "type": "string",
+            "nullable": true
+          },
+          "organizationId": {
+            "type": "string",
+            "nullable": true
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          },
+          "safeBrowsingMode": {
+            "type": "integer",
+            "format": "int32",
+            "description": "0 = BlurSensitive, 1 = HideSensitive, 2 = AlwaysShowSensitive"
+          }
+        }
+      }
+    }
+  }
+}

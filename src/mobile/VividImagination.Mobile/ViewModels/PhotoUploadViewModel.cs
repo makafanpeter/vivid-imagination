@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace VividImagination.Mobile.ViewModels;
 
-public partial class PhotoUploadViewModel(IMediaService mediaService) : ObservableObject
+public partial class PhotoUploadViewModel(IVividImaginationClient apiClient) : ObservableObject
 {
     private Stream? _selectedStream;
 
@@ -126,19 +126,22 @@ public partial class PhotoUploadViewModel(IMediaService mediaService) : Observab
             StatusMessage = "Uploading & running Amazon Rekognition moderation...";
 
             _selectedStream.Position = 0;
-            var success = await mediaService.UploadPhotoAsync(
+            var fileParam = new FileParameter(
                 _selectedStream,
                 SelectedFileName ?? "photo.jpg",
-                ContentType ?? "image/jpeg",
-                Caption,
-                Title);
+                ContentType ?? "image/jpeg");
 
-            if (success)
+            var response = await apiClient.UploadPhotoAsync(
+                fileParam,
+                Title,
+                Caption,
+                "photos");
+
+            if (response != null && response.Id != Guid.Empty)
             {
                 StatusMessage = "Photo published successfully!";
                 await Task.Delay(800);
                 Clear();
-                // Navigate to feed
                 await Shell.Current.GoToAsync("//feed");
             }
             else

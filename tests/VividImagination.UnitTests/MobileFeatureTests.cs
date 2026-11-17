@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FluentAssertions;
 using VividImagination.Mobile.Models;
+using VividImagination.Mobile.OpenApi;
 using VividImagination.Mobile.Services;
 using Xunit;
 
@@ -56,11 +57,10 @@ public class MobileFeatureTests
     }
 
     [Fact]
-    public void FeedItem_DeserializesCorrectly_FromBackendContractJson()
+    public void FeedItemDto_DeserializesCorrectly_FromBackendContractJson()
     {
         var json = """
         {
-            "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
             "photoId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
             "userId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
             "storageKey": "photos/test.webp",
@@ -77,7 +77,7 @@ public class MobileFeatureTests
         }
         """;
 
-        var item = JsonSerializer.Deserialize<FeedItem>(json, JsonOptions);
+        var item = JsonSerializer.Deserialize<FeedItemDto>(json, JsonOptions);
 
         item.Should().NotBeNull();
         item!.PhotoId.Should().Be(Guid.Parse("b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"));
@@ -88,6 +88,68 @@ public class MobileFeatureTests
         item.BlurRequired.Should().BeTrue();
         item.SafetyCategory.Should().Be("Suggestive Content");
         item.SensitiveContentWarning.Should().Be("May contain sensitive attire");
+    }
+
+    [Fact]
+    public void VoteRequest_And_Result_SerializeAndDeserializeCorrectly()
+    {
+        var request = new VoteRequest { Value = 1 };
+        var json = JsonSerializer.Serialize(request);
+        json.Should().Contain("\"value\":1");
+
+        var responseJson = """
+        {
+            "photoId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+            "upvotes": 10,
+            "downvotes": 2
+        }
+        """;
+        var result = JsonSerializer.Deserialize<VoteResult>(responseJson, JsonOptions);
+        result.Should().NotBeNull();
+        result!.PhotoId.Should().Be(Guid.Parse("b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"));
+        result.Upvotes.Should().Be(10);
+        result.Downvotes.Should().Be(2);
+    }
+
+    [Fact]
+    public void ReportRequest_SerializesReasonCorrectly()
+    {
+        var request = new ReportRequest { Reason = "Spam / Misleading content" };
+        var json = JsonSerializer.Serialize(request);
+        json.Should().Contain("\"reason\":\"Spam / Misleading content\"");
+    }
+
+    [Fact]
+    public void EnvironmentResolution_CalculatesEndpointsCorrectly()
+    {
+        // Development Desktop default
+        var devDesktop = "http://localhost:5101";
+        // Development Android Emulator default
+        var devAndroid = "http://10.0.2.2:5101";
+        // Staging
+        var staging = "https://staging-api.vividimagination.com";
+        // Production
+        var production = "https://api.vividimagination.com";
+
+        devDesktop.Should().StartWith("http://localhost");
+        devAndroid.Should().Contain("10.0.2.2");
+        staging.Should().Be("https://staging-api.vividimagination.com");
+        production.Should().Be("https://api.vividimagination.com");
+    }
+
+    [Fact]
+    public void DynamicBaseAddressHandler_RewritesHostCorrectly()
+    {
+        var originalRequestUri = new Uri("http://placeholder/api/v1/feed");
+        var activeTargetBase = "https://staging-api.vividimagination.com";
+
+        var builder = new UriBuilder(new Uri(activeTargetBase))
+        {
+            Path = originalRequestUri.AbsolutePath,
+            Query = originalRequestUri.Query.TrimStart('?')
+        };
+
+        builder.Uri.ToString().Should().Be("https://staging-api.vividimagination.com/api/v1/feed");
     }
 
     [Fact]

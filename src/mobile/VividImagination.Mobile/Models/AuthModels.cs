@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using VividImagination.Mobile.OpenApi;
 
 namespace VividImagination.Mobile.Models;
 
@@ -41,19 +42,16 @@ public sealed class UserProfile
         !string.IsNullOrWhiteSpace(FullName)
             ? FullName
             : (!string.IsNullOrWhiteSpace(PreferredUsername) ? PreferredUsername : (Email ?? "Anonymous"));
+
+    public static UserProfile FromDto(Profile profile)
+    {
+        return new UserProfile
+        {
+            Sub = profile.Sub,
+            PreferredUsername = profile.PreferredUsername,
+            Email = profile.Email,
+            FullName = profile.FullName,
+            SafeBrowsingMode = (SafeBrowsingMode)(profile.SafeBrowsingMode ?? 0)
+        };
+    }
 }
-
-public sealed record VoteResult(
-    [property: JsonPropertyName("photoId")] Guid PhotoId,
-    [property: JsonPropertyName("upvotes")] int Upvotes,
-    [property: JsonPropertyName("downvotes")] int Downvotes);
-
-public sealed record ReportResult(
-    [property: JsonPropertyName("photoId")] Guid PhotoId,
-    [property: JsonPropertyName("totalReports")] int TotalReports);
-
-public sealed record VoteRequest(
-    [property: JsonPropertyName("value")] int Value);
-
-public sealed record ReportRequest(
-    [property: JsonPropertyName("reason")] string? Reason);

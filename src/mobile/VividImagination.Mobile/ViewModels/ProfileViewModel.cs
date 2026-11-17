@@ -1,18 +1,26 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.Services.Configuration;
 
 namespace VividImagination.Mobile.ViewModels;
 
 public partial class ProfileViewModel : ObservableObject
 {
     private readonly IAuthService _authService;
+    private readonly IConfigurationService _configurationService;
 
-    public ProfileViewModel(IAuthService authService)
+    public ProfileViewModel(
+        IAuthService authService,
+        IConfigurationService configurationService)
     {
         _authService = authService;
+        _configurationService = configurationService;
+
         _authService.AuthStateChanged += (s, e) => UpdateFromAuth();
-        CustomApiUrl = AppConfig.BaseApiUrl;
+        _configurationService.EnvironmentChanged += (s, e) => UpdateFromConfig();
+
         UpdateFromAuth();
+        UpdateFromConfig();
     }
 
     [ObservableProperty]
@@ -25,7 +33,16 @@ public partial class ProfileViewModel : ObservableObject
     private int _safeBrowsingIndex = 0; // 0 = Blur, 1 = Hide, 2 = Always Show
 
     [ObservableProperty]
+    private int _environmentIndex = 0; // 0 = Development, 1 = Staging, 2 = Production
+
+    [ObservableProperty]
+    private string _activeBaseUrl = string.Empty;
+
+    [ObservableProperty]
     private string _customApiUrl = string.Empty;
+
+    [ObservableProperty]
+    private bool _isDevelopment;
 
     [ObservableProperty]
     private string? _statusMessage;
@@ -43,6 +60,14 @@ public partial class ProfileViewModel : ObservableObject
         }
         OnPropertyChanged(nameof(DisplayName));
         OnPropertyChanged(nameof(UserEmail));
+    }
+
+    private void UpdateFromConfig()
+    {
+        EnvironmentIndex = (int)_configurationService.CurrentEnvironment;
+        ActiveBaseUrl = _configurationService.ActiveBaseUrl;
+        CustomApiUrl = _configurationService.CustomUrl ?? string.Empty;
+        IsDevelopment = _configurationService.CurrentEnvironment == AppEnvironment.Development;
     }
 
     [RelayCommand]
@@ -69,17 +94,17 @@ public partial class ProfileViewModel : ObservableObject
     [RelayCommand]
     public async Task SaveSettingsAsync()
     {
-        if (!string.IsNullOrWhiteSpace(CustomApiUrl))
-        {
-            AppConfig.BaseApiUrl = CustomApiUrl;
-        }
+        // Update environment
+        _configurationService.CurrentEnvironment = (AppEnvironment)EnvironmentIndex;
+        _configurationService.CustomUrl = string.IsNullOrWhiteSpace(CustomApiUrl) ? null : CustomApiUrl;
 
         if (Profile != null)
         {
             Profile.SafeBrowsingMode = (SafeBrowsingMode)SafeBrowsingIndex;
         }
 
+        UpdateFromConfig();
         StatusMessage = "Settings saved successfully.";
-        await Shell.Current.DisplayAlertAsync("Settings", "Preferences updated.", "OK");
+        await Shell.Current.DisplayAlertAsync("Settings", $"Configuration updated. Connected to: {ActiveBaseUrl}", "OK");
     }
 }

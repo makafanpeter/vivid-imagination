@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using VividImagination.Mobile.Services.Configuration;
 
 namespace VividImagination.Mobile.Services;
 
@@ -15,7 +16,9 @@ public interface IAuthService
 
 public sealed class AuthService(
     HttpClient httpClient,
-    ITokenStorageService tokenStorage) : IAuthService
+    ITokenStorageService tokenStorage,
+    IConfigurationService configurationService,
+    IVividImaginationClient apiClient) : IAuthService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -37,7 +40,8 @@ public sealed class AuthService(
                 new KeyValuePair<string, string>("scope", "offline_access openid profile")
             ]);
 
-            var response = await httpClient.PostAsync($"{AppConfig.BaseApiUrl}/v1/connect/token", content, ct);
+            var tokenUrl = configurationService.GetTokenUrl();
+            var response = await httpClient.PostAsync(tokenUrl, content, ct);
             if (!response.IsSuccessStatusCode)
             {
                 return false;
@@ -71,13 +75,13 @@ public sealed class AuthService(
                 return null;
             }
 
-            var response = await httpClient.GetAsync($"{AppConfig.BaseApiUrl}/api/v1/identity/users/me", ct);
-            if (!response.IsSuccessStatusCode)
+            var profileDto = await apiClient.GetCurrentUserAsync(ct);
+            if (profileDto == null)
             {
                 return null;
             }
 
-            CurrentUser = await response.Content.ReadFromJsonAsync<UserProfile>(JsonOptions, ct);
+            CurrentUser = UserProfile.FromDto(profileDto);
             return CurrentUser;
         }
         catch

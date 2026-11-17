@@ -23,7 +23,7 @@
   <ItemGroup>
     <Compile Include="..\..\src\mobile\VividImagination.Mobile\Services\BlurHashCore.cs" Link="Mobile\BlurHashCore.cs" />
     <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\SafeBrowsingMode.cs" Link="Mobile\SafeBrowsingMode.cs" />
-    <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\FeedItem.cs" Link="Mobile\FeedItem.cs" />
+    <Compile Include="..\..\src\mobile\VividImagination.Mobile\OpenApi\VividImaginationClient.cs" Link="Mobile\VividImaginationClient.cs" />
     <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\AuthModels.cs" Link="Mobile\AuthModels.cs" />
   </ItemGroup>
 
