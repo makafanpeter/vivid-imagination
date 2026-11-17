@@ -86,7 +86,7 @@ public static class IdentityServerExtensions
                             Constants.StandardScopes.Permissions,
                             Constants.StandardScopes.RoleType,
                             Constants.StandardScopes.Role,
-                            ..Constants.StandardScopes.GetApiScopes()  // includes terminal-api
+                            ..Constants.StandardScopes.GetApiScopes()  
                                 
                         ]
                         

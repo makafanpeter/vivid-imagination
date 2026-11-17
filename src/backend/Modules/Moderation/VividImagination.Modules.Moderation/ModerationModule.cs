@@ -45,7 +45,7 @@ public class ModerationModule : IAppModule, IMessagingModule
 
         services.AddAuthorizationPolicies(
             Assembly.GetExecutingAssembly(),
-            Constants.StandardScopes.ReputationApi,
+            Constants.StandardScopes.ModerationApi,
             []);
         
         // Register AWS Rekognition client if AWS region is configured, else null (triggers graceful fallback)

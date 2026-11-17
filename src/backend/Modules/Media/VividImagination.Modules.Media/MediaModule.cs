@@ -38,7 +38,7 @@ public class MediaModule : IAppModule
         services.AddValidatorsFromAssembly(typeof(MediaModule).Assembly);
         
         
-        services.AddAuthorizationPolicies(Assembly.GetExecutingAssembly(),  Constants.StandardScopes.StorageApi, []);
+        services.AddAuthorizationPolicies(Assembly.GetExecutingAssembly(),  Constants.StandardScopes.MediaApi, []);
 
         return services;
     }

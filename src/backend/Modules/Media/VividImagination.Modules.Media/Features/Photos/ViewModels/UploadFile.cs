@@ -19,12 +19,6 @@ public class UploadFile
     public IFormFile FormFile { get; set; }
     [Display(Name = "Container")]
     public string Container { get; set; }
-        
-    public bool Public { get; set; } = false;
-
-    [Display(Name = "File Types")]
-    public StorageFileType FileTypes { get; set; } = StorageFileType.Image;
-
-    [Display(Name = "Allowed Files")]
-    public string[]? AllowedFiles { get; set; }
+    
+    
 }

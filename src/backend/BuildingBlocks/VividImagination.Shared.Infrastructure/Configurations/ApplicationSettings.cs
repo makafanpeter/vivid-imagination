@@ -48,11 +48,7 @@ public class ApplicationSettings
     /// options and the path for local key persistence in secure environments.
     /// </summary>
     public DataProtectionSettings DataProtectionSettings { get; set; } = new();
-
-    /// <summary>
-    /// Configuration settings for Multi-Factor Authentication (MFA).
-    /// </summary>
-    public MfaSettings MfaSettings { get; set; } = new();
+    
 
     /// <summary>
     /// Represents the configuration settings for the event bus,
@@ -65,28 +61,5 @@ public class ApplicationSettings
     /// </summary>
     public JwtSettings Jwt { get; set; } = new();
     
-
-    /// <summary>
-    /// Configuration settings related to payment processing and gateways.
-    /// </summary>
-    public PaymentSettings PaymentSettings { get; set; }  = new();
-    /// <summary>
-    /// Configuration settings for the Notification module (email/SMS dispatch).
-    /// </summary>
-    public NotificationSettings NotificationSettings { get; set; } = new();
     
-    /// <summary>
-    /// Configuration settings for Local SEO, programmatic pages, and XML sitemaps.
-    /// </summary>
-    public SeoSettings Seo { get; set; } = new();
-
-    /// <summary>
-    /// Configuration criteria for Tier 3 Local Champion automatic elevation and retention.
-    /// </summary>
-    public LocalChampionEligibilitySettings LocalChampionEligibility { get; set; } = new();
-
-    /// <summary>
-    /// Configuration settings for Booking module operations.
-    /// </summary>
-    public BookingSettings Booking { get; set; } = new();
 }

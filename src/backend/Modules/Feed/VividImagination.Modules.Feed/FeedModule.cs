@@ -10,9 +10,11 @@ using VividImagination.Modules.Feed.Controllers.v1;
 using VividImagination.Modules.Feed.Features.Feeds.Consumers;
 using VividImagination.Modules.Feed.Persistence;
 using VividImagination.Modules.Feed.Persistence.Entities;
+using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure;
 using VividImagination.Shared.Infrastructure.Messaging;
 using VividImagination.Shared.Infrastructure.Modules;
+using VividImagination.Shared.Infrastructure.Web.Authorization.Policies;
 
 namespace VividImagination.Modules.Feed;
 
@@ -37,6 +39,12 @@ public class FeedModule : IAppModule, IMessagingModule
 
         services.AddCustomMediatR(Assembly.GetExecutingAssembly());
         services.AddValidatorsFromAssembly(typeof(FeedModule).Assembly);
+        
+        
+        services.AddAuthorizationPolicies(
+            Assembly.GetExecutingAssembly(),
+            Constants.StandardScopes.FeedApi,
+            []);
 
         return services;
     }

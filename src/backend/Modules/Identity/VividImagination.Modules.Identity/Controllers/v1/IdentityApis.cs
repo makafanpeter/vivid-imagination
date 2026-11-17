@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using OpenIddict.Validation.AspNetCore;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure.Common;
+using VividImagination.Shared.Infrastructure.Exceptions;
 
 namespace VividImagination.Modules.Identity.Controllers.v1;
 
@@ -31,11 +32,6 @@ public static class IdentityApis
 
     private static IResult GetCurrentUserAsync(ICurrentUser currentUser)
     {
-        if (currentUser.CurrentUser == null)
-        {
-            return Results.Unauthorized();
-        }
-
-        return Results.Ok(currentUser.CurrentUser);
+        return currentUser.CurrentUser == null ? throw new UnAuthorizedException("You are not authorized") : Results.Ok(currentUser.CurrentUser);
     }
 }

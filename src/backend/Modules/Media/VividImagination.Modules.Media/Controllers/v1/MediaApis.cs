@@ -10,6 +10,7 @@ using OpenIddict.Validation.AspNetCore;
 using VividImagination.Modules.Media.Features.Photos.Commands;
 using VividImagination.Modules.Media.Features.Photos.Queries;
 using VividImagination.Modules.Media.Features.Photos.ViewModels;
+using VividImagination.Modules.Media.Persistence.Enums;
 using VividImagination.Shared.Infrastructure.Common;
 using VividImagination.Shared.Infrastructure.Exceptions;
 
@@ -117,9 +118,8 @@ public static class MediaApis
             Description = model.Description,
             Name = model.Name,
             FileExtension = Path.GetExtension(fileName),
-            Public = model.Public,
-            FileTypes = model.FileTypes,
-            AllowedFiles = model.AllowedFiles
+            FileTypes = StorageFileType.Image,
+            //AllowedFiles = new []{ }
         };
 
         var response = await mediator.Send(request, ct);
@@ -186,9 +186,8 @@ public static class MediaApis
             Description = model.Description,
             Name = model.Name,
             FileExtension = Path.GetExtension(fileName),
-            Public = model.Public,
-            FileTypes = model.FileTypes,
-            AllowedFiles = model.AllowedFiles
+            FileTypes = StorageFileType.Image,
+            //AllowedFiles = model.AllowedFiles
         };
 
         var response = await mediator.Send(command, ct);

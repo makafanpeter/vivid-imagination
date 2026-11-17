@@ -76,8 +76,8 @@ public class UpdateDocumentCommandHandler (IMongoRepository<FileEntry, Guid> dyn
             url = linkGenerator.GetUriByAction(
                 accessor.HttpContext,
                 pathBase: accessor.HttpContext.Request.PathBase,
-                action: request.Public ? "Public" : "Download",
-                controller: "Files",
+                action:  "Download",
+                controller: "",
                 host: accessor.HttpContext.Request.Host,
                 scheme: scheme,
                 values: new { request.Id });

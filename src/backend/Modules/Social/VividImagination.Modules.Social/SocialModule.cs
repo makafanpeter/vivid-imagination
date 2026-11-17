@@ -32,7 +32,7 @@ public class SocialModule : IAppModule
         
         services.AddAuthorizationPolicies(
             Assembly.GetExecutingAssembly(),
-            Constants.StandardScopes.ReputationApi,
+            Constants.StandardScopes.SocialApi,
             []);
 
 

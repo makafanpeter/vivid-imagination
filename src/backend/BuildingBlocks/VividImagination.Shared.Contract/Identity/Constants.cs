@@ -11,10 +11,10 @@ public static class Constants
         
         // Platform Module Scopes
         public const string IdentityApi = "identity-api";
-        public const string ProviderApi = "provider-api";
-        public const string BookingApi = "booking-api";
-        public const string ReputationApi = "reputation-api";
-        public const string StorageApi = "storage-api";
+        public const string FeedApi = "feed-api";
+        public const string ModerationApi = "moderation-api";
+        public const string SocialApi = "social-api";
+        public const string MediaApi = "media-api";
 
 
         // Identity Claims
@@ -23,10 +23,10 @@ public static class Constants
         public static IEnumerable<string> GetApiScopes()
         {
             yield return IdentityApi;
-            yield return ProviderApi;
-            yield return BookingApi;
-            yield return ReputationApi;
-            yield return StorageApi;
+            yield return FeedApi;
+            yield return ModerationApi;
+            yield return SocialApi;
+            yield return MediaApi;
         }
 
         public static Dictionary<string, string> GetAllScopesWithDescription()
@@ -40,9 +40,9 @@ public static class Constants
                 { Permissions, "User permissions" },
                 { RoleType, "Role type" },
                 { IdentityApi, "Identity API access" },
-                { ProviderApi, "Provider API access" },
-                { BookingApi, "Booking API access" },
-                { ReputationApi, "Reputation API access" }
+                { FeedApi, "Feed API access" },
+                { ModerationApi, "Moderation API access" },
+                { SocialApi, "Social API access" }
                 
             };
         }

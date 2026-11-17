@@ -59,7 +59,7 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
                 url = linkGenerator.GetUriByAction(
                     accessor.HttpContext,
                     pathBase: accessor.HttpContext.Request.PathBase,
-                    action: request.Public ? "Public" : "Download",
+                    action:   "Download",
                     controller: "Files",
                     host: accessor.HttpContext.Request.Host,
                     scheme: scheme,
