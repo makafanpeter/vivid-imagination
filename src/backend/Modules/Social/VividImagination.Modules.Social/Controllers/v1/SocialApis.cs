@@ -51,6 +51,15 @@ public static class SocialApis
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden);
 
+        api.MapDelete("/vote", CancelVoteOnPhotoAsync)
+            .WithName(nameof(CancelVoteOnPhotoAsync))
+            .WithDescription("Cancel or remove vote on a photo")
+            .RequireAuthorization(AuthorizeAttribute)
+            .Produces<VoteResult>(StatusCodes.Status200OK)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status403Forbidden);
+
         api.MapPost("/report", ReportPhotoAsync)
             .WithName(nameof(ReportPhotoAsync))
             .WithDescription("Report a photo")
@@ -90,13 +99,22 @@ public static class SocialApis
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> CancelVoteOnPhotoAsync(
+        [FromRoute] Guid photoId,
+        [FromServices] IMediator mediator,
+        CancellationToken ct)
+    {
+        var result = await mediator.Send(new VoteOnPhotoCommand(photoId, 0), ct);
+        return Results.Ok(result);
+    }
+
     private static async Task<IResult> ReportPhotoAsync(
         [FromRoute] Guid photoId,
         [FromBody] ReportRequest? request,
         [FromServices] IMediator mediator,
         CancellationToken ct)
     {
-        var result = await mediator.Send(new ReportPhotoCommand(photoId, request?.Reason), ct);
+        var result = await mediator.Send(new ReportPhotoCommand(photoId, request?.Reason, request?.ReasonType ?? ReportReasonType.Other), ct);
         return Results.Ok(result);
     }
 

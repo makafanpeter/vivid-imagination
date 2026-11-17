@@ -4,6 +4,7 @@ using Serilog;
 using VividImagination.Modules.Media.Persistence.Enums;
 using VividImagination.Modules.Media.Services.FileService;
 using VividImagination.Modules.Media.Services.FileService.LocalFiles;
+using VividImagination.Modules.Media.Services.FileService.S3Files;
 using VividImagination.Shared.Infrastructure.Configurations;
 
 namespace VividImagination.Modules.Media.Services;
@@ -40,9 +41,9 @@ public static class StorageServiceExtensions
                 break;
 
             case StorageType.S3:
-                //services.AddScoped<IFileServiceManager, S3FileServiceManager>();
-                //Log.Information("Configured S3 file storage");
-                //break;
+                services.AddScoped<IFileServiceManager, S3FileServiceManager>();
+                Log.Information("Configured S3 file storage");
+                break;
             default:
                 throw new ArgumentOutOfRangeException(
                     nameof(storageType), 

@@ -13,7 +13,7 @@ public class VoteOnPhotoCommandValidator : NullReferenceAbstractValidator<VoteOn
             .WithMessage("PhotoId is required.");
 
         RuleFor(x => x.Value)
-            .Must(v => v is 1 or -1)
-            .WithMessage("Vote value must be either +1 (Upvote) or -1 (Downvote).");
+            .Must(v => v is 1 or -1 or 0)
+            .WithMessage("Vote value must be +1 (Upvote), -1 (Downvote), or 0 (Cancel).");
     }
 }

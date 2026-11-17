@@ -34,7 +34,7 @@ public class ReportPhotoCommandHandler(
                 Id = Guid.NewGuid(),
                 PhotoId = request.PhotoId,
                 ReporterUserId = userId,
-                Reason = request.Reason ?? "Inappropriate content",
+                Reason = request.Reason ?? (request.ReasonType != ReportReasonType.Other ? request.ReasonType.ToString() : "Inappropriate content"),
                 ReportedAt = DateTime.UtcNow
             });
             await db.SaveChangesAsync(ct);

@@ -31,6 +31,13 @@ public static class FeedApis
             .Produces<IReadOnlyList<FeedItemDto>>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError);
+
+        api.MapGet("/personalized", GetPersonalizedFeedAsync)
+            .WithName(nameof(GetPersonalizedFeedAsync))
+            .WithDescription("Retrieve personalized feed with safe-browsing filters and excluded downvotes")
+            .Produces<IReadOnlyList<FeedItemDto>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError);
     }
 
     private static async Task<IResult> GetRankedFeedAsync(
@@ -41,6 +48,17 @@ public static class FeedApis
         CancellationToken ct = default)
     {
         var result = await mediator.Send(new GetFeedQuery(page, pageSize, safeBrowsingMode), ct);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetPersonalizedFeedAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? safeBrowsingMode = null,
+        [FromServices] IMediator mediator = default!,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(new GetPersonalizedFeedQuery(page, pageSize, safeBrowsingMode), ct);
         return Results.Ok(result);
     }
 }

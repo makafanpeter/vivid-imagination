@@ -4,11 +4,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using VividImagination.Modules.Feed.Ranking;
+using VividImagination.Modules.Moderation.Contracts.Events;
+using VividImagination.Modules.Moderation.Features.Reviews.Commands;
 using VividImagination.Modules.Moderation.Features.Reviews.Consumers;
 using VividImagination.Modules.Moderation.Persistence;
 using VividImagination.Modules.Moderation.Persistence.Documents;
 using VividImagination.Modules.Moderation.Services;
-using VividImagination.Modules.Moderation.Contracts.Events;
 using VividImagination.Modules.Social.Contracts.Events;
 using VividImagination.Shared.Infrastructure.Mongo;
 using Xunit;
@@ -107,6 +108,46 @@ public class PolicyAndRankingTests
         // Verify PhotoModeratedIntegrationEvent was published
         publishEndpointMock.Verify(p => p.Publish(
             It.Is<PhotoModeratedIntegrationEvent>(e => e.PhotoId == photoId && e.BlurRequired == true && e.IsUnsafe == true),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateModerationVerdict_Should_Update_Review_And_Publish_PhotoModeratedIntegrationEvent()
+    {
+        var repositoryMock = new Mock<IMongoRepository<ModerationReview, Guid>>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
+        var photoId = Guid.NewGuid();
+
+        var existingReview = new ModerationReview
+        {
+            Id = photoId,
+            PhotoId = photoId,
+            Verdict = "TaggedUnsafe",
+            IsUnsafe = true,
+            BlurRequired = true,
+            SafetyCategory = "Suggestive"
+        };
+
+        repositoryMock
+            .Setup(r => r.FindByIdAsync(photoId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingReview);
+
+        var handler = new UpdateModerationVerdictCommandHandler(
+            repositoryMock.Object,
+            publishEndpointMock.Object,
+            NullLogger<UpdateModerationVerdictCommandHandler>.Instance);
+
+        var result = await handler.Handle(
+            new UpdateModerationVerdictCommand(photoId, "Approved", "False positive approved by moderator", false),
+            CancellationToken.None);
+
+        result.Verdict.Should().Be("Approved");
+        result.IsUnsafe.Should().BeFalse();
+        result.BlurRequired.Should().BeFalse();
+
+        repositoryMock.Verify(r => r.UpdateAsync(existingReview, It.IsAny<CancellationToken>()), Times.Once);
+        publishEndpointMock.Verify(p => p.Publish(
+            It.Is<PhotoModeratedIntegrationEvent>(e => e.PhotoId == photoId && e.Verdict == "Approved" && !e.IsUnsafe),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

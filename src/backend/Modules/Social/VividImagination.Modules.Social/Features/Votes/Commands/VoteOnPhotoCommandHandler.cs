@@ -29,7 +29,14 @@ public class VoteOnPhotoCommandHandler(
 
         var oldValue = vote?.Value ?? 0;
 
-        if (vote is null)
+        if (request.Value == 0)
+        {
+            if (vote != null)
+            {
+                db.Votes.Remove(vote);
+            }
+        }
+        else if (vote is null)
         {
             db.Votes.Add(new PhotoVote
             {

@@ -361,4 +361,50 @@ public class FeedFeatureTests
         repoMock.Verify(r => r.DeleteByIdAsync(photoId, It.IsAny<CancellationToken>()), Times.Once);
         mediatorMock.Verify(m => m.Send(It.IsAny<InvalidateFeedCacheCommand>(), It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task GetPersonalizedFeedQueryHandler_ShouldFilterExcludedPhotos()
+    {
+        // Arrange
+        var repoMock = new Mock<IMongoRepository<FeedItem, Guid>>();
+        var photoId1 = Guid.NewGuid();
+        var photoId2 = Guid.NewGuid();
+
+        var feedItems = new List<FeedItem>
+        {
+            new() { Id = photoId1, PhotoId = photoId1, Caption = "Photo 1", Verdict = "Approved" },
+            new() { Id = photoId2, PhotoId = photoId2, Caption = "Photo 2", Verdict = "Approved" }
+        };
+
+        var pagedList = new PagedList<FeedItem>(feedItems, 0, 20, 2);
+        repoMock.Setup(r => r.FindPagedAsync(
+                It.IsAny<Expression<Func<FeedItem, bool>>>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<SortDefinition<FeedItem>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pagedList);
+
+        var handler = new GetPersonalizedFeedQueryHandler(repoMock.Object);
+
+        // Act
+        var result = await handler.Handle(
+            new GetPersonalizedFeedQuery(1, 20, ExcludedPhotoIds: [photoId1]),
+            CancellationToken.None);
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].PhotoId.Should().Be(photoId2);
+    }
+
+    [Fact]
+    public void GetPersonalizedFeedQueryValidator_ShouldValidatePaginationParameters()
+    {
+        var validator = new GetPersonalizedFeedQueryValidator();
+
+        validator.Validate(new GetPersonalizedFeedQuery(0, 20)).IsValid.Should().BeFalse();
+        validator.Validate(new GetPersonalizedFeedQuery(1, 0)).IsValid.Should().BeFalse();
+        validator.Validate(new GetPersonalizedFeedQuery(1, 101)).IsValid.Should().BeFalse();
+        validator.Validate(new GetPersonalizedFeedQuery(1, 20)).IsValid.Should().BeTrue();
+    }
 }

@@ -199,7 +199,7 @@ public class SocialFeatureTests
     [Theory]
     [InlineData(1, true)]
     [InlineData(-1, true)]
-    [InlineData(0, false)]
+    [InlineData(0, true)]
     [InlineData(2, false)]
     [InlineData(-2, false)]
     public void VoteOnPhotoCommandValidator_Should_Validate_Allowed_Values(int value, bool shouldBeValid)
@@ -209,6 +209,35 @@ public class SocialFeatureTests
 
         var validationResult = validator.Validate(command);
         validationResult.IsValid.Should().Be(shouldBeValid);
+    }
+
+    [Fact]
+    public async Task VoteOnPhoto_Should_Cancel_Vote_When_Value_Is_Zero()
+    {
+        using var db = CreateInMemoryDbContext();
+        var publisherMock = new Mock<IPublishEndpoint>();
+        long userId = 1001;
+        var currentUserMock = CreateCurrentUserMock(userId);
+
+        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, currentUserMock.Object);
+        var photoId = Guid.NewGuid();
+
+        // Upvote first
+        await handler.Handle(new VoteOnPhotoCommand(photoId, 1), CancellationToken.None);
+        var upvote = await db.Votes.FirstOrDefaultAsync(v => v.PhotoId == photoId && v.UserId == userId);
+        upvote.Should().NotBeNull();
+
+        // Cancel vote
+        var result = await handler.Handle(new VoteOnPhotoCommand(photoId, 0), CancellationToken.None);
+
+        result.Upvotes.Should().Be(0);
+        result.Downvotes.Should().Be(0);
+
+        var canceledVote = await db.Votes.FirstOrDefaultAsync(v => v.PhotoId == photoId && v.UserId == userId);
+        canceledVote.Should().BeNull();
+
+        publisherMock.Verify(p => p.Publish(It.Is<PhotoVotedIntegrationEvent>(
+            e => e.PhotoId == photoId && e.VoteDelta == -1 && e.TotalUpvotes == 0), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
