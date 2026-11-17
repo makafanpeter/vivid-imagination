@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using VividImagination.Modules.Identity.Controllers.v1;
+using VividImagination.Modules.Identity.Features.Auth.Services;
 using VividImagination.Modules.Identity.Persistence;
 using VividImagination.Modules.Identity.Services;
 using VividImagination.Shared.Contract.Identity;
@@ -32,6 +33,7 @@ public class IdentityModule : IAppModule
         
         SnowFlakIdGenerator.Configure(1);
         
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
         
         services.AddValidatorsFromAssembly(typeof(IdentityModule).Assembly);
         

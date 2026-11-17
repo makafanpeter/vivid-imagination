@@ -4,7 +4,8 @@ namespace VividImagination.Shared.Infrastructure.IdsGenerator;
 
 public static class SnowFlakIdGenerator
 {
-    private static IdGenerator _generator;
+    private static IdGenerator? _generator;
+    private static readonly object _syncLock = new();
 
     public static void Configure(int generatorId)
     {
@@ -23,8 +24,24 @@ public static class SnowFlakIdGenerator
 
         // Create an IdGenerator with it's generator-id set to 0, our custom epoch
         // and id-structure
-        _generator = new IdGenerator(0, options);
+        lock (_syncLock)
+        {
+            _generator = new IdGenerator(0, options);
+        }
     }
 
-    public static long NewId() => _generator.CreateId();
+    public static long NewId()
+    {
+        if (_generator == null)
+        {
+            lock (_syncLock)
+            {
+                _generator ??= new IdGenerator(0, new IdGeneratorOptions(
+                    new IdStructure(45, 2, 16),
+                    new DefaultTimeSource(new DateTime(2022, 1, 1, 0, 0, 0, DateTimeKind.Local))));
+            }
+        }
+
+        return _generator.CreateId();
+    }
 }

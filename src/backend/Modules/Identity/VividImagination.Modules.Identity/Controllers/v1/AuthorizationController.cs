@@ -128,8 +128,9 @@ public class AuthorizationController(
                 return ForbidWithError(OpenIddictConstants.Errors.InvalidGrant, GenericAuthError);
             }
 
-            // Find user by username
-            var user = await userManager.FindByNameAsync(request.Username);
+            // Find user by username or email
+            var user = await userManager.FindByNameAsync(request.Username)
+                       ?? await userManager.FindByEmailAsync(request.Username);
             if (user == null)
             {
                 // Still check password to prevent timing attacks
