@@ -69,41 +69,10 @@ services:
     image: ${API_IMAGE:-ghcr.io/your-username/vividimagination.backend.api}:${APP_TAG:-latest}
     container_name: vivid-api
     restart: always
+    env_file:
+      - .env
     ports:
       - "127.0.0.1:8080:8080"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_HTTP_PORTS=8080
-      - AllowedHosts=*
-      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=${POSTGRES_DB:-vivid_imagination};Username=${POSTGRES_USER:-vivid_user};Password=${POSTGRES_PASSWORD}
-      - ConnectionStrings__Identity=Host=postgres;Port=5432;Database=${POSTGRES_DB:-vivid_imagination};Username=${POSTGRES_USER:-vivid_user};Password=${POSTGRES_PASSWORD}
-      - ConnectionStrings__Social=Host=postgres;Port=5432;Database=${POSTGRES_DB:-vivid_imagination};Username=${POSTGRES_USER:-vivid_user};Password=${POSTGRES_PASSWORD}
-      - ConnectionStrings__Mongo=mongodb://mongodb:27017
-      - MongoOptions__ConnectionString=mongodb://mongodb:27017
-      - MongoOptions__DatabaseName=${POSTGRES_DB:-vivid_imagination}
-      - Media__ConnectionString=mongodb://mongodb:27017
-      - Media__DatabaseName=${POSTGRES_DB:-vivid_imagination}
-      - Moderation__ConnectionString=mongodb://mongodb:27017
-      - Moderation__DatabaseName=${POSTGRES_DB:-vivid_imagination}
-      - Feed__ConnectionString=mongodb://mongodb:27017
-      - Feed__DatabaseName=${POSTGRES_DB:-vivid_imagination}
-      - ConnectionStrings__Redis=redis:6379
-      - ApplicationSettings__Cache__ConnectionString=redis:6379
-      - RabbitMQ__Enabled=true
-      - RabbitMQ__Host=rabbitmq
-      - RabbitMQ__Username=${RABBITMQ_USER:-guest}
-      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
-      - ApplicationSettings__EventBus__RabbitMQ__Host=rabbitmq
-      - ApplicationSettings__EventBus__RabbitMQ__Username=${RABBITMQ_USER:-guest}
-      - ApplicationSettings__EventBus__RabbitMQ__Password=${RABBITMQ_PASSWORD:-guest}
-      - AWS__Region=${AWS_REGION:-us-east-1}
-      - AWS__Bucket=${AWS_S3_BUCKET}
-      - ApplicationSettings__General__PublicBucket=${AWS_S3_BUCKET}
-      - ApplicationSettings__General__StorageType=S3
-      - ApplicationSettings__General__SecretKey=${JWT_SECRET_KEY}
-      - ApplicationSettings__General__EncryptionKey=${ENCRYPTION_KEY}
-      - ApplicationSettings__OpenIdConnectSettings__Authority=${APP_BASE_URL:-http://localhost:8080}
-      - ApplicationSettings__OpenIdConnectSettings__IssuerUri=${APP_BASE_URL:-http://localhost:8080}
     depends_on:
       postgres:
         condition: service_healthy
