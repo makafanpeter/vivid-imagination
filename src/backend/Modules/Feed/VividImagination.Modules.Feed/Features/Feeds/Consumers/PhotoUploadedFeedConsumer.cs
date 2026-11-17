@@ -1,6 +1,7 @@
 using MassTransit;
-using Microsoft.Extensions.Caching.Distributed;
+using MediatR;
 using Microsoft.Extensions.Logging;
+using VividImagination.Modules.Feed.Features.Feeds.Commands;
 using VividImagination.Modules.Feed.Persistence.Entities;
 using VividImagination.Modules.Feed.Ranking;
 using VividImagination.Modules.Media.Contracts.Events;
@@ -11,13 +12,16 @@ namespace VividImagination.Modules.Feed.Features.Feeds.Consumers;
 public class PhotoUploadedFeedConsumer : IConsumer<PhotoUploadedIntegrationEvent>
 {
     private readonly IMongoRepository<FeedItem, Guid> _repository;
-    private readonly IDistributedCache _cache;
+    private readonly IMediator _mediator;
     private readonly ILogger<PhotoUploadedFeedConsumer> _logger;
 
-    public PhotoUploadedFeedConsumer(IMongoRepository<FeedItem, Guid> repository, IDistributedCache cache, ILogger<PhotoUploadedFeedConsumer> logger)
+    public PhotoUploadedFeedConsumer(
+        IMongoRepository<FeedItem, Guid> repository,
+        IMediator mediator,
+        ILogger<PhotoUploadedFeedConsumer> logger)
     {
         _repository = repository;
-        _cache = cache;
+        _mediator = mediator;
         _logger = logger;
     }
 
@@ -28,7 +32,7 @@ public class PhotoUploadedFeedConsumer : IConsumer<PhotoUploadedIntegrationEvent
 
         var feedItem = new FeedItem
         {
-            Id = Guid.NewGuid(),
+            Id = msg.PhotoId,
             PhotoId = msg.PhotoId,
             UserId = msg.UserId,
             StorageKey = msg.StorageKey,
@@ -45,6 +49,6 @@ public class PhotoUploadedFeedConsumer : IConsumer<PhotoUploadedIntegrationEvent
         };
 
         await _repository.AddAsync(feedItem, context.CancellationToken);
-        await _cache.RemoveAsync("feed_page_1", context.CancellationToken);
+        await _mediator.Send(new InvalidateFeedCacheCommand(), context.CancellationToken);
     }
 }

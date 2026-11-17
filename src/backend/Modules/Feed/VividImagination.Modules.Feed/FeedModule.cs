@@ -1,4 +1,6 @@
-﻿using MassTransit;
+﻿using System.Reflection;
+using FluentValidation;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -30,9 +32,11 @@ public class FeedModule : IAppModule, IMessagingModule
     {
         var mongoSection = configuration.GetSection($"{ModuleName}");
         
-       
         services.AddMongoDbContext<FeedDbContext>(mongoSection)
             .AddRepository<FeedItem, Guid, FeedDbContext>(ctx => ctx.FeedItems);
+
+        services.AddCustomMediatR(Assembly.GetExecutingAssembly());
+        services.AddValidatorsFromAssembly(typeof(FeedModule).Assembly);
 
         return services;
     }
@@ -58,6 +62,6 @@ public class FeedModule : IAppModule, IMessagingModule
     {
         public const string FormattedModuleName = "Feed Module";
         public const string FormatedModuleName = FormattedModuleName;
-        public const string ModuleNameForRouting = "/feed/";
+        public const string ModuleNameForRouting = "/feed";
     }
 }

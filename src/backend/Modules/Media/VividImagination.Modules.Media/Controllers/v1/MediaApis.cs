@@ -95,7 +95,7 @@ public static class MediaApis
 
     private static async Task<IResult> UploadAsync(
         [FromForm] UploadFile? model,
-        ISender mediator,
+        IMediator mediator,
         ILogger<MediaModule> logger,
         CancellationToken ct)
     {
@@ -131,7 +131,7 @@ public static class MediaApis
 
     private static async Task<IResult> DownloadAsync(
         Guid id,
-        ISender mediator,
+        IMediator mediator,
         CancellationToken ct)
     {
         var response = await mediator.Send(new DownloadDocumentQuery { Id = id }, ct);
@@ -144,7 +144,7 @@ public static class MediaApis
 
     private static async Task<IResult> GetAsync(
         Guid id,
-        ISender mediator,
+        IMediator mediator,
         CancellationToken ct)
     {
         var response = await mediator.Send(new GetDocumentQuery { Id = id }, ct);
@@ -153,7 +153,7 @@ public static class MediaApis
 
     private static async Task<IResult> DeleteAsync(
         Guid id,
-        ISender mediator,
+        IMediator mediator,
         CancellationToken ct)
     {
         await mediator.Send(new DeleteDocumentCommand { Id = id }, ct);
@@ -163,7 +163,7 @@ public static class MediaApis
     private static async Task<IResult> UpdateAsync(
         Guid id,
         [FromForm] UploadFile? model,
-        ISender mediator,
+        IMediator mediator,
         ILogger<MediaModule> logger,
         CancellationToken ct)
     {
