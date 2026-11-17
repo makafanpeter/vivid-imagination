@@ -20,6 +20,7 @@ using MongoDB.Driver;
 using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using VividImagination.Shared.Contract.Identity;
+using VividImagination.Shared.Infrastructure.Web.Identity;
 
 namespace VividImagination.Shared.Infrastructure
 {
@@ -213,6 +214,8 @@ public static class DependencyInjection
       {
          ConfigureOpenIdConnectAuthentication(services, configuration);
       }
+
+      services.AddScoped<ICurrentUser, CurrentWebUser>();
 
       return services;
    }

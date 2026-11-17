@@ -1,3 +1,5 @@
+using VividImagination.Shared.Contract.Identity.Enums;
+
 namespace VividImagination.Shared.Contract.Identity;
 
 public sealed class Profile
@@ -48,4 +50,5 @@ public sealed class Profile
     public string? Role { get; set; } = string.Empty;
     public List<string>? Scopes { get; set; }
     public string? TimeZoneId { get; set; }
+    public SafeBrowsingMode SafeBrowsingMode { get; set; } = SafeBrowsingMode.BlurSensitive;
 }

@@ -2,6 +2,7 @@ using MediatR;
 using MongoDB.Driver;
 using VividImagination.Modules.Feed.Features.Feeds.Dtos;
 using VividImagination.Modules.Feed.Persistence.Entities;
+using VividImagination.Shared.Contract.Identity.Enums;
 using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Feed.Features.Feeds.Queries;
@@ -31,21 +32,39 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, IReadOnlyList<F
             sort,
             cancellationToken);
 
-        return pagedItems.Select(i => new FeedItemDto(
-            i.Id,
-            i.PhotoId,
-            i.UserId,
-            i.StorageKey,
-            i.BlurHash,
-            i.Caption,
-            i.Upvotes,
-            i.Downvotes,
-            i.Score,
-            i.IsUnsafe,
-            i.BlurRequired,
-            i.SafetyCategory,
-            i.BlurRequired ? $"Sensitive Content: {i.SafetyCategory ?? "Content Flagged"}" : null,
-            i.UploadedAt
-        )).ToList();
+        IEnumerable<FeedItem> items = pagedItems;
+
+        if (request.SafeBrowsingMode == SafeBrowsingMode.HideSensitive)
+        {
+            items = items.Where(x => !x.BlurRequired && !x.IsUnsafe);
+        }
+
+        return items.Select(i =>
+        {
+            var blurRequired = request.SafeBrowsingMode == SafeBrowsingMode.AlwaysShowSensitive
+                ? false
+                : i.BlurRequired;
+
+            var warning = blurRequired
+                ? $"Sensitive Content: {i.SafetyCategory ?? "Content Flagged"}"
+                : null;
+
+            return new FeedItemDto(
+                i.Id,
+                i.PhotoId,
+                i.UserId,
+                i.StorageKey,
+                i.BlurHash,
+                i.Caption,
+                i.Upvotes,
+                i.Downvotes,
+                i.Score,
+                i.IsUnsafe,
+                blurRequired,
+                i.SafetyCategory,
+                warning,
+                i.UploadedAt
+            );
+        }).ToList();
     }
 }

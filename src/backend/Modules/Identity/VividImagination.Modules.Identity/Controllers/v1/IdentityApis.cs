@@ -1,8 +1,13 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using OpenIddict.Validation.AspNetCore;
+using VividImagination.Modules.Identity.Features.Preferences.Commands;
+using VividImagination.Modules.Identity.Features.Preferences.Dtos;
+using VividImagination.Modules.Identity.Features.Preferences.Queries;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure.Common;
 using VividImagination.Shared.Infrastructure.Exceptions;
@@ -27,11 +32,49 @@ public static class IdentityApis
             .Produces<Profile>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status401Unauthorized);
 
+        group.MapGet("/me/preferences", GetUserPreferencesAsync)
+            .WithName(nameof(GetUserPreferencesAsync))
+            .WithDescription("Get safe browsing preferences for current user")
+            .RequireAuthorization(AuthorizeAttribute)
+            .Produces<SafeBrowsingPreferenceDto>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
+
+        group.MapPut("/me/preferences", UpdateUserPreferencesAsync)
+            .WithName(nameof(UpdateUserPreferencesAsync))
+            .WithDescription("Update safe browsing preferences for current user")
+            .RequireAuthorization(AuthorizeAttribute)
+            .Produces<SafeBrowsingPreferenceDto>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status401Unauthorized)
+            .Produces(StatusCodes.Status404NotFound);
+
         return app;
     }
 
     private static IResult GetCurrentUserAsync(ICurrentUser currentUser)
     {
         return currentUser.CurrentUser == null ? throw new UnAuthorizedException("You are not authorized") : Results.Ok(currentUser.CurrentUser);
+    }
+
+    private static async Task<IResult> GetUserPreferencesAsync(
+        [FromServices] ICurrentUser currentUser,
+        [FromServices] IMediator mediator,
+        CancellationToken ct)
+    {
+        var userId = currentUser.GetUserId() ?? throw new UnAuthorizedException("You are not authorized");
+        var result = await mediator.Send(new GetSafeBrowsingPreferenceQuery(userId), ct);
+        return Results.Ok(result);
+    }
+
+    private static async Task<IResult> UpdateUserPreferencesAsync(
+        [FromBody] UpdatePreferencesRequest request,
+        [FromServices] ICurrentUser currentUser,
+        [FromServices] IMediator mediator,
+        CancellationToken ct)
+    {
+        var userId = currentUser.GetUserId() ?? throw new UnAuthorizedException("You are not authorized");
+        var result = await mediator.Send(new UpdateSafeBrowsingPreferenceCommand(userId, request.SafeBrowsingMode), ct);
+        return Results.Ok(result);
     }
 }

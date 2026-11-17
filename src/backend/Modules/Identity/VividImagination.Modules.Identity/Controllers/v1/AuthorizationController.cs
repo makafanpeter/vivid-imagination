@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using VividImagination.Shared.Infrastructure.Web.Helpers;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
@@ -16,7 +17,7 @@ using VividImagination.Shared.Contract.Identity;
 namespace VividImagination.Modules.Identity.Controllers.v1;
 
 [ApiController]
-[Route("v1/connect")]
+[Route("connect")]
 [ApiExplorerSettings(IgnoreApi = true)]
 public class AuthorizationController(
     UserManager<User> userManager,
@@ -54,6 +55,66 @@ public class AuthorizationController(
             Error = OpenIddictConstants.Errors.UnsupportedGrantType,
             ErrorDescription = "The specified grant type is not supported."
         });
+    }
+
+    [Authorize(AuthenticationSchemes = OpenIddictServerAspNetCoreDefaults.AuthenticationScheme)]
+    [HttpGet("userinfo"), HttpPost("userinfo")]
+    [IgnoreAntiforgeryToken]
+    [Produces("application/json")]
+    public async Task<IActionResult> Userinfo()
+    {
+        var userId = User.GetClaim(OpenIddictConstants.Claims.Subject);
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Challenge(
+                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                properties: new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidToken,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The specified access token is bound to an account that no longer exists."
+                }));
+        }
+
+        var user = await userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            return Challenge(
+                authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+                properties: new AuthenticationProperties(new Dictionary<string, string?>
+                {
+                    [OpenIddictServerAspNetCoreConstants.Properties.Error] = OpenIddictConstants.Errors.InvalidToken,
+                    [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = "The specified access token is bound to an account that no longer exists."
+                }));
+        }
+
+        var claims = new Dictionary<string, object>(StringComparer.Ordinal)
+        {
+            [OpenIddictConstants.Claims.Subject] = user.Id.ToString(),
+            [OpenIddictConstants.Claims.Email] = user.Email ?? string.Empty,
+            [OpenIddictConstants.Claims.Name] = $"{user.FirstName} {user.LastName}".Trim(),
+            [OpenIddictConstants.Claims.PreferredUsername] = user.UserName ?? string.Empty,
+            ["safe_browsing_mode"] = user.SafeBrowsingMode.ToString()
+        };
+
+        if (User.HasScope(OpenIddictConstants.Scopes.Roles))
+        {
+            claims[OpenIddictConstants.Claims.Role] = await userManager.GetRolesAsync(user);
+        }
+
+        return Ok(claims);
+    }
+
+    [HttpGet("logout"), HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await signInManager.SignOutAsync();
+
+        return SignOut(
+            authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
+            properties: new AuthenticationProperties
+            {
+                RedirectUri = "/"
+            });
     }
 
 
@@ -252,7 +313,8 @@ public class AuthorizationController(
         identity.SetClaim(OpenIddictConstants.Claims.Subject, user.Id.ToString())
             .SetClaim(OpenIddictConstants.Claims.Email, user.Email)
             .SetClaim(OpenIddictConstants.Claims.Name, $"{user.FirstName} {user.LastName}")
-            .SetClaim(OpenIddictConstants.Claims.PreferredUsername, user.UserName);
+            .SetClaim(OpenIddictConstants.Claims.PreferredUsername, user.UserName)
+            .SetClaim("safe_browsing_mode", user.SafeBrowsingMode.ToString());
         
 
         
@@ -322,6 +384,7 @@ public class AuthorizationController(
             case OpenIddictConstants.Claims.PhoneNumberVerified:
             case OpenIddictConstants.Claims.Zoneinfo:
             case Constants.ClaimTypes.TwoFactorEnabled:
+            case "safe_browsing_mode":
                 // Include in both access and identity tokens
                 yield return OpenIddictConstants.Destinations.AccessToken;
                 yield return OpenIddictConstants.Destinations.IdentityToken;
@@ -359,7 +422,7 @@ public class AuthorizationController(
     {
         return Forbid(
             authenticationSchemes: OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-            properties: new AuthenticationProperties(new Dictionary<string, string>
+            properties: new AuthenticationProperties(new Dictionary<string, string?>
             {
                 [OpenIddictServerAspNetCoreConstants.Properties.Error] = error,
                 [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = errorDescription

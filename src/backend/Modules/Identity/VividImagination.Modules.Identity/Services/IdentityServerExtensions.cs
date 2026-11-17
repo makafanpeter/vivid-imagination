@@ -28,7 +28,7 @@ public static class IdentityServerExtensions
             //services.AddScoped<CustomOpenIddictValidationHandlers>();
             var securitySettings = applicationSettings.SecuritySettings;
 
-            services.AddIdentity<User, IdentityRole>(config =>
+            services.AddIdentity<User, IdentityRole<long>>(config =>
                 {
                     config.Password.RequiredLength = securitySettings.PasswordMinimumLength;
                     config.Password.RequireDigit = securitySettings.PasswordRequireDigit;
@@ -52,8 +52,10 @@ public static class IdentityServerExtensions
                         .UseDbContext<IdentityDbContext>();
                 }).AddServer(options =>
                 {
-                    // Enable the token endpoint
-                    options.SetTokenEndpointUris("/connect/token");
+                    // Enable the token, userinfo and logout endpoints
+                    options.SetTokenEndpointUris("/connect/token", "/v1/connect/token");
+                    options.SetUserInfoEndpointUris("/connect/userinfo", "/v1/connect/userinfo");
+                    options.SetEndSessionEndpointUris("/connect/logout", "/v1/connect/logout");
 
                     // Enable password + refresh (operator) and client_credentials (device) flows
                     options.AllowPasswordFlow()
@@ -72,6 +74,8 @@ public static class IdentityServerExtensions
                     // Register the ASP.NET Core host and configure options
                     options.UseAspNetCore()
                         .EnableTokenEndpointPassthrough()
+                        .EnableUserInfoEndpointPassthrough()
+                        .EnableEndSessionEndpointPassthrough()
                         .DisableTransportSecurityRequirement(); // Only for development!
 
                     // Register scopes (permissions)

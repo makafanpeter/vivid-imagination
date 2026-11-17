@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using VividImagination.Modules.Identity.Persistence.Entities;
+using VividImagination.Shared.Contract.Identity.Enums;
 
 namespace VividImagination.Modules.Identity.Persistence.Infrastructure.Configurations;
 
@@ -28,6 +29,9 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<User>
        
         builder.HasIndex(u => u.CreatedOn);
 
-        
+        builder.Property(x => x.SafeBrowsingMode)
+            .HasConversion<int>()
+            .IsRequired()
+            .HasDefaultValue(SafeBrowsingMode.BlurSensitive);
     }
 }

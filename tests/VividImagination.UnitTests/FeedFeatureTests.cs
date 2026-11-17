@@ -116,6 +116,109 @@ public class FeedFeatureTests
     }
 
     [Fact]
+    public async Task GetFeedQueryHandler_WithHideSensitive_ShouldFilterOutSensitiveItems()
+    {
+        // Arrange
+        var repoMock = new Mock<IMongoRepository<FeedItem, Guid>>();
+        var safePhotoId = Guid.NewGuid();
+        var sensitivePhotoId = Guid.NewGuid();
+
+        var feedItems = new List<FeedItem>
+        {
+            new()
+            {
+                Id = safePhotoId,
+                PhotoId = safePhotoId,
+                UserId = Guid.NewGuid(),
+                Caption = "Safe Landscape",
+                IsUnsafe = false,
+                BlurRequired = false,
+                Verdict = "Approved",
+                UploadedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                Id = sensitivePhotoId,
+                PhotoId = sensitivePhotoId,
+                UserId = Guid.NewGuid(),
+                Caption = "Suggestive Beach",
+                IsUnsafe = true,
+                BlurRequired = true,
+                SafetyCategory = "Suggestive",
+                Verdict = "TaggedUnsafe",
+                UploadedAt = DateTime.UtcNow
+            }
+        };
+
+        var pagedList = new PagedList<FeedItem>(feedItems, 0, 20, 2);
+
+        repoMock.Setup(r => r.FindPagedAsync(
+                It.IsAny<Expression<Func<FeedItem, bool>>>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<SortDefinition<FeedItem>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pagedList);
+
+        var handler = new GetFeedQueryHandler(repoMock.Object);
+
+        // Act
+        var result = await handler.Handle(
+            new GetFeedQuery(1, 20, VividImagination.Shared.Contract.Identity.Enums.SafeBrowsingMode.HideSensitive),
+            CancellationToken.None);
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].Id.Should().Be(safePhotoId);
+    }
+
+    [Fact]
+    public async Task GetFeedQueryHandler_WithAlwaysShowSensitive_ShouldUnblurSensitiveItems()
+    {
+        // Arrange
+        var repoMock = new Mock<IMongoRepository<FeedItem, Guid>>();
+        var sensitivePhotoId = Guid.NewGuid();
+
+        var feedItems = new List<FeedItem>
+        {
+            new()
+            {
+                Id = sensitivePhotoId,
+                PhotoId = sensitivePhotoId,
+                UserId = Guid.NewGuid(),
+                Caption = "Suggestive Beach",
+                IsUnsafe = true,
+                BlurRequired = true,
+                SafetyCategory = "Suggestive",
+                Verdict = "TaggedUnsafe",
+                UploadedAt = DateTime.UtcNow
+            }
+        };
+
+        var pagedList = new PagedList<FeedItem>(feedItems, 0, 20, 1);
+
+        repoMock.Setup(r => r.FindPagedAsync(
+                It.IsAny<Expression<Func<FeedItem, bool>>>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<SortDefinition<FeedItem>?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pagedList);
+
+        var handler = new GetFeedQueryHandler(repoMock.Object);
+
+        // Act
+        var result = await handler.Handle(
+            new GetFeedQuery(1, 20, VividImagination.Shared.Contract.Identity.Enums.SafeBrowsingMode.AlwaysShowSensitive),
+            CancellationToken.None);
+
+        // Assert
+        result.Should().HaveCount(1);
+        result[0].BlurRequired.Should().BeFalse();
+        result[0].SensitiveContentWarning.Should().BeNull();
+    }
+
+    [Fact]
     public async Task PhotoUploadedFeedConsumer_ShouldSetIdAndPublishInvalidation()
     {
         // Arrange

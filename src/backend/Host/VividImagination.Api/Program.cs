@@ -71,8 +71,7 @@ try
 
     #region Identity Context
 
-    //builder.Services.AddScoped<ICurrentUser, CurrentWebUser>();
-    
+    // ICurrentUser is registered via AddCustomAuthentication (CurrentWebUser)
 
     #endregion
 
@@ -168,8 +167,8 @@ try
 
     #region Module Endpoint
 
-    app.UseAdinovaModules();
-    app.MapAdinovaModulesEndpoints();
+    app.UseModules();
+    app.MapModuleEndpoints();
 
     #endregion
 

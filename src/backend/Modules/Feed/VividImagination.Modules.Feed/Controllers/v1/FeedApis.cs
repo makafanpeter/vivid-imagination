@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using VividImagination.Modules.Feed.Features.Feeds.Dtos;
 using VividImagination.Modules.Feed.Features.Feeds.Queries;
+using VividImagination.Shared.Contract.Identity.Enums;
 using VividImagination.Shared.Infrastructure.Common;
 
 namespace VividImagination.Modules.Feed.Controllers.v1;
@@ -35,10 +36,11 @@ public static class FeedApis
     private static async Task<IResult> GetRankedFeedAsync(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] SafeBrowsingMode? safeBrowsingMode = null,
         [FromServices] IMediator mediator = default!,
         CancellationToken ct = default)
     {
-        var result = await mediator.Send(new GetFeedQuery(page, pageSize), ct);
+        var result = await mediator.Send(new GetFeedQuery(page, pageSize, safeBrowsingMode), ct);
         return Results.Ok(result);
     }
 }
