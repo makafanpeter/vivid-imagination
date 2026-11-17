@@ -17,5 +17,10 @@ namespace VividImagination.Modules.Media.Features.Photos.ViewModels
         public string? Url { get; set; }
         public bool Public { get; set; }
         public string? OrganizationId { get; set; }
+        public string Status { get; set; } = "Processing";
+        public string? BlurHash { get; set; }
+        public int? Width { get; set; }
+        public int? Height { get; set; }
+        public Dictionary<string, FileVariantInfo> Variants { get; set; } = new();
     }
 }

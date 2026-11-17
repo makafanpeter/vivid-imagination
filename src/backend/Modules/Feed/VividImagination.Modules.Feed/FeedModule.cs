@@ -26,6 +26,7 @@ public class FeedModule : IAppModule, IMessagingModule
     {
         cfg.AddConsumer<PhotoUploadedFeedConsumer>();
         cfg.AddConsumer<PhotoModeratedFeedConsumer>();
+        cfg.AddConsumer<PhotoOptimizedFeedConsumer>();
         cfg.AddConsumer<PhotoVotedFeedConsumer>();
         cfg.AddConsumer<PhotoDeletedFeedConsumer>();
     }
