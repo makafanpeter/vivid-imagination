@@ -68,7 +68,7 @@
 
                         <!-- Change / Clear Buttons overlay -->
                         <HorizontalStackLayout HorizontalOptions="End"
-                                               VerticalOptions="Top"
+                                               VerticalOptions="Start"
                                                Margin="12"
                                                Spacing="8">
                             <Button Text="Change"
