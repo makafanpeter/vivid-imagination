@@ -217,48 +217,6 @@ public static class AppModuleExtensions
         return services;
     }
 
-    #region Backwards Compatibility Aliases
-
-    [Obsolete("Use AddModulesFromAssembly instead.")]
-    public static IServiceCollection AddAdinovaModulesFromAssembly(this IServiceCollection services, Assembly assembly)
-        => AddModulesFromAssembly(services, assembly);
-
-    [Obsolete("Use AddModules instead.")]
-    public static IServiceCollection AddAdinovaModules(this IServiceCollection services, params Type[] moduleTypes)
-        => AddModules(services, moduleTypes);
-
-    [Obsolete("Use AddRegisteredModulesToMvc instead.")]
-    public static IMvcBuilder AddAdinovaModulesToMvc(this IMvcBuilder builder)
-        => AddRegisteredModulesToMvc(builder);
-
-    [Obsolete("Use UseModules instead.")]
-    public static IApplicationBuilder UseAdinovaModules(this IApplicationBuilder app)
-        => app.UseModules();
-
-    [Obsolete("Use MapModuleEndpoints instead.")]
-    public static IEndpointRouteBuilder MapAdinovaModulesEndpoints(this IEndpointRouteBuilder endpoints)
-        => endpoints.MapModuleEndpoints();
-
-    [Obsolete("Use AddModules instead.")]
-    public static IServiceCollection AddRegisteredModules(
-        this IServiceCollection services,
-        IConfiguration configuration,
-        IHostEnvironment environment)
-    {
-        var moduleTypes = ModuleRegistry.GetRegisteredModules().ToArray();
-        return AddModules(services, moduleTypes);
-    }
-
-    [Obsolete("Use UseModules instead.")]
-    public static IApplicationBuilder UseRegisteredModules(this IApplicationBuilder app)
-        => app.UseModules();
-
-    [Obsolete("Use MapModuleEndpoints instead.")]
-    public static IEndpointRouteBuilder UseRegisteredModuleApis(this IEndpointRouteBuilder endpoints)
-        => endpoints.MapModuleEndpoints();
-
-    #endregion
-
     /// <summary>
     /// Resets initialized and registered modules state (essential for test process isolation).
     /// </summary>

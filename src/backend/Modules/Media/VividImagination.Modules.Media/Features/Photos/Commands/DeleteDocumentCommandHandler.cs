@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using MassTransit;
+﻿using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VividImagination.Modules.Media.Contracts.Events;
@@ -15,7 +14,6 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
     public class DeleteDocumentCommandHandler(
         IFileServiceManager fileServiceManager,
         IMongoRepository<FileEntry, Guid> fileRepository,
-        IMapper mapper,
         ICurrentUser identityService,
         IAuthorizationService authorizationService,
         IPublishEndpoint publishEndpoint)

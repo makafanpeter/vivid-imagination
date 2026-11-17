@@ -132,7 +132,6 @@ public class MediaFeatureTests
         var handler = new DeleteDocumentCommandHandler(
             fileServiceManagerMock.Object,
             fileRepositoryMock.Object,
-            mapperMock.Object,
             currentUserMock.Object,
             authorizationServiceMock.Object,
             publishEndpointMock.Object);
@@ -172,7 +171,6 @@ public class MediaFeatureTests
         var handler = new DeleteDocumentCommandHandler(
             fileServiceManagerMock.Object,
             fileRepositoryMock.Object,
-            mapperMock.Object,
             currentUserMock.Object,
             authorizationServiceMock.Object,
             publishEndpointMock.Object);

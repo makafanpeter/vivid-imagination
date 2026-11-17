@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Hosting;
@@ -12,478 +10,308 @@ using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using VividImagination.Shared.Infrastructure.Common;
 using VividImagination.Shared.Infrastructure.Configurations;
+using VividImagination.Shared.Infrastructure.Web.Helpers;
 
-namespace VividImagination.Shared.Infrastructure.Web.Helpers
+public class WebHelper : IWebHelper
 {
-    public class WebHelper : IWebHelper
+    #region Fields
+
+    private static readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
+    private static readonly Uri DummyBase = new("http://localhost");
+
+    private readonly ApplicationSettings _appSettings;
+    private readonly IHostApplicationLifetime _hostApplicationLifetime;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    #endregion
+
+    #region Ctor
+
+    public WebHelper(IOptions<ApplicationSettings> appSettings,
+        IHostApplicationLifetime hostApplicationLifetime,
+        IHttpContextAccessor httpContextAccessor)
     {
-        #region Fields 
-
-        private readonly ApplicationSettings _appSettings;
-        private readonly IActionContextAccessor _actionContextAccessor;
-        private readonly IHostApplicationLifetime _hostApplicationLifetime;
-        private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IUrlHelperFactory _urlHelperFactory;
-
-        #endregion
-
-        #region Ctor
-
-        public WebHelper(IOptions<ApplicationSettings> appSettings,
-            IActionContextAccessor actionContextAccessor,
-            IHostApplicationLifetime hostApplicationLifetime,
-            IHttpContextAccessor httpContextAccessor,
-            IUrlHelperFactory urlHelperFactory)
-        {
-            _appSettings = appSettings.Value;
-            _actionContextAccessor = actionContextAccessor;
-            _hostApplicationLifetime = hostApplicationLifetime;
-            _httpContextAccessor = httpContextAccessor;
-            _urlHelperFactory = urlHelperFactory;
-        }
-
-        #endregion
-
-        #region Utilities
-
-        /// <summary>
-        /// Check whether current HTTP request is available
-        /// </summary>
-        /// <returns>True if available; otherwise false</returns>
-        protected virtual bool IsRequestAvailable()
-        {
-            if (_httpContextAccessor?.HttpContext == null)
-                return false;
-
-            try
-            {
-                if (_httpContextAccessor.HttpContext.Request == null)
-                    return false;
-            }
-            catch (System.Exception)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Is IP address specified
-        /// </summary>
-        /// <param name="address">IP address</param>
-        /// <returns>Result</returns>
-        protected virtual bool IsIpAddressSet(IPAddress address)
-        {
-            var rez = address != null && address.ToString() != IPAddress.IPv6Loopback.ToString();
-
-            return rez;
-        }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Get URL referrer if exists
-        /// </summary>
-        /// <returns>URL referrer</returns>
-        public virtual string GetUrlReferrer()
-        {
-            if (!IsRequestAvailable())
-                return string.Empty;
-
-            //URL referrer is null in some case (for example, in IE 8)
-            return _httpContextAccessor.HttpContext.Request.Headers[HeaderNames.Referer];
-        }
-
-        /// <summary>
-        /// Get IP address from HTTP context
-        /// </summary>
-        /// <returns>String of IP address</returns>
-        public virtual string GetCurrentIpAddress()
-        {
-            if (!IsRequestAvailable())
-                return string.Empty;
-
-            var result = string.Empty;
-            try
-            {
-                //first try to get IP address from the forwarded header
-                if (_httpContextAccessor.HttpContext.Request.Headers != null)
-                {
-                    //the X-Forwarded-For (XFF) HTTP header field is a de facto standard for identifying the originating IP address of a client
-                    //connecting to a web server through an HTTP proxy or load balancer
-                    var forwardedHttpHeaderKey = HttpDefaults.XForwardedForHeader;
-                    if (!string.IsNullOrEmpty(_appSettings.Http.ForwardedHttpHeader))
-                    {
-                        //but in some cases server use other HTTP header
-                        //in these cases an administrator can specify a custom Forwarded HTTP header (e.g. CF-Connecting-IP, X-FORWARDED-PROTO, etc)
-                        forwardedHttpHeaderKey = _appSettings.Http.ForwardedHttpHeader;
-                    }
-
-                    var forwardedHeader = _httpContextAccessor.HttpContext.Request.Headers[forwardedHttpHeaderKey];
-                    if (!StringValues.IsNullOrEmpty(forwardedHeader))
-                        result = forwardedHeader.FirstOrDefault();
-                }
-
-                //if this header not exists try get connection remote IP address
-                if (string.IsNullOrEmpty(result) && _httpContextAccessor.HttpContext.Connection.RemoteIpAddress != null)
-                    result = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
-            }
-            catch
-            {
-                return string.Empty;
-            }
-
-            //some of the validation
-            if (result != null && result.Equals(IPAddress.IPv6Loopback.ToString(), StringComparison.InvariantCultureIgnoreCase))
-                result = IPAddress.Loopback.ToString();
-
-            //"TryParse" doesn't support IPv4 with port number
-            if (IPAddress.TryParse(result ?? string.Empty, out var ip))
-                //IP address is valid 
-                result = ip.ToString();
-            else if (!string.IsNullOrEmpty(result))
-                //remove port
-                result = result.Split(':').FirstOrDefault();
-
-            return result;
-        }
-
-        /// <summary>
-        /// Gets this page URL
-        /// </summary>
-        /// <param name="includeQueryString">Value indicating whether to include query strings</param>
-        /// <param name="useSsl">Value indicating whether to get SSL secured page URL. Pass null to determine automatically</param>
-        /// <param name="lowercaseUrl">Value indicating whether to lowercase URL</param>
-        /// <returns>Page URL</returns>
-        public virtual string GetThisPageUrl(bool includeQueryString, bool? useSsl = null, bool lowercaseUrl = false)
-        {
-            if (!IsRequestAvailable())
-                return string.Empty;
-
-            //get store location
-            var storeLocation =  string.Empty;
-
-            //add local path to the URL
-            var pageUrl = $"{storeLocation.TrimEnd('/')}{_httpContextAccessor.HttpContext.Request.Path}";
-
-            //add query string to the URL
-            if (includeQueryString)
-                pageUrl = $"{pageUrl}{_httpContextAccessor.HttpContext.Request.QueryString}";
-
-            //whether to convert the URL to lower case
-            if (lowercaseUrl)
-                pageUrl = pageUrl.ToLowerInvariant();
-
-            return pageUrl;
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether current connection is secured
-        /// </summary>
-        /// <returns>True if it's secured, otherwise false</returns>
-        public virtual bool IsCurrentConnectionSecured()
-        {
-            if (!IsRequestAvailable())
-                return false;
-
-            //check whether hosting uses a load balancer
-            //use HTTP_CLUSTER_HTTPS?
-            if (_appSettings.Http.UseHttpClusterHttps)
-                return _httpContextAccessor.HttpContext.Request.Headers[HttpDefaults.HttpClusterHttpsHeader].ToString().Equals("on", StringComparison.OrdinalIgnoreCase);
-
-            //use HTTP_X_FORWARDED_PROTO?
-            if (_appSettings.Http.UseHttpXForwardedProto)
-                return _httpContextAccessor.HttpContext.Request.Headers[HttpDefaults.HttpXForwardedProtoHeader].ToString().Equals("https", StringComparison.OrdinalIgnoreCase);
-
-            return _httpContextAccessor.HttpContext.Request.IsHttps;
-        }
-
-       
-
-        
-
-        /// <summary>
-        /// Returns true if the requested resource is one of the typical resources that needn't be processed by the cms engine.
-        /// </summary>
-        /// <returns>True if the request targets a static resource file.</returns>
-        public virtual bool IsStaticResource()
-        {
-            if (!IsRequestAvailable())
-                return false;
-
-            string path = _httpContextAccessor.HttpContext.Request.Path;
-
-            //a little workaround. FileExtensionContentTypeProvider contains most of static file extensions. So we can use it
-            //source: https://github.com/aspnet/StaticFiles/blob/dev/src/Microsoft.AspNetCore.StaticFiles/FileExtensionContentTypeProvider.cs
-            //if it can return content type, then it's a static file
-            var contentTypeProvider = new FileExtensionContentTypeProvider();
-            return contentTypeProvider.TryGetContentType(path, out var _);
-        }
-
-        /// <summary>
-        /// Modify query string of the URL
-        /// </summary>
-        /// <param name="url">Url to modify</param>
-        /// <param name="key">Query parameter key to add</param>
-        /// <param name="values">Query parameter values to add</param>
-        /// <returns>New URL with passed query parameter</returns>
-        public virtual string ModifyQueryString(string url, string key, params string[] values)
-        {
-            if (string.IsNullOrEmpty(url))
-                return string.Empty;
-
-            if (string.IsNullOrEmpty(key))
-                return url;
-
-            //prepare URI object
-            var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
-            var isLocalUrl = urlHelper.IsLocalUrl(url);
-
-            var uriStr = url;
-           
-
-            var uri = new Uri(uriStr, UriKind.Absolute);
-
-            //get current query parameters
-            var queryParameters = QueryHelpers.ParseQuery(uri.Query);
-
-            //and add passed one
-            queryParameters[key] = string.Join(",", values);
-
-            //add only first value
-            //two the same query parameters? theoretically it's not possible.
-            //but MVC has some ugly implementation for checkboxes and we can have two values
-            //find more info here: http://www.mindstorminteractive.com/topics/jquery-fix-asp-net-mvc-checkbox-truefalse-value/
-            //we do this validation just to ensure that the first one is not overridden
-            var queryBuilder = new QueryBuilder(queryParameters
-                .ToDictionary(parameter => parameter.Key, parameter => parameter.Value.FirstOrDefault()?.ToString() ?? string.Empty));
-
-            //create new URL with passed query parameters
-            url = $"{(isLocalUrl ? uri.LocalPath : uri.GetLeftPart(UriPartial.Path))}{queryBuilder.ToQueryString()}{uri.Fragment}";
-
-            return url;
-        }
-
-        /// <summary>
-        /// Remove query parameter from the URL
-        /// </summary>
-        /// <param name="url">Url to modify</param>
-        /// <param name="key">Query parameter key to remove</param>
-        /// <param name="value">Query parameter value to remove; pass null to remove all query parameters with the specified key</param>
-        /// <returns>New URL without passed query parameter</returns>
-        public virtual string RemoveQueryString(string url, string key, string value = null)
-        {
-            if (string.IsNullOrEmpty(url))
-                return string.Empty;
-
-            if (string.IsNullOrEmpty(key))
-                return url;
-
-            //prepare URI object
-            var urlHelper = _urlHelperFactory.GetUrlHelper(_actionContextAccessor.ActionContext);
-            var isLocalUrl = urlHelper.IsLocalUrl(url);
-            var uri = new Uri( url, UriKind.Absolute);
-
-            //get current query parameters
-            var queryParameters = QueryHelpers.ParseQuery(uri.Query)
-                .SelectMany(parameter => parameter.Value, (parameter, queryValue) => new KeyValuePair<string, string>(parameter.Key, queryValue))
-                .ToList();
-
-            if (!string.IsNullOrEmpty(value))
-            {
-                //remove a specific query parameter value if it's passed
-                queryParameters.RemoveAll(parameter => parameter.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase)
-                    && parameter.Value.Equals(value, StringComparison.InvariantCultureIgnoreCase));
-            }
-            else
-            {
-                //or remove query parameter by the key
-                queryParameters.RemoveAll(parameter => parameter.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase));
-            }
-
-            var queryBuilder = new QueryBuilder(queryParameters);
-
-            //create new URL without passed query parameters
-            url = $"{(isLocalUrl ? uri.LocalPath : uri.GetLeftPart(UriPartial.Path))}{queryBuilder.ToQueryString()}{uri.Fragment}";
-
-            return url;
-        }
-
-        /// <summary>
-        /// Gets query string value by name
-        /// </summary>
-        /// <typeparam name="T">Returned value type</typeparam>
-        /// <param name="name">Query parameter name</param>
-        /// <returns>Query string value</returns>
-        public virtual T QueryString<T>(string name)
-        {
-            if (!IsRequestAvailable())
-                return default;
-
-            if (StringValues.IsNullOrEmpty(_httpContextAccessor.HttpContext.Request.Query[name]))
-                return default;
-
-            return CommonHelper.To<T>(_httpContextAccessor.HttpContext.Request.Query[name].ToString());
-        }
-
-        /// <summary>
-        /// Restart application domain
-        /// </summary>
-        public virtual void RestartAppDomain()
-        {
-            _hostApplicationLifetime.StopApplication();
-        }
-
-        /// <summary>
-        /// Gets a value that indicates whether the client is being redirected to a new location
-        /// </summary>
-        public virtual bool IsRequestBeingRedirected
-        {
-            get
-            {
-                var response = _httpContextAccessor.HttpContext.Response;
-                //ASP.NET 4 style - return response.IsRequestBeingRedirected;
-                int[] redirectionStatusCodes = { StatusCodes.Status301MovedPermanently, StatusCodes.Status302Found };
-
-                return redirectionStatusCodes.Contains(response.StatusCode);
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets a value that indicates whether the client is being redirected to a new location using POST
-        /// </summary>
-        public virtual bool IsPostBeingDone
-        {
-            get
-            {
-                if (_httpContextAccessor.HttpContext.Items[HttpDefaults.IsPostBeingDoneRequestItem] == null)
-                    return false;
-
-                return Convert.ToBoolean(_httpContextAccessor.HttpContext.Items[HttpDefaults.IsPostBeingDoneRequestItem]);
-            }
-
-            set => _httpContextAccessor.HttpContext.Items[HttpDefaults.IsPostBeingDoneRequestItem] = value;
-        }
-
-        /// <summary>
-        /// Gets current HTTP request protocol
-        /// </summary>
-        public virtual string GetCurrentRequestProtocol()
-        {
-            return IsCurrentConnectionSecured() ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
-        }
-
-        /// <summary>
-        /// Gets whether the specified HTTP request URI references the local host.
-        /// </summary>
-        /// <param name="req">HTTP request</param>
-        /// <returns>True, if HTTP request URI references to the local host</returns>
-        public virtual bool IsLocalRequest(HttpRequest req)
-        {
-            //source: https://stackoverflow.com/a/41242493/7860424
-            var connection = req.HttpContext.Connection;
-            if (IsIpAddressSet(connection.RemoteIpAddress))
-            {
-                //We have a remote address set up
-                return IsIpAddressSet(connection.LocalIpAddress)
-                    //Is local is same as remote, then we are local
-                    ? connection.RemoteIpAddress.Equals(connection.LocalIpAddress)
-                    //else we are remote if the remote IP address is not a loopback address
-                    : IPAddress.IsLoopback(connection.RemoteIpAddress);
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Get the raw path and full query of request
-        /// </summary>
-        /// <param name="request">HTTP request</param>
-        /// <returns>Raw URL</returns>
-        public virtual string GetRawUrl(HttpRequest request)
-        {
-            //first try to get the raw target from request feature
-            //note: value has not been UrlDecoded
-            var rawUrl = request.HttpContext.Features.Get<IHttpRequestFeature>()?.RawTarget;
-
-            //or compose raw URL manually
-            if (string.IsNullOrEmpty(rawUrl))
-                rawUrl = $"{request.PathBase}{request.Path}{request.QueryString}";
-
-            return rawUrl;
-        }
-
-        /// <summary>
-        /// Gets whether the request is made with AJAX 
-        /// </summary>
-        /// <param name="request">HTTP request</param>
-        /// <returns>Result</returns>
-        public virtual bool IsAjaxRequest(HttpRequest request)
-        {
-            if (request == null)
-                throw new ArgumentNullException(nameof(request));
-
-            if (request.Headers == null)
-                return false;
-
-            return request.Headers["X-Requested-With"] == "XMLHttpRequest";
-        }
-
-        public string GetUserAgent()
-        {
-            if (!IsRequestAvailable())
-                return string.Empty;
-
-            var result = string.Empty;
-            try
-            {
-                
-                if (_httpContextAccessor.HttpContext.Request.Headers != null)
-                {
-                    result = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].FirstOrDefault();
-                }
-            }
-            catch
-            {
-                return string.Empty;
-            }
-
-            return result;
-        }
-
-        #endregion
+        _appSettings = appSettings.Value;
+        _hostApplicationLifetime = hostApplicationLifetime;
+        _httpContextAccessor = httpContextAccessor;
     }
 
+    #endregion
 
+    #region Utilities
 
-    public static partial class HttpDefaults
+    private HttpContext? Context => _httpContextAccessor.HttpContext;
+
+    /// <summary>Check whether current HTTP request is available</summary>
+    protected virtual bool IsRequestAvailable()
     {
-        /// <summary>
-        /// Gets the name of the default HTTP client
-        /// </summary>
-        public static string DefaultHttpClient => "default";
-
-        /// <summary>
-        /// Gets the name of a request item that stores the value that indicates whether the client is being redirected to a new location using POST
-        /// </summary>
-        public static string IsPostBeingDoneRequestItem => "adinova.IsPOSTBeingDone";
-
-        /// <summary>
-        /// Gets the name of HTTP_CLUSTER_HTTPS header
-        /// </summary>
-        public static string HttpClusterHttpsHeader => "HTTP_CLUSTER_HTTPS";
-
-        /// <summary>
-        /// Gets the name of HTTP_X_FORWARDED_PROTO header
-        /// </summary>
-        public static string HttpXForwardedProtoHeader => "X-Forwarded-Proto";
-
-        /// <summary>
-        /// Gets the name of X-FORWARDED-FOR header
-        /// </summary>
-        public static string XForwardedForHeader => "X-FORWARDED-FOR";
+        try
+        {
+            return Context?.Request != null;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
+
+    /// <summary>Is IP address specified (not null and not the IPv6 loopback)</summary>
+    protected virtual bool IsIpAddressSet(IPAddress address) =>
+        address != null && !address.Equals(IPAddress.IPv6Loopback);
+
+    /// <summary>Parses an absolute http(s) URL or a local path. Throws on anything else.</summary>
+    private static (Uri Uri, bool IsLocal) ParseUrl(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var absolute)
+            && (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
+            return (absolute, false);
+
+        // Local path: a single leading "/" (rejects "//host" and "/\host")
+        if (url.StartsWith('/') && !url.StartsWith("//") && !url.StartsWith("/\\"))
+            return (new Uri(DummyBase, url), true);
+
+        throw new ArgumentException("URL must be an absolute http(s) URL or a local path.", nameof(url));
+    }
+
+    private static string BuildUrl(Uri uri, bool isLocal, QueryBuilder query) =>
+        $"{(isLocal ? uri.AbsolutePath : uri.GetLeftPart(UriPartial.Path))}{query.ToQueryString()}{uri.Fragment}";
+
+    #endregion
+
+    #region Methods
+
+    public virtual string GetUrlReferrer()
+    {
+        if (!IsRequestAvailable())
+            return string.Empty;
+
+        // The referrer header can be missing
+        return Context!.Request.Headers[HeaderNames.Referer].ToString();
+    }
+
+    /// <summary>
+    /// Gets the client IP address.
+    /// By default this is the connection's remote address. Configure UseForwardedHeaders with
+    /// KnownProxies/KnownNetworks so that address is already corrected for your proxy.
+    /// A forwarded header is read only when ForwardedHttpHeader is set explicitly in the settings.
+    /// </summary>
+    public virtual string GetCurrentIpAddress()
+    {
+        if (!IsRequestAvailable())
+            return string.Empty;
+
+        try
+        {
+            string? result = null;
+
+            var headerName = _appSettings.Http.ForwardedHttpHeader;
+            if (!string.IsNullOrEmpty(headerName))
+            {
+                var forwarded = Context!.Request.Headers[headerName];
+                if (!StringValues.IsNullOrEmpty(forwarded))
+                    result = forwarded.ToString().Split(',')[0].Trim();
+            }
+
+            if (string.IsNullOrEmpty(result))
+                result = Context!.Connection.RemoteIpAddress?.ToString();
+
+            if (string.IsNullOrEmpty(result))
+                return string.Empty;
+
+            // Plain IPv4/IPv6 address first, then "ip:port" and "[ipv6]:port"
+            if (IPAddress.TryParse(result, out var ip))
+                return Normalize(ip);
+
+            if (IPEndPoint.TryParse(result, out var endpoint))
+                return Normalize(endpoint.Address);
+
+            return string.Empty;   // not an IP address: don't store arbitrary header text
+        }
+        catch
+        {
+            return string.Empty;
+        }
+
+        static string Normalize(IPAddress ip) =>
+            ip.Equals(IPAddress.IPv6Loopback) ? IPAddress.Loopback.ToString() : ip.ToString();
+    }
+
+    public virtual string GetThisPageUrl(bool includeQueryString, bool? useSsl = null, bool lowercaseUrl = false)
+    {
+        if (!IsRequestAvailable())
+            return string.Empty;
+
+        var request = Context!.Request;
+        var pageUrl = request.Path.ToString();
+
+        if (includeQueryString)
+            pageUrl += request.QueryString;
+
+        return lowercaseUrl ? pageUrl.ToLowerInvariant() : pageUrl;
+    }
+
+    public virtual bool IsCurrentConnectionSecured()
+    {
+        if (!IsRequestAvailable())
+            return false;
+
+        var request = Context!.Request;
+
+        if (_appSettings.Http.UseHttpClusterHttps)
+            return request.Headers[HttpDefaults.HttpClusterHttpsHeader].ToString()
+                .Equals("on", StringComparison.OrdinalIgnoreCase);
+
+        if (_appSettings.Http.UseHttpXForwardedProto)
+            return request.Headers[HttpDefaults.HttpXForwardedProtoHeader].ToString()
+                .Equals("https", StringComparison.OrdinalIgnoreCase);
+
+        return request.IsHttps;
+    }
+
+    /// <summary>True if the request targets a static resource file.</summary>
+    public virtual bool IsStaticResource()
+    {
+        if (!IsRequestAvailable())
+            return false;
+
+        return ContentTypeProvider.TryGetContentType(Context!.Request.Path.ToString(), out _);
+    }
+
+    public virtual string ModifyQueryString(string url, string key, params string[] values)
+    {
+        if (string.IsNullOrEmpty(url))
+            return string.Empty;
+
+        if (string.IsNullOrEmpty(key))
+            return url;
+
+        var (uri, isLocal) = ParseUrl(url);
+
+        var queryParameters = QueryHelpers.ParseQuery(uri.Query);
+        queryParameters[key] = string.Join(",", values);
+
+        var queryBuilder = new QueryBuilder(queryParameters
+            .ToDictionary(p => p.Key, p => p.Value.FirstOrDefault() ?? string.Empty));
+
+        return BuildUrl(uri, isLocal, queryBuilder);
+    }
+
+    public virtual string RemoveQueryString(string url, string key, string value = null)
+    {
+        if (string.IsNullOrEmpty(url))
+            return string.Empty;
+
+        if (string.IsNullOrEmpty(key))
+            return url;
+
+        var (uri, isLocal) = ParseUrl(url);
+
+        var queryParameters = QueryHelpers.ParseQuery(uri.Query)
+            .SelectMany(p => p.Value, (p, v) => new KeyValuePair<string, string>(p.Key, v))
+            .ToList();
+
+        if (!string.IsNullOrEmpty(value))
+        {
+            queryParameters.RemoveAll(p =>
+                p.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase) &&
+                p.Value.Equals(value, StringComparison.InvariantCultureIgnoreCase));
+        }
+        else
+        {
+            queryParameters.RemoveAll(p => p.Key.Equals(key, StringComparison.InvariantCultureIgnoreCase));
+        }
+
+        return BuildUrl(uri, isLocal, new QueryBuilder(queryParameters));
+    }
+
+    public virtual T QueryString<T>(string name)
+    {
+        if (!IsRequestAvailable())
+            return default;
+
+        var value = Context!.Request.Query[name];
+        return StringValues.IsNullOrEmpty(value) ? default : CommonHelper.To<T>(value.ToString());
+    }
+
+    public virtual void RestartAppDomain() => _hostApplicationLifetime.StopApplication();
+
+    public virtual bool IsRequestBeingRedirected
+    {
+        get
+        {
+            if (!IsRequestAvailable())
+                return false;
+
+            var status = Context!.Response.StatusCode;
+            return status is StatusCodes.Status301MovedPermanently or StatusCodes.Status302Found;
+        }
+    }
+
+    public virtual bool IsPostBeingDone
+    {
+        get
+        {
+            if (!IsRequestAvailable())
+                return false;
+
+            var item = Context!.Items[HttpDefaults.IsPostBeingDoneRequestItem];
+            return item != null && Convert.ToBoolean(item);
+        }
+        set
+        {
+            if (IsRequestAvailable())
+                Context!.Items[HttpDefaults.IsPostBeingDoneRequestItem] = value;
+        }
+    }
+
+    public virtual string GetCurrentRequestProtocol() =>
+        IsCurrentConnectionSecured() ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+
+    public virtual bool IsLocalRequest(HttpRequest req)
+    {
+        var connection = req.HttpContext.Connection;
+        if (IsIpAddressSet(connection.RemoteIpAddress))
+        {
+            return IsIpAddressSet(connection.LocalIpAddress)
+                ? connection.RemoteIpAddress.Equals(connection.LocalIpAddress)
+                : IPAddress.IsLoopback(connection.RemoteIpAddress);
+        }
+
+        return true;
+    }
+
+    public virtual string GetRawUrl(HttpRequest request)
+    {
+        // The raw target is not URL-decoded
+        var rawUrl = request.HttpContext.Features.Get<IHttpRequestFeature>()?.RawTarget;
+
+        return string.IsNullOrEmpty(rawUrl)
+            ? $"{request.PathBase}{request.Path}{request.QueryString}"
+            : rawUrl;
+    }
+
+    public virtual bool IsAjaxRequest(HttpRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return request.Headers["X-Requested-With"] == "XMLHttpRequest";
+    }
+
+    public string GetUserAgent()
+    {
+        if (!IsRequestAvailable())
+            return string.Empty;
+
+        return Context!.Request.Headers.UserAgent.ToString();
+    }
+
+    #endregion
+}
+
+public static partial class HttpDefaults
+{
+    public static string DefaultHttpClient => "default";
+    public static string IsPostBeingDoneRequestItem => "vivid.IsPOSTBeingDone";
+    public static string HttpClusterHttpsHeader => "HTTP_CLUSTER_HTTPS";
+    public static string HttpXForwardedProtoHeader => "X-Forwarded-Proto";
+    public static string XForwardedForHeader => "X-FORWARDED-FOR";
 }

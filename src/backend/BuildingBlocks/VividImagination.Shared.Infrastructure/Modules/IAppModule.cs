@@ -17,11 +17,3 @@ public interface IAppModule
     IApplicationBuilder UseModule(IApplicationBuilder app);
     IEndpointRouteBuilder UseModuleApi(IEndpointRouteBuilder app);
 }
-
-/// <summary>
-/// Backwards-compatibility alias for <see cref="IAppModule"/>.
-/// </summary>
-[Obsolete("Use IAppModule instead.")]
-public interface IAdinovaModule : IAppModule
-{
-}
