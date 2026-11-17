@@ -14,4 +14,8 @@
     <ProjectReference Include="..\..\Social\VividImagination.Modules.Social.Contracts\VividImagination.Modules.Social.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Features\Feeds\" />
+  </ItemGroup>
+
 </Project>

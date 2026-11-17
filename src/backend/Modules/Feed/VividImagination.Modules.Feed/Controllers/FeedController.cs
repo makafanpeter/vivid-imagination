@@ -1,8 +1,9 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
-using VividImagination.Modules.Feed.Entities;
 using VividImagination.Modules.Feed.Persistence;
+using VividImagination.Modules.Feed.Persistence.Entities;
+using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Feed.Controllers;
 
@@ -10,10 +11,10 @@ namespace VividImagination.Modules.Feed.Controllers;
 [Route("api/v1/feed")]
 public class FeedController : ControllerBase
 {
-    private readonly IFeedRepository _repository;
+    private readonly IMongoRepository<FeedItem, Guid> _repository;
     private readonly IDistributedCache _cache;
 
-    public FeedController(IFeedRepository repository, IDistributedCache cache)
+    public FeedController(IMongoRepository<FeedItem, Guid> repository, IDistributedCache cache)
     {
         _repository = repository;
         _cache = cache;

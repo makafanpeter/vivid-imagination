@@ -1,13 +1,12 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using VividImagination.Shared.Domain.Entities;
 
-namespace VividImagination.Modules.Feed.Entities;
+namespace VividImagination.Modules.Feed.Persistence.Entities;
 
-public class FeedItem
+public class FeedItem: BaseEntity<Guid>, IAggregate<Guid>
 {
-    [BsonId]
-    [BsonRepresentation(BsonType.String)]
-    public Guid Id { get; set; } = Guid.NewGuid();
+    
 
     [BsonRepresentation(BsonType.String)]
     public Guid PhotoId { get; set; }
