@@ -5,10 +5,10 @@ using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Moderation.Features.Reviews.Queries;
 
-public sealed class GetModerationReviewQueryHandler(IMongoRepository<ModerationReview, Guid> repository)
-    : IRequestHandler<GetModerationReviewQuery, ModerationReview>
+public sealed class GetModerationReviewQueryHandler(IMongoRepository<Review, Guid> repository)
+    : IRequestHandler<GetModerationReviewQuery, Review>
 {
-    public async Task<ModerationReview> Handle(
+    public async Task<Review> Handle(
         GetModerationReviewQuery request,
         CancellationToken cancellationToken)
     {

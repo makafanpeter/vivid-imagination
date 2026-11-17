@@ -7,4 +7,4 @@ public record UpdateModerationVerdictCommand(
     Guid PhotoId,
     string Verdict,
     string? Reason,
-    bool BlurRequired) : IRequest<ModerationReview>;
+    bool BlurRequired) : IRequest<Review>;

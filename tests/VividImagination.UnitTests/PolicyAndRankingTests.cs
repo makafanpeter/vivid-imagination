@@ -67,11 +67,11 @@ public class PolicyAndRankingTests
     [Fact]
     public async Task Two_Flag_Rule_Should_Trigger_TaggedUnsafe_At_Two_Reports()
     {
-        var repositoryMock = new Mock<IMongoRepository<ModerationReview, Guid>>();
+        var repositoryMock = new Mock<IMongoRepository<Review, Guid>>();
         var publishEndpointMock = new Mock<IPublishEndpoint>();
         var photoId = Guid.NewGuid();
 
-        var existingReview = new ModerationReview
+        var existingReview = new Review
         {
             Id = photoId,
             PhotoId = photoId,
@@ -114,11 +114,11 @@ public class PolicyAndRankingTests
     [Fact]
     public async Task UpdateModerationVerdict_Should_Update_Review_And_Publish_PhotoModeratedIntegrationEvent()
     {
-        var repositoryMock = new Mock<IMongoRepository<ModerationReview, Guid>>();
+        var repositoryMock = new Mock<IMongoRepository<Review, Guid>>();
         var publishEndpointMock = new Mock<IPublishEndpoint>();
         var photoId = Guid.NewGuid();
 
-        var existingReview = new ModerationReview
+        var existingReview = new Review
         {
             Id = photoId,
             PhotoId = photoId,

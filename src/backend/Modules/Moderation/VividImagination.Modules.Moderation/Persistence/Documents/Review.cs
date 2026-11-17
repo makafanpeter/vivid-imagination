@@ -4,7 +4,7 @@ using VividImagination.Shared.Domain.Entities;
 
 namespace VividImagination.Modules.Moderation.Persistence.Documents;
 
-public class ModerationReview: BaseEntity<Guid>, IAggregate<Guid>
+public class Review: BaseEntity<Guid>, IAggregate<Guid>
 {
 
     [BsonRepresentation(BsonType.String)]

@@ -9,12 +9,12 @@ using VividImagination.Shared.Infrastructure.Mongo;
 namespace VividImagination.Modules.Moderation.Features.Reviews.Commands;
 
 public class UpdateModerationVerdictCommandHandler(
-    IMongoRepository<ModerationReview, Guid> repository,
+    IMongoRepository<Review, Guid> repository,
     IPublishEndpoint publishEndpoint,
     ILogger<UpdateModerationVerdictCommandHandler> logger)
-    : IRequestHandler<UpdateModerationVerdictCommand, ModerationReview>
+    : IRequestHandler<UpdateModerationVerdictCommand, Review>
 {
-    public async Task<ModerationReview> Handle(UpdateModerationVerdictCommand request, CancellationToken ct)
+    public async Task<Review> Handle(UpdateModerationVerdictCommand request, CancellationToken ct)
     {
         var review = await repository.FindByIdAsync(request.PhotoId, ct)
                      ?? throw new NotFoundException($"Moderation review for photo {request.PhotoId} not found");

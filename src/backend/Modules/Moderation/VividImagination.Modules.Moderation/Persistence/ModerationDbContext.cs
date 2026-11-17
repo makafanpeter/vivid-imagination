@@ -10,10 +10,10 @@ public class ModerationDbContext : MongoDbContext
 {
     public ModerationDbContext(IOptions<MongoOptions> options) : base(options)
     {
-        Reviews = GetCollection<ModerationReview>(nameof(ModerationReview).Pluralize());
+        Reviews = GetCollection<Review>(nameof(Review).Pluralize());
     }
 
-    public IMongoCollection<ModerationReview> Reviews { get; set; }
+    public IMongoCollection<Review> Reviews { get; set; }
 
     public override Task InitializeAsync(CancellationToken ct = default)
     {

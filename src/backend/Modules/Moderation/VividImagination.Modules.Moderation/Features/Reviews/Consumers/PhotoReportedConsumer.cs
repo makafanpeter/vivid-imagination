@@ -8,7 +8,7 @@ using VividImagination.Shared.Infrastructure.Mongo;
 namespace VividImagination.Modules.Moderation.Features.Reviews.Consumers;
 
 public class PhotoReportedConsumer(
-    IMongoRepository<ModerationReview, Guid> repository,
+    IMongoRepository<Review, Guid> repository,
     IPublishEndpoint publishEndpoint,
     ILogger<PhotoReportedConsumer> logger)
     : IConsumer<PhotoReportedIntegrationEvent>
@@ -23,7 +23,7 @@ public class PhotoReportedConsumer(
 
         if (review == null)
         {
-            review = new ModerationReview
+            review = new Review
             {
                 Id = message.PhotoId,
                 PhotoId = message.PhotoId,

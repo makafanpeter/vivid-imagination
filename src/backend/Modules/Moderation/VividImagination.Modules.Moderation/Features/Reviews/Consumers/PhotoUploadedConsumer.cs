@@ -10,7 +10,7 @@ namespace VividImagination.Modules.Moderation.Features.Reviews.Consumers;
 
 public class PhotoUploadedConsumer(
     IAmazonRekognitionService rekognitionService,
-    IMongoRepository<ModerationReview, Guid> repository,
+    IMongoRepository<Review, Guid> repository,
     IPublishEndpoint publishEndpoint,
     ILogger<PhotoUploadedConsumer> logger)
     : IConsumer<PhotoUploadedIntegrationEvent>
@@ -22,7 +22,7 @@ public class PhotoUploadedConsumer(
 
         var result = await rekognitionService.InspectPhotoAsync("vivid-imagination-photos", message.StorageKey, context.CancellationToken);
 
-        var review = new ModerationReview
+        var review = new Review
         {
             Id = message.PhotoId,
             PhotoId = message.PhotoId,

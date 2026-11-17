@@ -35,7 +35,7 @@ public class ModerationModule : IAppModule, IMessagingModule
         
         var mongoSection = configuration.GetSection(ModuleName);
         services.AddMongoDbContext<ModerationDbContext>(mongoSection)
-            .AddRepository<ModerationReview, Guid, ModerationDbContext>(ctx => ctx.Reviews);
+            .AddRepository<Review, Guid, ModerationDbContext>(ctx => ctx.Reviews);
 
         
         
