@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VividImagination.Mobile.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="VividImagination.Mobile.Pages.Controls.BlurShieldView"
+             x:DataType="vm:FeedItemViewModel">
+
+    <Grid HeightRequest="320" HorizontalOptions="Fill">
+        <!-- Remote Photo (Always loaded under the shield or visible directly) -->
+        <Image Source="{Binding ImageUrl}"
+               Aspect="AspectFill"
+               HorizontalOptions="Fill"
+               VerticalOptions="Fill" />
+
+        <!-- AI Moderation Blur Shield Overlay -->
+        <Grid IsVisible="{Binding IsShieldActive}"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
+
+            <!-- BlurHash Canvas / Placeholder -->
+            <Image Source="{Binding BlurHashImageSource}"
+                   Aspect="AspectFill"
+                   HorizontalOptions="Fill"
+                   VerticalOptions="Fill" />
+
+            <!-- Frosted Dark Blur Mask -->
+            <BoxView Color="#EE141418"
+                     HorizontalOptions="Fill"
+                     VerticalOptions="Fill" />
+
+            <!-- Shield Details & User Consent Reveal Action -->
+            <VerticalStackLayout VerticalOptions="Center"
+                                 HorizontalOptions="Center"
+                                 Spacing="12"
+                                 Padding="24">
+
+                <Border StrokeShape="RoundRectangle 24"
+                        BackgroundColor="#33FFFFFF"
+                        StrokeThickness="0"
+                        HorizontalOptions="Center"
+                        HeightRequest="48"
+                        WidthRequest="48">
+                    <Label Text="🛡️"
+                           FontSize="24"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+
+                <Label Text="{Binding SensitiveContentWarning}"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="{Binding SafetyCategory, StringFormat='Category: {0}'}"
+                       FontSize="13"
+                       TextColor="#C0C0C0"
+                       HorizontalTextAlignment="Center"
+                       IsVisible="{Binding SafetyCategory, Converter={toolkit:IsNotNullConverter}}" />
+
+                <Button Text="Show Content"
+                        Command="{Binding ToggleRevealCommand}"
+                        BackgroundColor="#512BD4"
+                        TextColor="White"
+                        CornerRadius="20"
+                        HeightRequest="42"
+                        Padding="20,0"
+                        FontAttributes="Bold"
+                        Margin="0,8,0,0" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Unblurred Sensitive Content Pill (Allows re-blurring) -->
+        <Border IsVisible="{Binding IsRevealed}"
+                StrokeShape="RoundRectangle 12"
+                BackgroundColor="#B3000000"
+                StrokeThickness="0"
+                HorizontalOptions="End"
+                VerticalOptions="Top"
+                Margin="12"
+                Padding="8,4">
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding ToggleRevealCommand}" />
+            </Border.GestureRecognizers>
+            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                <Label Text="👁️ Hide"
+                       FontSize="12"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       IsVisible="{Binding BlurRequired}" />
+            </HorizontalStackLayout>
+        </Border>
+    </Grid>
+
+</ContentView>

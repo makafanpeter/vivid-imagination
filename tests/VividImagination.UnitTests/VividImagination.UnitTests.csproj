@@ -21,6 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\mobile\VividImagination.Mobile\Services\BlurHashCore.cs" Link="Mobile\BlurHashCore.cs" />
+    <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\SafeBrowsingMode.cs" Link="Mobile\SafeBrowsingMode.cs" />
+    <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\FeedItem.cs" Link="Mobile\FeedItem.cs" />
+    <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\AuthModels.cs" Link="Mobile\AuthModels.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\backend\BuildingBlocks\VividImagination.Shared.Contract\VividImagination.Shared.Contract.csproj" />
     <ProjectReference Include="..\..\src\backend\Modules\Moderation\VividImagination.Modules.Moderation.Contracts\VividImagination.Modules.Moderation.Contracts.csproj" />
     <ProjectReference Include="..\..\src\backend\Modules\Moderation\VividImagination.Modules.Moderation\VividImagination.Modules.Moderation.csproj" />

@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
-using Syncfusion.Maui.Toolkit.Hosting;
 
 namespace VividImagination.Mobile
 {
@@ -12,22 +11,13 @@ namespace VividImagination.Mobile
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
-                .ConfigureSyncfusionToolkit()
                 .ConfigureMauiHandlers(handlers =>
                 {
 #if WINDOWS
-    				Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler.Mapper.AppendToMapping("KeyboardAccessibleCollectionView", (handler, view) =>
-    				{
-    					handler.PlatformView.SingleSelectionFollowsFocus = false;
-    				});
-
-    				Microsoft.Maui.Handlers.ContentViewHandler.Mapper.AppendToMapping(nameof(Pages.Controls.CategoryChart), (handler, view) =>
-    				{
-    					if (view is Pages.Controls.CategoryChart && handler.PlatformView is Microsoft.Maui.Platform.ContentPanel contentPanel)
-    					{
-    						contentPanel.IsTabStop = true;
-    					}
-    				});
+                    Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler.Mapper.AppendToMapping("KeyboardAccessibleCollectionView", (handler, view) =>
+                    {
+                        handler.PlatformView.SingleSelectionFollowsFocus = false;
+                    });
 #endif
                 })
                 .ConfigureFonts(fonts =>
@@ -39,22 +29,37 @@ namespace VividImagination.Mobile
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
-    		builder.Services.AddLogging(configure => configure.AddDebug());
+            builder.Logging.AddDebug();
+            builder.Services.AddLogging(configure => configure.AddDebug());
 #endif
 
-            builder.Services.AddSingleton<ProjectRepository>();
-            builder.Services.AddSingleton<TaskRepository>();
-            builder.Services.AddSingleton<CategoryRepository>();
-            builder.Services.AddSingleton<TagRepository>();
-            builder.Services.AddSingleton<SeedDataService>();
-            builder.Services.AddSingleton<ModalErrorHandler>();
-            builder.Services.AddSingleton<MainPageModel>();
-            builder.Services.AddSingleton<ProjectListPageModel>();
-            builder.Services.AddSingleton<ManageMetaPageModel>();
+            // Core Client Services
+            builder.Services.AddSingleton<ITokenStorageService, TokenStorageService>();
+            builder.Services.AddTransient<AuthenticationHeaderHandler>();
 
-            builder.Services.AddTransientWithShellRoute<ProjectDetailPage, ProjectDetailPageModel>("project");
-            builder.Services.AddTransientWithShellRoute<TaskDetailPage, TaskDetailPageModel>("task");
+            builder.Services.AddHttpClient<IAuthService, AuthService>()
+                .AddHttpMessageHandler<AuthenticationHeaderHandler>();
+
+            builder.Services.AddHttpClient<IFeedService, FeedService>()
+                .AddHttpMessageHandler<AuthenticationHeaderHandler>();
+
+            builder.Services.AddHttpClient<ISocialService, SocialService>()
+                .AddHttpMessageHandler<AuthenticationHeaderHandler>();
+
+            builder.Services.AddHttpClient<IMediaService, MediaService>()
+                .AddHttpMessageHandler<AuthenticationHeaderHandler>();
+
+            // ViewModels
+            builder.Services.AddSingleton<FeedViewModel>();
+            builder.Services.AddTransient<PhotoUploadViewModel>();
+            builder.Services.AddSingleton<ProfileViewModel>();
+            builder.Services.AddTransient<LoginViewModel>();
+
+            // Pages
+            builder.Services.AddSingleton<FeedPage>();
+            builder.Services.AddTransient<PhotoUploadPage>();
+            builder.Services.AddSingleton<ProfilePage>();
+            builder.Services.AddTransient<LoginPage>();
 
             return builder.Build();
         }

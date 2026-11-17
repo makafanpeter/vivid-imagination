@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VividImagination.Mobile.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="VividImagination.Mobile.Pages.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             Title="Sign In"
+             BackgroundColor="{AppThemeBinding Light=#F7F7FA, Dark=#141418}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20"
+                             Padding="28"
+                             VerticalOptions="Center">
+
+            <!-- Logo / Brand Header -->
+            <Border StrokeShape="RoundRectangle 36"
+                    WidthRequest="72"
+                    HeightRequest="72"
+                    BackgroundColor="#512BD4"
+                    StrokeThickness="0"
+                    HorizontalOptions="Center">
+                <Label Text="✨"
+                       FontSize="36"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Border>
+
+            <Label Text="Welcome to Vivid"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+
+            <Label Text="Sign in to upvote, downvote, report, and publish photos to the community."
+                   FontSize="14"
+                   TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}"
+                   HorizontalTextAlignment="Center" />
+
+            <!-- Error Banner -->
+            <Border IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"
+                    BackgroundColor="#FFCDD2"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#B71C1C"
+                       FontSize="13"
+                       HorizontalTextAlignment="Center" />
+            </Border>
+
+            <!-- Inputs -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Username or Email"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#424242, Dark=#BDBDBD}" />
+                <Border StrokeShape="RoundRectangle 10"
+                        Stroke="#33808080"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
+                        Padding="14,0">
+                    <Entry Text="{Binding Username}"
+                           Placeholder="username or email"
+                           PlaceholderColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}"
+                           TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Password"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       TextColor="{AppThemeBinding Light=#424242, Dark=#BDBDBD}" />
+                <Border StrokeShape="RoundRectangle 10"
+                        Stroke="#33808080"
+                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
+                        Padding="14,0">
+                    <Entry Text="{Binding Password}"
+                           IsPassword="True"
+                           Placeholder="••••••••"
+                           PlaceholderColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}"
+                           TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- Buttons -->
+            <Button Text="Sign In"
+                    Command="{Binding LoginCommand}"
+                    IsEnabled="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
+                    BackgroundColor="#512BD4"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    FontSize="16"
+                    CornerRadius="24"
+                    HeightRequest="48"
+                    Margin="0,8,0,0" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               Color="#512BD4"
+                               HorizontalOptions="Center" />
+
+            <Button Text="Cancel"
+                    Command="{Binding CancelCommand}"
+                    BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light=#616161, Dark=#A0A0A0}"
+                    FontSize="14"
+                    HeightRequest="36" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
