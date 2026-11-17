@@ -1,37 +1,89 @@
-using Microsoft.EntityFrameworkCore;
-using VividImagination.Modules.Media.Entities;
+using Humanizer;
+using Microsoft.Extensions.Options;
+using MongoDB.Driver;
+using VividImagination.Modules.Media.Persistence.Entities;
+using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Media.Persistence;
 
-public class MediaDbContext : DbContext
-{
-    public const string Schema = "media";
 
-    public MediaDbContext(DbContextOptions<MediaDbContext> options) : base(options)
+public class MediaDbContext : MongoDbContext
+{
+    public MediaDbContext(IOptions<MongoOptions> options) : base(options)
     {
+        FileEntries = GetCollection<FileEntry>(nameof(FileEntry).Pluralize());
     }
 
-    public DbSet<Photo> Photos => Set<Photo>();
+    public IMongoCollection<FileEntry> FileEntries { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+
+    public override async Task InitializeAsync(CancellationToken ct = default)
     {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.HasDefaultSchema(Schema);
-
-        modelBuilder.Entity<Photo>(entity =>
+        var indexes = new[]
         {
-            entity.ToTable("photos");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.UserId).IsRequired();
-            entity.Property(e => e.StorageKey).HasMaxLength(500).IsRequired();
-            entity.Property(e => e.BlurHash).HasMaxLength(100).IsRequired();
-            entity.Property(e => e.Caption).HasMaxLength(500);
-            entity.Property(e => e.ContentType).HasMaxLength(50).IsRequired();
-            entity.Property(e => e.FileSize).IsRequired();
-            entity.Property(e => e.CreatedAt).IsRequired();
-            entity.Property(e => e.IsDeleted).IsRequired().HasDefaultValue(false);
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys.Ascending(x => x.OwnerId),
+                new CreateIndexOptions { Name = "idx_ownerId" }),
 
-            entity.HasIndex(e => e.UserId);
-        });
+
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys.Ascending(x => x.Deleted),
+                new CreateIndexOptions { Name = "idx_deleted" }),
+
+
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys
+                    .Ascending(x => x.OwnerId)
+                    .Ascending(x => x.Deleted)
+                    .Descending(x => x.UploadedTime),
+                new CreateIndexOptions { Name = "idx_ownerId_deleted_uploadedTime" }),
+
+
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys
+                    .Ascending(x => x.Deleted)
+                    .Descending(x => x.UploadedTime),
+                new CreateIndexOptions { Name = "idx_organizationId_deleted_uploadedTime" }),
+
+
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys
+                    .Ascending(x => x.ContainerName)
+                    .Ascending(x => x.Deleted),
+                new CreateIndexOptions { Name = "idx_containerName_deleted" }),
+
+
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys
+                    .Ascending(x => x.Deleted)
+                    .Descending(x => x.UploadedTime),
+                new CreateIndexOptions { Name = "idx_public_deleted_uploadedTime" }),
+
+
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys
+                    .Ascending(x => x.OwnerId)
+                    .Ascending(x => x.FileExtension)
+                    .Ascending(x => x.Deleted),
+                new CreateIndexOptions { Name = "idx_ownerId_fileExtension_deleted" }),
+
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys.Ascending(x => x.FileLocation),
+                new CreateIndexOptions { Unique = true, Name = "idx_fileLocation_unique" }),
+            
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys.Descending(x => x.CreatedOn),
+                new CreateIndexOptions { Name = "idx_createdOn" }),
+        
+            new CreateIndexModel<FileEntry>(
+                Builders<FileEntry>.IndexKeys.Descending(x => x.UpdatedOn),
+                new CreateIndexOptions
+                {
+                    Name = "idx_updatedOn",
+                    Sparse = true 
+                }),
+        };
+
+        await FileEntries.Indexes.CreateManyAsync(indexes, ct);
     }
 }

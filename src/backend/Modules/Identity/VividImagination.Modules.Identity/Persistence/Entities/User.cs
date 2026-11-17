@@ -1,12 +1,14 @@
+using Microsoft.AspNetCore.Identity;
 using VividImagination.Modules.Identity.Contracts;
+using VividImagination.Shared.Domain.Entities;
 
-namespace VividImagination.Modules.Identity.Entities;
+namespace VividImagination.Modules.Identity.Persistence.Entities;
 
-public class User
+public class User: IdentityUser<long>, IHasKey<long>, IAuditable
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Username { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
     public SafeBrowsingMode SafeBrowsingMode { get; set; } = SafeBrowsingMode.BlurSensitive;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedOn { get; set; }
+    public DateTimeOffset? UpdatedOn { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
 }

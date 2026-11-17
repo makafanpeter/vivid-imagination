@@ -14,7 +14,8 @@ public static class Constants
         public const string ProviderApi = "provider-api";
         public const string BookingApi = "booking-api";
         public const string ReputationApi = "reputation-api";
-        
+        public const string StorageApi = "storage-api";
+
 
         // Identity Claims
         
@@ -25,6 +26,7 @@ public static class Constants
             yield return ProviderApi;
             yield return BookingApi;
             yield return ReputationApi;
+            yield return StorageApi;
         }
 
         public static Dictionary<string, string> GetAllScopesWithDescription()

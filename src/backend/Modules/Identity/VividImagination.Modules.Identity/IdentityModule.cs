@@ -1,11 +1,19 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Reflection;
+using FluentValidation;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using VividImagination.Modules.Identity.Controllers.v1;
 using VividImagination.Modules.Identity.Persistence;
+using VividImagination.Modules.Identity.Services;
+using VividImagination.Shared.Contract.Identity;
+using VividImagination.Shared.Infrastructure;
+using VividImagination.Shared.Infrastructure.IdsGenerator;
 using VividImagination.Shared.Infrastructure.Modules;
+using VividImagination.Shared.Infrastructure.Persistence;
+using VividImagination.Shared.Infrastructure.Web.Authorization.Policies;
 
 namespace VividImagination.Modules.Identity;
 
@@ -15,7 +23,19 @@ public class IdentityModule : IAppModule
 
     public IServiceCollection AddModule(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        services.AddPersistence<IdentityDbContext>(ModuleName, configuration);
+        services.AddMigration<IdentityDbContext>();
         
+        services.AddCustomIdentityServer(environment, configuration);
+        services.AddCustomMediatR(Assembly.GetExecutingAssembly());
+        //services.AddCustomAutoMapper(Assembly.GetExecutingAssembly());
+        
+        SnowFlakIdGenerator.Configure(1);
+        
+        
+        services.AddValidatorsFromAssembly(typeof(IdentityModule).Assembly);
+        
+        services.AddAuthorizationPolicies(Assembly.GetExecutingAssembly(),  Constants.StandardScopes.IdentityApi, []);
 
         return services;
     }
@@ -32,6 +52,16 @@ public class IdentityModule : IAppModule
 
     public IEndpointRouteBuilder UseModuleApi(IEndpointRouteBuilder app)
     {
+        var identity = app.NewVersionedApi(ModuleConstants.FormatedModuleName);
+        identity.MapIdentityApiV1();
         return app;
     }
+    
+    public static class ModuleConstants
+    {
+        public const string FormatedModuleName = "Identity Module";
+        public const string ModuleNameForRouting = "/identity/";
+    }
+    
+    
 }

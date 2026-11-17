@@ -1,11 +1,19 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using System.Reflection;
+using FluentValidation;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using VividImagination.Modules.Media.Controllers.v1;
 using VividImagination.Modules.Media.Persistence;
+using VividImagination.Modules.Media.Persistence.Entities;
+using VividImagination.Modules.Media.Services;
+using VividImagination.Shared.Application;
+using VividImagination.Shared.Contract.Identity;
+using VividImagination.Shared.Infrastructure;
 using VividImagination.Shared.Infrastructure.Modules;
+using VividImagination.Shared.Infrastructure.Web.Authorization.Policies;
 
 namespace VividImagination.Modules.Media;
 
@@ -15,7 +23,22 @@ public class MediaModule : IAppModule
 
     public IServiceCollection AddModule(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
+        var mongoSection = configuration.GetSection($"{ModuleName}");
         
+       
+        services.AddMongoDbContext<MediaDbContext>(mongoSection)
+            .AddRepository<FileEntry, Guid, MediaDbContext>(ctx => ctx.FileEntries);
+        
+        // Add the file service manager
+        services.AddFileStorage(configuration);
+
+        services.AddCustomMediatR(Assembly.GetExecutingAssembly());
+        services.AddCustomAutoMapper(Assembly.GetExecutingAssembly());
+        
+        services.AddValidatorsFromAssembly(typeof(MediaModule).Assembly);
+        
+        
+        services.AddAuthorizationPolicies(Assembly.GetExecutingAssembly(),  Constants.StandardScopes.StorageApi, []);
 
         return services;
     }
@@ -32,6 +55,14 @@ public class MediaModule : IAppModule
 
     public IEndpointRouteBuilder UseModuleApi(IEndpointRouteBuilder app)
     {
+        var builder = app.NewVersionedApi(ModuleConstants.FormatedModuleName);
+        builder.MapMediaApiV1();
         return app;
+    }
+    
+    public static class ModuleConstants
+    {
+        public const string FormatedModuleName = "Media Module";
+        public const string ModuleNameForRouting = "/media/";
     }
 }
