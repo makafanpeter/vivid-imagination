@@ -14,7 +14,6 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
         public required string FileName { get; set; }
 
         public required string Description { get; set; }
-        public bool Encrypt { get; set; }
         public required string FileExtension { get; set; }
         public string? ContainerName { get; set; }
         public bool Public { get; set; }

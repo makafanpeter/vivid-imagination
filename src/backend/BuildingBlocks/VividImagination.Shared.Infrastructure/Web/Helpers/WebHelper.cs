@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using LocalChamp.Shared.Infrastructure.Web.Helpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Http.Features;

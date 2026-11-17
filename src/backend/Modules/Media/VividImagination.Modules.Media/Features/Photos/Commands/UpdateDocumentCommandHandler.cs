@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using AutoMapper;
 using CryptographyHelper.SymmetricAlgorithms;
-using LocalChamp.Shared.Infrastructure.Web.Helpers;
+using VividImagination.Shared.Infrastructure.Web.Helpers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -62,38 +62,26 @@ public class UpdateDocumentCommandHandler (IMongoRepository<FileEntry, Guid> dyn
             
         await fileServiceManager.DeleteAsync(file, cancellationToken);
             
-        var key = SymmetricCrypto.GenerateKey(16);
-        if (request.Encrypt)
+        await using var memoryStream = request.ContentStream;
+        await fileServiceManager.CreateAsync(model, memoryStream, cancellationToken);
+
+        
+        
+        string? url = null;
+        if (accessor.HttpContext != null)
         {
-            await using var inputStream = request.ContentStream;
-            await using var encryptedStream = new MemoryStream(inputStream
-                .UseAES(key)
-                .WithCipher(CipherMode.ECB)
-                .WithPadding(PaddingMode.PKCS7)
-                .Encrypt());
-            await fileServiceManager.CreateAsync(model, encryptedStream, cancellationToken);
+            var enforceSsl = webHelper.IsCurrentConnectionSecured();
+            var scheme = enforceSsl ? "https" : accessor.HttpContext.Request.Scheme;
+
+            url = linkGenerator.GetUriByAction(
+                accessor.HttpContext,
+                pathBase: accessor.HttpContext.Request.PathBase,
+                action: request.Public ? "Public" : "Download",
+                controller: "Files",
+                host: accessor.HttpContext.Request.Host,
+                scheme: scheme,
+                values: new { request.Id });
         }
-        else
-        {
-            await using var memoryStream = request.ContentStream;
-            await fileServiceManager.CreateAsync(model, memoryStream, cancellationToken);
-        }
-
-        
-        
-        var enforceSsl = webHelper.IsCurrentConnectionSecured();
-
-
-        var scheme = enforceSsl ? "https" : accessor.HttpContext?.Request.Scheme;
-        
-        var url = linkGenerator.GetUriByAction(
-            accessor.HttpContext,
-            pathBase: accessor.HttpContext?.Request.PathBase,
-            action: request.Public? "Public" :"Download",
-            controller: "Files",
-            host: accessor.HttpContext?.Request.Host,
-            scheme: scheme,
-            values: new  {request.Id});
 
         // Update Fields
         file.Description = request.Description;

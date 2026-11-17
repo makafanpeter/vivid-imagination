@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 
-namespace LocalChamp.Shared.Infrastructure.Web.Helpers
+namespace VividImagination.Shared.Infrastructure.Web.Helpers
 {
     /// <summary>
     /// Represents a web helper

@@ -28,7 +28,7 @@ public static class MediaApis
     private static void MapMediaRoutes(IEndpointRouteBuilder api)
     {
         var group = api.MapGroup($"{AppConstants.ApiRoute}{MediaModule.ModuleConstants.ModuleNameForRouting}")
-            .WithTags(MediaModule.ModuleConstants.FormatedModuleName)
+            .WithTags(MediaModule.ModuleConstants.FormattedModuleName)
             .WithApiVersionSet(api.NewApiVersionSet()
                 .HasApiVersion(new ApiVersion(1))
                 .Build());
@@ -116,7 +116,6 @@ public static class MediaApis
             ContainerName = model.Container,
             Description = model.Description,
             Name = model.Name,
-            Encrypt = model.Encrypt.GetValueOrDefault(),
             FileExtension = Path.GetExtension(fileName),
             Public = model.Public,
             FileTypes = model.FileTypes,
@@ -186,7 +185,6 @@ public static class MediaApis
             ContainerName = model.Container,
             Description = model.Description,
             Name = model.Name,
-            Encrypt = model.Encrypt.GetValueOrDefault(),
             FileExtension = Path.GetExtension(fileName),
             Public = model.Public,
             FileTypes = model.FileTypes,

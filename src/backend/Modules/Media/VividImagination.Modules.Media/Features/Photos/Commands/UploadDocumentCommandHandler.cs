@@ -1,38 +1,41 @@
 ﻿using System.Security.Cryptography;
 using AutoMapper;
 using CryptographyHelper.SymmetricAlgorithms;
-using LocalChamp.Shared.Infrastructure.Web.Helpers;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using VividImagination.Modules.Media.Contracts.Events;
 using VividImagination.Modules.Media.Features.Photos.ViewModels;
 using VividImagination.Modules.Media.Persistence.Entities;
+using VividImagination.Modules.Media.Services;
 using VividImagination.Modules.Media.Services.FileService;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure.Mongo;
+using VividImagination.Shared.Infrastructure.Web.Helpers;
 
 namespace VividImagination.Modules.Media.Features.Photos.Commands
 {
     public class UploadDocumentCommandHandler(
         IFileServiceManager fileServiceManager,
         IHttpContextAccessor accessor,
-        IMongoRepository<FileEntry, Guid> dynamoDbContext,
+        IMongoRepository<FileEntry, Guid> fileRepository,
         IMapper mapper,
         ICurrentUser identityService,
         LinkGenerator linkGenerator,
-        IWebHelper webHelper)
+        IWebHelper webHelper,
+        IPublishEndpoint publishEndpoint)
         : IRequestHandler<UploadDocumentCommand, UploadDocumentViewModel>
     {
         public async Task<UploadDocumentViewModel> Handle(UploadDocumentCommand request, CancellationToken cancellationToken)
         {
-
             var now = DateTimeOffset.UtcNow;
             var id = Guid.NewGuid();
             var appReference = identityService.GetUserId();
             var model = new FileEntryModel()
             {
                 Description = request.Description,
-                FileName =  request.FileName,
+                FileName = request.FileName,
                 Name = request.Name,
                 Id = id,
                 Size = request.ContentLength,
@@ -42,45 +45,27 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
                 ContentType = request.ContentType,
                 FileExtension = request.FileExtension,
                 SourceIp = webHelper.GetCurrentIpAddress(),
-                
             };
 
+            await using var memoryStream = request.ContentStream;
+            await fileServiceManager.CreateAsync(model, memoryStream, cancellationToken);
 
-
-            var key = SymmetricCrypto.GenerateKey(16);
-            if (request.Encrypt)
+            string? url = null;
+            if (accessor.HttpContext != null)
             {
-                await using var inputStream = request.ContentStream;
-                await using var encryptedStream = new MemoryStream(inputStream
-                    .UseAES(key)
-                    .WithCipher(CipherMode.ECB)
-                    .WithPadding(PaddingMode.PKCS7)
-                    .Encrypt());
-                await fileServiceManager.CreateAsync(model, encryptedStream, cancellationToken);
+                var enforceSsl = webHelper.IsCurrentConnectionSecured();
+                var scheme = enforceSsl ? "https" : accessor.HttpContext.Request.Scheme;
+
+                url = linkGenerator.GetUriByAction(
+                    accessor.HttpContext,
+                    pathBase: accessor.HttpContext.Request.PathBase,
+                    action: request.Public ? "Public" : "Download",
+                    controller: "Files",
+                    host: accessor.HttpContext.Request.Host,
+                    scheme: scheme,
+                    values: new { id });
             }
-            else
-            {
-                await using var memoryStream = request.ContentStream;
-                await fileServiceManager.CreateAsync(model, memoryStream, cancellationToken);
-            }
 
-
-            var enforceSsl = webHelper.IsCurrentConnectionSecured();
-
-
-            var scheme = enforceSsl ? "https" : accessor.HttpContext?.Request.Scheme;
-
-            
-
-            var url = linkGenerator.GetUriByAction(
-                accessor.HttpContext,
-                pathBase: accessor.HttpContext?.Request.PathBase,
-                action: request.Public? "Public" :"Download",
-                controller: "Files",
-                host: accessor.HttpContext?.Request.Host,
-                scheme: scheme,
-                values: new  {id});
-            
             var entry = new FileEntry()
             {
                 Id = id,
@@ -90,18 +75,36 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
                 FileName = model.FileName,
                 Name = model.Name,
                 Size = request.ContentLength,
-                ContainerName =  model.ContainerName,
+                ContainerName = model.ContainerName,
                 FileExtension = request.FileExtension,
                 ContentType = request.ContentType,
                 OwnerId = appReference.ToString(),
                 Url = url,
-                SourceIp  = model.SourceIp,
+                SourceIp = model.SourceIp,
                 CreatedOn = DateTime.UtcNow,
             };
-            await dynamoDbContext.AddAsync(entry, cancellationToken);
+
+            await fileRepository.AddAsync(entry, cancellationToken);
+
+            // Generate blur hash and publish PhotoUploadedIntegrationEvent for Moderation and Feed
+            var blurHash = BlurHashGenerator.Generate(model.FileName);
+            var userId = Guid.Empty;
+            if (appReference.HasValue)
+            {
+                var bytes = new byte[16];
+                BitConverter.GetBytes(appReference.Value).CopyTo(bytes, 0);
+                userId = new Guid(bytes);
+            }
+
+            await publishEndpoint.Publish(new PhotoUploadedIntegrationEvent(
+                entry.Id,
+                userId,
+                entry.FileLocation ?? entry.FileName,
+                blurHash,
+                entry.Description ?? entry.Name ?? string.Empty,
+                entry.UploadedTime), cancellationToken);
 
             var response = mapper.Map<UploadDocumentViewModel>(entry);
-
             return response;
         }
     }

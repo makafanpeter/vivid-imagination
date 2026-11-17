@@ -55,14 +55,15 @@ public class MediaModule : IAppModule
 
     public IEndpointRouteBuilder UseModuleApi(IEndpointRouteBuilder app)
     {
-        var builder = app.NewVersionedApi(ModuleConstants.FormatedModuleName);
+        var builder = app.NewVersionedApi(ModuleConstants.FormattedModuleName);
         builder.MapMediaApiV1();
         return app;
     }
     
     public static class ModuleConstants
     {
-        public const string FormatedModuleName = "Media Module";
+        public const string FormattedModuleName = "Media Module";
+        public const string FormatedModuleName = FormattedModuleName;
         public const string ModuleNameForRouting = "/media/";
     }
 }

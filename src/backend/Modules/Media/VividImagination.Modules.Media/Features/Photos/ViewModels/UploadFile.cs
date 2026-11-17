@@ -17,7 +17,6 @@ public class UploadFile
     [Required]
     [Display(Name = "File")]
     public IFormFile FormFile { get; set; }
-    public bool? Encrypt { get; set; }
     [Display(Name = "Container")]
     public string Container { get; set; }
         

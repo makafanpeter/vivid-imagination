@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Security.Claims;
-using LocalChamp.Shared.Infrastructure.Web.Helpers;
+using VividImagination.Shared.Infrastructure.Web.Helpers;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;

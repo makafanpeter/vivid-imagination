@@ -52,14 +52,15 @@ public class IdentityModule : IAppModule
 
     public IEndpointRouteBuilder UseModuleApi(IEndpointRouteBuilder app)
     {
-        var identity = app.NewVersionedApi(ModuleConstants.FormatedModuleName);
+        var identity = app.NewVersionedApi(ModuleConstants.FormattedModuleName);
         identity.MapIdentityApiV1();
         return app;
     }
     
     public static class ModuleConstants
     {
-        public const string FormatedModuleName = "Identity Module";
+        public const string FormattedModuleName = "Identity Module";
+        public const string FormatedModuleName = FormattedModuleName;
         public const string ModuleNameForRouting = "/identity/";
     }
     

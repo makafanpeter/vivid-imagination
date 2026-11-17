@@ -1,5 +1,4 @@
-﻿using LocalChamp.Shared.Infrastructure.Web.Helpers;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using VividImagination.Shared.Contract.Identity.Enums;
 using VividImagination.Shared.Domain;
 using VividImagination.Shared.Domain.Entities;

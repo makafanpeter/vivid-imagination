@@ -19,6 +19,7 @@ public class ModuleBoundaryTests
         "VividImagination.Modules.Media.Controllers",
         "VividImagination.Modules.Media.Entities",
         "VividImagination.Modules.Media.Persistence",
+        "VividImagination.Modules.Media.Features",
         "VividImagination.Modules.Media.Services",
         "VividImagination.Modules.Social.Controllers",
         "VividImagination.Modules.Social.Persistence",
