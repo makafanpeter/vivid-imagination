@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Moq;
+using MongoDB.Driver;
 using VividImagination.Modules.Media.Contracts.Events;
 using VividImagination.Modules.Media.Features.Photos.Commands;
 using VividImagination.Modules.Media.Features.Photos.Validations;
@@ -247,6 +248,32 @@ public class MediaFeatureTests
 
         publishEndpointMock.Verify(p => p.Publish(
             It.Is<PhotoDeletedIntegrationEvent>(e => e.PhotoId == photoId && e.StorageKey == "photos/sunset_photo.jpg"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task MediaDbContext_Should_Create_Streamlined_Indexes_With_Sparse_FileLocation()
+    {
+        var mockCollection = new Mock<IMongoCollection<FileEntry>>();
+        var mockIndexManager = new Mock<IMongoIndexManager<FileEntry>>();
+        mockCollection.SetupGet(c => c.Indexes).Returns(mockIndexManager.Object);
+
+        var optionsMock = new Mock<Microsoft.Extensions.Options.IOptions<MongoOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(new MongoOptions { ConnectionString = "mongodb://localhost:27017", DatabaseName = "test_media" });
+
+        var dbContext = new VividImagination.Modules.Media.Persistence.MediaDbContext(optionsMock.Object)
+        {
+            FileEntries = mockCollection.Object
+        };
+
+        await dbContext.InitializeAsync(CancellationToken.None);
+
+        mockIndexManager.Verify(i => i.CreateManyAsync(
+            It.Is<IEnumerable<CreateIndexModel<FileEntry>>>(models =>
+                models.Count() == 3 &&
+                models.Any(m => m.Options.Name == "idx_fileLocation_unique" && m.Options.Unique == true && m.Options.Sparse == true) &&
+                models.Any(m => m.Options.Name == "idx_ownerId_deleted_uploadedTime") &&
+                models.Any(m => m.Options.Name == "idx_deleted_uploadedTime")),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }

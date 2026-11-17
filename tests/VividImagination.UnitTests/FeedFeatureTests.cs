@@ -407,4 +407,27 @@ public class FeedFeatureTests
         validator.Validate(new GetPersonalizedFeedQuery(1, 101)).IsValid.Should().BeFalse();
         validator.Validate(new GetPersonalizedFeedQuery(1, 20)).IsValid.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task FeedDbContext_Should_Create_Compound_Index_On_Score_And_UploadedAt()
+    {
+        var mockCollection = new Mock<IMongoCollection<FeedItem>>();
+        var mockIndexManager = new Mock<IMongoIndexManager<FeedItem>>();
+        mockCollection.SetupGet(c => c.Indexes).Returns(mockIndexManager.Object);
+
+        var optionsMock = new Mock<Microsoft.Extensions.Options.IOptions<MongoOptions>>();
+        optionsMock.Setup(o => o.Value).Returns(new MongoOptions { ConnectionString = "mongodb://localhost:27017", DatabaseName = "test_feed" });
+
+        var dbContext = new VividImagination.Modules.Feed.Persistence.FeedDbContext(optionsMock.Object)
+        {
+            FeedItems = mockCollection.Object
+        };
+
+        await dbContext.InitializeAsync(CancellationToken.None);
+
+        mockIndexManager.Verify(i => i.CreateManyAsync(
+            It.Is<IEnumerable<CreateIndexModel<FeedItem>>>(models =>
+                models.Any(m => m.Options.Name == "idx_score_desc_uploadedAt_desc")),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }

@@ -6,7 +6,6 @@ using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Media.Persistence;
 
-
 public class MediaDbContext : MongoDbContext
 {
     public MediaDbContext(IOptions<MongoOptions> options) : base(options)
@@ -16,21 +15,12 @@ public class MediaDbContext : MongoDbContext
 
     public IMongoCollection<FileEntry> FileEntries { get; set; }
 
-
     public override async Task InitializeAsync(CancellationToken ct = default)
     {
         var indexes = new[]
         {
-            new CreateIndexModel<FileEntry>(
-                Builders<FileEntry>.IndexKeys.Ascending(x => x.OwnerId),
-                new CreateIndexOptions { Name = "idx_ownerId" }),
-
-
-            new CreateIndexModel<FileEntry>(
-                Builders<FileEntry>.IndexKeys.Ascending(x => x.Deleted),
-                new CreateIndexOptions { Name = "idx_deleted" }),
-
-
+            // Compound index supporting queries for a user's active photos ordered by upload time.
+            // Also serves single-field prefix lookups on OwnerId.
             new CreateIndexModel<FileEntry>(
                 Builders<FileEntry>.IndexKeys
                     .Ascending(x => x.OwnerId)
@@ -38,50 +28,19 @@ public class MediaDbContext : MongoDbContext
                     .Descending(x => x.UploadedTime),
                 new CreateIndexOptions { Name = "idx_ownerId_deleted_uploadedTime" }),
 
-
+            // Compound index supporting active/deleted photo scans ordered by upload time.
+            // Subsumes standalone 'Deleted' queries as prefix.
             new CreateIndexModel<FileEntry>(
                 Builders<FileEntry>.IndexKeys
                     .Ascending(x => x.Deleted)
                     .Descending(x => x.UploadedTime),
                 new CreateIndexOptions { Name = "idx_deleted_uploadedTime" }),
 
-
-            new CreateIndexModel<FileEntry>(
-                Builders<FileEntry>.IndexKeys
-                    .Ascending(x => x.ContainerName)
-                    .Ascending(x => x.Deleted),
-                new CreateIndexOptions { Name = "idx_containerName_deleted" }),
-
-
-            new CreateIndexModel<FileEntry>(
-                Builders<FileEntry>.IndexKeys
-                    .Ascending(x => x.Deleted)
-                    .Descending(x => x.UploadedTime),
-                new CreateIndexOptions { Name = "idx_deleted_uploadedTime" }),
-
-
-            new CreateIndexModel<FileEntry>(
-                Builders<FileEntry>.IndexKeys
-                    .Ascending(x => x.OwnerId)
-                    .Ascending(x => x.FileExtension)
-                    .Ascending(x => x.Deleted),
-                new CreateIndexOptions { Name = "idx_ownerId_fileExtension_deleted" }),
-
+            // Unique constraint on storage keys across the platform.
+            // Sparse = true is mandatory because FileLocation is nullable in FileEntry.
             new CreateIndexModel<FileEntry>(
                 Builders<FileEntry>.IndexKeys.Ascending(x => x.FileLocation),
-                new CreateIndexOptions { Unique = true, Name = "idx_fileLocation_unique" }),
-            
-            new CreateIndexModel<FileEntry>(
-                Builders<FileEntry>.IndexKeys.Descending(x => x.CreatedOn),
-                new CreateIndexOptions { Name = "idx_createdOn" }),
-        
-            new CreateIndexModel<FileEntry>(
-                Builders<FileEntry>.IndexKeys.Descending(x => x.UpdatedOn),
-                new CreateIndexOptions
-                {
-                    Name = "idx_updatedOn",
-                    Sparse = true 
-                }),
+                new CreateIndexOptions { Unique = true, Sparse = true, Name = "idx_fileLocation_unique" })
         };
 
         await FileEntries.Indexes.CreateManyAsync(indexes, ct);
