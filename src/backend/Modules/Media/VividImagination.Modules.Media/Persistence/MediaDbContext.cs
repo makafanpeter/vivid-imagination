@@ -43,7 +43,7 @@ public class MediaDbContext : MongoDbContext
                 Builders<FileEntry>.IndexKeys
                     .Ascending(x => x.Deleted)
                     .Descending(x => x.UploadedTime),
-                new CreateIndexOptions { Name = "idx_organizationId_deleted_uploadedTime" }),
+                new CreateIndexOptions { Name = "idx_deleted_uploadedTime" }),
 
 
             new CreateIndexModel<FileEntry>(
@@ -57,7 +57,7 @@ public class MediaDbContext : MongoDbContext
                 Builders<FileEntry>.IndexKeys
                     .Ascending(x => x.Deleted)
                     .Descending(x => x.UploadedTime),
-                new CreateIndexOptions { Name = "idx_public_deleted_uploadedTime" }),
+                new CreateIndexOptions { Name = "idx_deleted_uploadedTime" }),
 
 
             new CreateIndexModel<FileEntry>(

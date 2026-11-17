@@ -1,11 +1,10 @@
-﻿using System.Security.Cryptography;
-using AutoMapper;
-using CryptographyHelper.SymmetricAlgorithms;
+﻿using AutoMapper;
 using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using VividImagination.Modules.Media.Contracts.Events;
+using VividImagination.Modules.Media.Controllers.v1;
 using VividImagination.Modules.Media.Features.Photos.ViewModels;
 using VividImagination.Modules.Media.Persistence.Entities;
 using VividImagination.Modules.Media.Services;
@@ -55,15 +54,13 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
             {
                 var enforceSsl = webHelper.IsCurrentConnectionSecured();
                 var scheme = enforceSsl ? "https" : accessor.HttpContext.Request.Scheme;
-
-                url = linkGenerator.GetUriByAction(
-                    accessor.HttpContext,
-                    pathBase: accessor.HttpContext.Request.PathBase,
-                    action:   "Download",
-                    controller: "Files",
-                    host: accessor.HttpContext.Request.Host,
+                url = linkGenerator.GetUriByName(
+                    accessor.HttpContext!,
+                    endpointName: nameof(MediaApis.DownloadEndpointName),
+                    values: new { id },
                     scheme: scheme,
-                    values: new { id });
+                    host: accessor.HttpContext!.Request.Host,
+                    pathBase: accessor.HttpContext.Request.PathBase);
             }
 
             var entry = new FileEntry()

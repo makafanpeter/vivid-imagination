@@ -18,6 +18,7 @@ namespace VividImagination.Modules.Media.Controllers.v1;
 
 public static class MediaApis
 {
+    public static string DownloadEndpointName = nameof(DownloadAsync);
     private static readonly AuthorizeAttribute AuthorizeAttribute = new() { AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme };
 
     public static IEndpointRouteBuilder MapMediaApiV1(this IEndpointRouteBuilder app)

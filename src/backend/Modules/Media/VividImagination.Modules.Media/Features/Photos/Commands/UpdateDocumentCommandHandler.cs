@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using VividImagination.Modules.Media.Controllers.v1;
 using VividImagination.Modules.Media.Features.Photos.ViewModels;
 using VividImagination.Modules.Media.Persistence.Entities;
 using VividImagination.Modules.Media.Services.FileService;
@@ -73,14 +74,13 @@ public class UpdateDocumentCommandHandler (IMongoRepository<FileEntry, Guid> dyn
             var enforceSsl = webHelper.IsCurrentConnectionSecured();
             var scheme = enforceSsl ? "https" : accessor.HttpContext.Request.Scheme;
 
-            url = linkGenerator.GetUriByAction(
-                accessor.HttpContext,
-                pathBase: accessor.HttpContext.Request.PathBase,
-                action:  "Download",
-                controller: "",
-                host: accessor.HttpContext.Request.Host,
+            url = linkGenerator.GetUriByName(
+                accessor.HttpContext!,
+                endpointName: nameof(MediaApis.DownloadEndpointName),
+                values: new { id = request.Id },
                 scheme: scheme,
-                values: new { request.Id });
+                host: accessor.HttpContext!.Request.Host,
+                pathBase: accessor.HttpContext.Request.PathBase);
         }
 
         // Update Fields
