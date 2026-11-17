@@ -1,8 +1,8 @@
 using MassTransit;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
-using VividImagination.Modules.Feed.Entities;
 using VividImagination.Modules.Feed.Persistence;
+using VividImagination.Modules.Feed.Persistence.Entities;
 using VividImagination.Modules.Feed.Ranking;
 using VividImagination.Modules.Media.Contracts.Events;
 using VividImagination.Modules.Moderation.Contracts.Events;
