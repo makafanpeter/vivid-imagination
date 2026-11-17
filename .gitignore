@@ -365,3 +365,4 @@ FodyWeavers.xsd
 .idea/
 appsettings.Development.json
 docs/
+parameters.prod.json
