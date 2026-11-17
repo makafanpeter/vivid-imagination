@@ -1,0 +1,444 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Vivid Imagination - Production .NET 10 Modular Monolith deployment to Amazon EC2 (m7i-flex.large)
+  behind Cloudflare Tunnel with zero open inbound ports, private GHCR integration, S3 photo storage,
+  Amazon Rekognition AI moderation, and automated Docker Compose bootstrapping.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+    Description: Environment stage (production, staging, sandbox)
+
+  InstanceType:
+    Type: String
+    Default: m7i-flex.large
+    AllowedValues:
+      - m7i-flex.large
+      - m7i.large
+      - m7i.xlarge
+      - t3.large
+      - t3.xlarge
+      - c7i.large
+      - m6i.large
+    Description: EC2 instance type (m7i-flex.large recommended for 2 vCPU / 8 GB RAM)
+
+  VolumeSize:
+    Type: Number
+    Default: 50
+    MinValue: 30
+    MaxValue: 500
+    Description: Root EBS GP3 volume storage in GB
+
+  CloudflareTunnelToken:
+    Type: String
+    NoEcho: true
+    Description: Secret token for Cloudflare Tunnel (cloudflared). Creates zero-ingress tunnel to Cloudflare Edge.
+
+  GhcrUsername:
+    Type: String
+    Description: GitHub username for authenticating to GitHub Container Registry (ghcr.io)
+
+  GhcrToken:
+    Type: String
+    NoEcho: true
+    Description: GitHub Personal Access Token (PAT) with read:packages scope to pull private images
+
+  GhcrImageRepository:
+    Type: String
+    Default: ghcr.io/your-username/vividimagination.backend.api
+    Description: Target container image repository in GHCR
+
+  AppImageTag:
+    Type: String
+    Default: latest
+    Description: Initial container image tag to deploy
+
+  PostgresUser:
+    Type: String
+    Default: vivid_user
+    Description: PostgreSQL administrative username
+
+  PostgresPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: PostgreSQL administrative password
+
+  PostgresDb:
+    Type: String
+    Default: vivid_imagination
+    Description: PostgreSQL primary database name
+
+  JwtSecretKey:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Secret key for JWT and application signing (min 32 characters)
+
+  EncryptionKey:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Symmetric encryption key for data protection (min 32 characters)
+
+  AppBaseUrl:
+    Type: String
+    Default: https://api.yourdomain.com
+    Description: Public HTTPS URL routed via Cloudflare to this application
+
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+    Description: Parameter Store path to latest Amazon Linux 2023 AMI
+
+  KeyName:
+    Type: String
+    Default: ""
+    Description: Optional EC2 Key Pair for SSH fallback (leave blank to rely on SSM Session Manager & Cloudflare Access)
+
+Conditions:
+  HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
+
+Resources:
+  # ============================================================================
+  # 1. NETWORKING (VPC, Subnet, Route Table, Internet Gateway)
+  # ============================================================================
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-vpc"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-igw"
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-public-subnet"
+
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-public-rt"
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref RouteTable
+
+  # ============================================================================
+  # 2. SECURITY GROUP (Zero-Inbound for Cloudflare Tunnel)
+  # ============================================================================
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Vivid Imagination EC2 instance (Zero Ingress, Outbound Only for Cloudflare Tunnel)
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic (Cloudflare Tunnel, S3, Rekognition, GHCR)
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-sg"
+
+  # ============================================================================
+  # 3. STORAGE (S3 Photo Bucket)
+  # ============================================================================
+  PhotoBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "vivid-photos-${AWS::AccountId}-${AWS::Region}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+              - DELETE
+            AllowedOrigins:
+              - !Ref AppBaseUrl
+              - "https://*.pages.dev"
+            MaxAge: 3600
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-photos"
+
+  # ============================================================================
+  # 4. IAM ROLES & POLICIES (S3, Rekognition, Systems Manager)
+  # ============================================================================
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: VividPhotoS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt PhotoBucket.Arn
+                  - !Sub "${PhotoBucket.Arn}/*"
+        - PolicyName: VividRekognitionModerationAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rekognition:DetectModerationLabels
+                  - rekognition:DetectLabels
+                Resource: "*"
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-ec2-role"
+
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref EC2Role
+
+  # ============================================================================
+  # 5. EC2 INSTANCE & BOOTSTRAP (Amazon Linux 2023, Docker, cloudflared, Compose)
+  # ============================================================================
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    DependsOn: PublicRoute
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+        Count: 1
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !Ref LatestAmiId
+      KeyName: !If [HasKeyName, !Ref KeyName, !Ref "AWS::NoValue"]
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          SubnetId: !Ref PublicSubnet
+          GroupSet:
+            - !Ref EC2SecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref VolumeSize
+            VolumeType: gp3
+            Iops: 3000
+            Throughput: 125
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-vivid-app"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/usr/bin/env bash
+          set -xeou pipefail
+
+          # Trap signal for CloudFormation completion
+          trap 'signal_cfn $?' EXIT
+
+          signal_cfn() {
+            STATUS="SUCCESS"
+            if [ "$1" -ne 0 ]; then
+              STATUS="FAILURE"
+            fi
+            /opt/aws/bin/cfn-signal -e $1 --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region} || true
+          }
+
+          echo "=== 1. Update OS and Install Prerequisites ==="
+          dnf update -y
+          dnf install -y docker git curl jq
+
+          # Install cfn-bootstrap tools
+          dnf install -y python3-pip
+          pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz || true
+
+          # Install Docker Compose Plugin
+          mkdir -p /usr/local/lib/docker/cli-plugins
+          curl -SL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64" \
+            -o /usr/local/lib/docker/cli-plugins/docker-compose
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+          # Start and enable Docker
+          systemctl start docker
+          systemctl enable docker
+          usermod -aG docker ec2-user
+
+          echo "=== 2. Install and Configure Cloudflare Tunnel ==="
+          curl -fsSL -o /tmp/cloudflared.rpm "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm"
+          dnf install -y /tmp/cloudflared.rpm
+          rm -f /tmp/cloudflared.rpm
+
+          # Install systemd service for cloudflared tunnel
+          cloudflared service install "${CloudflareTunnelToken}"
+          systemctl enable cloudflared
+          systemctl start cloudflared
+
+          echo "=== 3. Setup Vivid Imagination Directory & Config ==="
+          APP_DIR="/opt/vivid-imagination"
+          mkdir -p "$APP_DIR/scripts/postgres"
+
+          # Write init-schemas.sql
+          cat <<'EOF_SQL' > "$APP_DIR/scripts/postgres/init-schemas.sql"
+          -- Vivid Imagination Multi-Schema Initializer
+          CREATE SCHEMA IF NOT EXISTS identity;
+          CREATE SCHEMA IF NOT EXISTS media;
+          CREATE SCHEMA IF NOT EXISTS social;
+          EOF_SQL
+
+          # Write Production Environment File
+          cat <<EOF_ENV > "$APP_DIR/.env"
+          POSTGRES_USER=${PostgresUser}
+          POSTGRES_PASSWORD=${PostgresPassword}
+          POSTGRES_DB=${PostgresDb}
+          RABBITMQ_USER=guest
+          RABBITMQ_PASSWORD=guest
+          API_IMAGE=${GhcrImageRepository}
+          APP_TAG=${AppImageTag}
+          AWS_REGION=${AWS::Region}
+          AWS_S3_BUCKET=${PhotoBucket}
+          JWT_SECRET_KEY=${JwtSecretKey}
+          ENCRYPTION_KEY=${EncryptionKey}
+          APP_BASE_URL=${AppBaseUrl}
+          GHCR_USERNAME=${GhcrUsername}
+          GHCR_TOKEN=${GhcrToken}
+          EOF_ENV
+          chmod 600 "$APP_DIR/.env"
+
+          # Write Production Docker Compose File (base64 encoded)
+          cat <<'EOF_B64_COMPOSE' | base64 -d > "$APP_DIR/docker-compose.prod.yml"
+          c2VydmljZXM6CiAgcG9zdGdyZXM6CiAgICBpbWFnZTogcG9zdGdyZXM6MTYtYWxwaW5lCiAgICBjb250YWluZXJfbmFtZTogdml2aWQtcG9zdGdyZXMKICAgIHJlc3RhcnQ6IGFsd2F5cwogICAgZW52aXJvbm1lbnQ6CiAgICAgIFBPU1RHUkVTX1VTRVI6ICR7UE9TVEdSRVNfVVNFUjotdml2aWRfdXNlcn0KICAgICAgUE9TVEdSRVNfUEFTU1dPUkQ6ICR7UE9TVEdSRVNfUEFTU1dPUkQ6P0RhdGFiYXNlIHBhc3N3b3JkIHJlcXVpcmVkfQogICAgICBQT1NUR1JFU19EQjogJHtQT1NUR1JFU19EQjotdml2aWRfaW1hZ2luYXRpb259CiAgICBwb3J0czoKICAgICAgLSAiMTI3LjAuMC4xOjU0MzI6NTQzMiIKICAgIHZvbHVtZXM6CiAgICAgIC0gcG9zdGdyZXNfZGF0YTovdmFyL2xpYi9wb3N0Z3Jlc3FsL2RhdGEKICAgICAgLSAuL3NjcmlwdHMvcG9zdGdyZXMvaW5pdC1zY2hlbWFzLnNxbDovZG9ja2VyLWVudHJ5cG9pbnQtaW5pdGRiLmQvMDEtaW5pdC1zY2hlbWFzLnNxbDpybwogICAgaGVhbHRoY2hlY2s6CiAgICAgIHRlc3Q6IFsiQ01ELVNIRUxMIiwgInBnX2lzcmVhZHkgLVUgJHtQT1NUR1JFU19VU0VSOi12aXZpZF91c2VyfSAtZCAke1BPU1RHUkVTX0RCOi12aXZpZF9pbWFnaW5hdGlvbn0iXQogICAgICBpbnRlcnZhbDogMTBzCiAgICAgIHRpbWVvdXQ6IDVzCiAgICAgIHJldHJpZXM6IDUKCiAgbW9uZ29kYjoKICAgIGltYWdlOiBtb25nbzo3LjAKICAgIGNvbnRhaW5lcl9uYW1lOiB2aXZpZC1tb25nb2RiCiAgICByZXN0YXJ0OiBhbHdheXMKICAgIHBvcnRzOgogICAgICAtICIxMjcuMC4wLjE6MjcwMTc6MjcwMTciCiAgICB2b2x1bWVzOgogICAgICAtIG1vbmdvX2RhdGE6L2RhdGEvZGIKICAgIGhlYWx0aGNoZWNrOgogICAgICB0ZXN0OiBbIkNNRCIsICJtb25nb3NoIiwgIi0tZXZhbCIsICJkYi5hZG1pbkNvbW1hbmQoJ3BpbmcnKSJdCiAgICAgIGludGVydmFsOiAxMHMKICAgICAgdGltZW91dDogNXMKICAgICAgcmV0cmllczogNQoKICByZWRpczoKICAgIGltYWdlOiByZWRpczo3LWFscGluZQogICAgY29udGFpbmVyX25hbWU6IHZpdmlkLXJlZGlzCiAgICByZXN0YXJ0OiBhbHdheXMKICAgIGNvbW1hbmQ6IHJlZGlzLXNlcnZlciAtLWFwcGVuZG9ubHkgeWVzCiAgICBwb3J0czoKICAgICAgLSAiMTI3LjAuMC4xOjYzNzk6NjM3OSIKICAgIHZvbHVtZXM6CiAgICAgIC0gcmVkaXNfZGF0YTovZGF0YQogICAgaGVhbHRoY2hlY2s6CiAgICAgIHRlc3Q6IFsiQ01EIiwgInJlZGlzLWNsaSIsICJwaW5nIl0KICAgICAgaW50ZXJ2YWw6IDEwcwogICAgICB0aW1lb3V0OiA1cwogICAgICByZXRyaWVzOiA1CgogIHJhYmJpdG1xOgogICAgaW1hZ2U6IHJhYmJpdG1xOjMuMTMtbWFuYWdlbWVudC1hbHBpbmUKICAgIGNvbnRhaW5lcl9uYW1lOiB2aXZpZC1yYWJiaXRtcQogICAgcmVzdGFydDogYWx3YXlzCiAgICBlbnZpcm9ubWVudDoKICAgICAgUkFCQklUTVFfREVGQVVMVF9VU0VSOiAke1JBQkJJVE1RX1VTRVI6LWd1ZXN0fQogICAgICBSQUJCSVRNUV9ERUZBVUxUX1BBU1M6ICR7UkFCQklUTVFfUEFTU1dPUkQ6LWd1ZXN0fQogICAgcG9ydHM6CiAgICAgIC0gIjEyNy4wLjAuMTo1NjcyOjU2NzIiCiAgICAgIC0gIjEyNy4wLjAuMToxNTY3MjoxNTY3MiIKICAgIHZvbHVtZXM6CiAgICAgIC0gcmFiYml0bXFfZGF0YTovdmFyL2xpYi9yYWJiaXRtcQogICAgaGVhbHRoY2hlY2s6CiAgICAgIHRlc3Q6IFsiQ01EIiwgInJhYmJpdG1xLWRpYWdub3N0aWNzIiwgIi1xIiwgInBpbmciXQogICAgICBpbnRlcnZhbDogMTBzCiAgICAgIHRpbWVvdXQ6IDVzCiAgICAgIHJldHJpZXM6IDUKCiAgdml2aWRpbWFnaW5hdGlvbi5iYWNrZW5kLmFwaToKICAgIGltYWdlOiAke0FQSV9JTUFHRTotZ2hjci5pby95b3VyLXVzZXJuYW1lL3ZpdmlkaW1hZ2luYXRpb24uYmFja2VuZC5hcGl9OiR7QVBQX1RBRzotbGF0ZXN0fQogICAgY29udGFpbmVyX25hbWU6IHZpdmlkLWFwaQogICAgcmVzdGFydDogYWx3YXlzCiAgICBwb3J0czoKICAgICAgLSAiMTI3LjAuMC4xOjgwODA6ODA4MCIKICAgIGVudmlyb25tZW50OgogICAgICAtIEFTUE5FVENPUkVfRU5WSVJPTk1FTlQ9UHJvZHVjdGlvbgogICAgICAtIEFTUE5FVENPUkVfSFRUUF9QT1JUUz04MDgwCiAgICAgIC0gQWxsb3dlZEhvc3RzPSoKICAgICAgLSBDb25uZWN0aW9uU3RyaW5nc19fUG9zdGdyZXM9SG9zdD1wb3N0Z3JlcztQb3J0PTU0MzI7RGF0YWJhc2U9JHtQT1NUR1JFU19EQjotdml2aWRfaW1hZ2luYXRpb259O1VzZXJuYW1lPSR7UE9TVEdSRVNfVVNFUjotdml2aWRfdXNlcn07UGFzc3dvcmQ9JHtQT1NUR1JFU19QQVNTV09SRH0KICAgICAgLSBDb25uZWN0aW9uU3RyaW5nc19fSWRlbnRpdHk9SG9zdD1wb3N0Z3JlcztQb3J0PTU0MzI7RGF0YWJhc2U9JHtQT1NUR1JFU19EQjotdml2aWRfaW1hZ2luYXRpb259O1VzZXJuYW1lPSR7UE9TVEdSRVNfVVNFUjotdml2aWRfdXNlcn07UGFzc3dvcmQ9JHtQT1NUR1JFU19QQVNTV09SRH0KICAgICAgLSBDb25uZWN0aW9uU3RyaW5nc19fU29jaWFsPUhvc3Q9cG9zdGdyZXM7UG9ydD01NDMyO0RhdGFiYXNlPSR7UE9TVEdSRVNfREI6LXZpdmlkX2ltYWdpbmF0aW9ufTtVc2VybmFtZT0ke1BPU1RHUkVTX1VTRVI6LXZpdmlkX3VzZXJ9O1Bhc3N3b3JkPSR7UE9TVEdSRVNfUEFTU1dPUkR9CiAgICAgIC0gQ29ubmVjdGlvblN0cmluZ3NfX01vbmdvPW1vbmdvZGI6Ly9tb25nb2RiOjI3MDE3CiAgICAgIC0gTW9uZ29PcHRpb25zX19Db25uZWN0aW9uU3RyaW5nPW1vbmdvZGI6Ly9tb25nb2RiOjI3MDE3CiAgICAgIC0gTW9uZ29PcHRpb25zX19EYXRhYmFzZU5hbWU9JHtQT1NUR1JFU19EQjotdml2aWRfaW1hZ2luYXRpb259CiAgICAgIC0gTWVkaWFfX0Nvbm5lY3Rpb25TdHJpbmc9bW9uZ29kYjovL21vbmdvZGI6MjcwMTcKICAgICAgLSBNZWRpYV9fRGF0YWJhc2VOYW1lPSR7UE9TVEdSRVNfREI6LXZpdmlkX2ltYWdpbmF0aW9ufQogICAgICAtIE1vZGVyYXRpb25fX0Nvbm5lY3Rpb25TdHJpbmc9bW9uZ29kYjovL21vbmdvZGI6MjcwMTcKICAgICAgLSBNb2RlcmF0aW9uX19EYXRhYmFzZU5hbWU9JHtQT1NUR1JFU19EQjotdml2aWRfaW1hZ2luYXRpb259CiAgICAgIC0gRmVlZF9fQ29ubmVjdGlvblN0cmluZz1tb25nb2RiOi8vbW9uZ29kYjoyNzAxNwogICAgICAtIEZlZWRfX0RhdGFiYXNlTmFtZT0ke1BPU1RHUkVTX0RCOi12aXZpZF9pbWFnaW5hdGlvbn0KICAgICAgLSBDb25uZWN0aW9uU3RyaW5nc19fUmVkaXM9cmVkaXM6NjM3OQogICAgICAtIEFwcGxpY2F0aW9uU2V0dGluZ3NfX0NhY2hlX19Db25uZWN0aW9uU3RyaW5nPXJlZGlzOjYzNzkKICAgICAgLSBSYWJiaXRNUV9fRW5hYmxlZD10cnVlCiAgICAgIC0gUmFiYml0TVFfX0hvc3Q9cmFiYml0bXEKICAgICAgLSBSYWJiaXRNUV9fVXNlcm5hbWU9JHtSQUJCSVRNUV9VU0VSOi1ndWVzdH0KICAgICAgLSBSYWJiaXRNUV9fUGFzc3dvcmQ9JHtSQUJCSVRNUV9QQVNTV09SRDotZ3Vlc3R9CiAgICAgIC0gQXBwbGljYXRpb25TZXR0aW5nc19fRXZlbnRCdXNfX1JhYmJpdE1RX19Ib3N0PXJhYmJpdG1xCiAgICAgIC0gQXBwbGljYXRpb25TZXR0aW5nc19fRXZlbnRCdXNfX1JhYmJpdE1RX19Vc2VybmFtZT0ke1JBQkJJVE1RX1VTRVI6LWd1ZXN0fQogICAgICAtIEFwcGxpY2F0aW9uU2V0dGluZ3NfX0V2ZW50QnVzX19SYWJiaXRNUV9fUGFzc3dvcmQ9JHtSQUJCSVRNUV9QQVNTV09SRDotZ3Vlc3R9CiAgICAgIC0gQVdTX19SZWdpb249JHtBV1NfUkVHSU9OOi11cy1lYXN0LTF9CiAgICAgIC0gQVdTX19CdWNrZXQ9JHtBV1NfUzNfQlVDS0VUfQogICAgICAtIEFwcGxpY2F0aW9uU2V0dGluZ3NfX0dlbmVyYWxfX1B1YmxpY0J1Y2tldD0ke0FXU19TM19CVUNLRVR9CiAgICAgIC0gQXBwbGljYXRpb25TZXR0aW5nc19fR2VuZXJhbF9fU3RvcmFnZVR5cGU9UzMKICAgICAgLSBBcHBsaWNhdGlvblNldHRpbmdzX19HZW5lcmFsX19TZWNyZXRLZXk9JHtKV1RfU0VDUkVUX0tFWX0KICAgICAgLSBBcHBsaWNhdGlvblNldHRpbmdzX19HZW5lcmFsX19FbmNyeXB0aW9uS2V5PSR7RU5DUllQVElPTl9LRVl9CiAgICAgIC0gQXBwbGljYXRpb25TZXR0aW5nc19fT3BlbklkQ29ubmVjdFNldHRpbmdzX19BdXRob3JpdHk9JHtBUFBfQkFTRV9VUkw6LWh0dHA6Ly9sb2NhbGhvc3Q6ODA4MH0KICAgICAgLSBBcHBsaWNhdGlvblNldHRpbmdzX19PcGVuSWRDb25uZWN0U2V0dGluZ3NfX0lzc3VlclVyaT0ke0FQUF9CQVNFX1VSTDotaHR0cDovL2xvY2FsaG9zdDo4MDgwfQogICAgZGVwZW5kc19vbjoKICAgICAgcG9zdGdyZXM6CiAgICAgICAgY29uZGl0aW9uOiBzZXJ2aWNlX2hlYWx0aHkKICAgICAgbW9uZ29kYjoKICAgICAgICBjb25kaXRpb246IHNlcnZpY2VfaGVhbHRoeQogICAgICByZWRpczoKICAgICAgICBjb25kaXRpb246IHNlcnZpY2VfaGVhbHRoeQogICAgICByYWJiaXRtcToKICAgICAgICBjb25kaXRpb246IHNlcnZpY2VfaGVhbHRoeQogICAgdm9sdW1lczoKICAgICAgLSBhcGlfZGF0YXByb3RlY3Rpb246L2FwcC9BcHBfRGF0YS9EYXRhUHJvdGVjdGlvbgogICAgaGVhbHRoY2hlY2s6CiAgICAgIHRlc3Q6IFsiQ01ELVNIRUxMIiwgImN1cmwgLWYgaHR0cDovL2xvY2FsaG9zdDo4MDgwL2RvY3MgfHwgZXhpdCAxIl0KICAgICAgaW50ZXJ2YWw6IDE1cwogICAgICB0aW1lb3V0OiA1cwogICAgICByZXRyaWVzOiA1CiAgICAgIHN0YXJ0X3BlcmlvZDogMjBzCgp2b2x1bWVzOgogIHBvc3RncmVzX2RhdGE6CiAgbW9uZ29fZGF0YToKICByZWRpc19kYXRhOgogIHJhYmJpdG1xX2RhdGE6CiAgYXBpX2RhdGFwcm90ZWN0aW9uOgoKbmV0d29ya3M6CiAgZGVmYXVsdDoKICAgIG5hbWU6IHZpdmlkLW5ldHdvcmsK
+          EOF_B64_COMPOSE
+
+          echo "=== 4. Install deploy-app Helper Script ==="
+          cat <<'EOF_B64_DEPLOY' | base64 -d > /usr/local/bin/deploy-app
+          IyEvdXNyL2Jpbi9lbnYgYmFzaAojID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQojIGRlcGxveS1hcHAg4oCUIFplcm8tRG93bnRpbWUgQXBwbGljYXRpb24gRGVwbG95bWVudCBTY3JpcHQgZm9yIFZpdmlkIEltYWdpbmF0aW9uCiMgQ29tcGF0aWJsZSB3aXRoIEdpdEh1YiBBY3Rpb25zIENJL0NEIHBpcGVsaW5lCiMgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgpzZXQgLWVvIHBpcGVmYWlsCgpESVI9Ii9vcHQvdml2aWQtaW1hZ2luYXRpb24iClBST0pFQ1Q9InZpdmlkLWltYWdpbmF0aW9uIgpUQUc9ImxhdGVzdCIKU0VSVklDRVM9KCkKCndoaWxlIFtbICQjIC1ndCAwIF1dOyBkbwogIGNhc2UgIiQxIiBpbgogICAgLS1kaXIpCiAgICAgIERJUj0iJDIiCiAgICAgIHNoaWZ0IDIKICAgICAgOzsKICAgIC0tcHJvamVjdCkKICAgICAgUFJPSkVDVD0iJDIiCiAgICAgIHNoaWZ0IDIKICAgICAgOzsKICAgIC0tdGFnKQogICAgICBUQUc9IiQyIgogICAgICBzaGlmdCAyCiAgICAgIDs7CiAgICAtaHwtLWhlbHApCiAgICAgIGVjaG8gIlVzYWdlOiBkZXBsb3ktYXBwIFstLWRpciA8ZGVwbG95X2Rpcj5dIFstLXByb2plY3QgPHByb2plY3RfbmFtZT5dIFstLXRhZyA8aW1hZ2VfdGFnPl0gW3NlcnZpY2UxIHNlcnZpY2UyIC4uLl0iCiAgICAgIGV4aXQgMAogICAgICA7OwogICAgKikKICAgICAgU0VSVklDRVMrPSgiJDEiKQogICAgICBzaGlmdAogICAgICA7OwogIGVzYWMKZG9uZQoKaWYgW1sgJHsjU0VSVklDRVNbQF19IC1lcSAwIF1dOyB0aGVuCiAgU0VSVklDRVM9KCJ2aXZpZGltYWdpbmF0aW9uLmJhY2tlbmQuYXBpIikKZmkKCmVjaG8gIj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0iCmVjaG8gIiBTdGFydGluZyBEZXBsb3ltZW50OiAke1BST0pFQ1R9IChUYWc6ICR7VEFHfSkiCmVjaG8gIiBUYXJnZXQgRGlyZWN0b3J5OiAgICR7RElSfSIKZWNobyAiIFNlcnZpY2VzIHRvIERlcGxveTogJHtTRVJWSUNFU1sqXX0iCmVjaG8gIiBUaW1lOiAgICAgICAgICAgICAgICQoZGF0ZSAtdSAnKyVZLSVtLSVkICVIOiVNOiVTWicpIgplY2hvICI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgoKaWYgW1sgISAtZCAiJERJUiIgXV07IHRoZW4KICBlY2hvICJbLV0gRXJyb3I6IERpcmVjdG9yeSAkRElSIGRvZXMgbm90IGV4aXN0LiIgPiYyCiAgZXhpdCAxCmZpCgpjZCAiJERJUiIKCiMgRG9ja2VyIGxvZ2luIHRvIEdIQ1IgaWYgdG9rZW4gaXMgc3VwcGxpZWQKR0hfVE9LRU49IiR7R0lUSFVCX1RPS0VOOi0ke0dIQ1JfVE9LRU46LX19IgpHSF9VU0VSPSIke0dIQ1JfVVNFUk5BTUU6LX0iCgppZiBbWyAtbiAiJEdIX1RPS0VOIiBdXTsgdGhlbgogIGVjaG8gIlsrXSBBdXRoZW50aWNhdGluZyB3aXRoIEdpdEh1YiBDb250YWluZXIgUmVnaXN0cnkgKGdoY3IuaW8pLi4uIgogIGlmIFtbIC1uICIkR0hfVVNFUiIgXV07IHRoZW4KICAgIGVjaG8gIiRHSF9UT0tFTiIgfCBkb2NrZXIgbG9naW4gZ2hjci5pbyAtdSAiJEdIX1VTRVIiIC0tcGFzc3dvcmQtc3RkaW4KICBlbHNlCiAgICBlY2hvICIkR0hfVE9LRU4iIHwgZG9ja2VyIGxvZ2luIGdoY3IuaW8gLXUgdG9rZW4gLS1wYXNzd29yZC1zdGRpbgogIGZpCmZpCgojIFVwZGF0ZSBBUFBfVEFHIGluIC5lbnYgaWYgcHJlc2VudAppZiBbWyAtZiAuZW52IF1dOyB0aGVuCiAgZWNobyAiWytdIFVwZGF0aW5nIEFQUF9UQUcgaW4gLmVudi4uLiIKICBpZiBncmVwIC1xICJeQVBQX1RBRz0iIC5lbnY7IHRoZW4KICAgIHNlZCAtaSAicy9eQVBQX1RBRz0uKi9BUFBfVEFHPSR7VEFHfS8iIC5lbnYKICBlbHNlCiAgICBlY2hvICJBUFBfVEFHPSR7VEFHfSIgPj4gLmVudgogIGZpCmZpCgpleHBvcnQgQVBQX1RBRz0iJHtUQUd9IgoKIyBQdWxsIHVwZGF0ZWQgaW1hZ2VzCmZvciBzdmMgaW4gIiR7U0VSVklDRVNbQF19IjsgZG8KICBlY2hvICJbK10gUHVsbGluZyBsYXRlc3QgaW1hZ2UgZm9yIHNlcnZpY2U6ICR7c3ZjfS4uLiIKICBkb2NrZXIgY29tcG9zZSAtcCAiJHtQUk9KRUNUfSIgLWYgZG9ja2VyLWNvbXBvc2UucHJvZC55bWwgcHVsbCAiJHtzdmN9IiB8fCB0cnVlCmRvbmUKCiMgUm9sbGluZyB1cGRhdGUgb2YgdGFyZ2V0IHNlcnZpY2VzCmVjaG8gIlsrXSBEZXBsb3lpbmcgdXBkYXRlZCBzZXJ2aWNlKHMpOiAke1NFUlZJQ0VTWypdfS4uLiIKZG9ja2VyIGNvbXBvc2UgLXAgIiR7UFJPSkVDVH0iIC1mIGRvY2tlci1jb21wb3NlLnByb2QueW1sIHVwIC1kIC0tbm8tZGVwcyAiJHtTRVJWSUNFU1tAXX0iCgojIFZlcmlmaWNhdGlvbiAmIEhlYWx0aGNoZWNrIHdhaXQKZWNobyAiWytdIFdhaXRpbmcgZm9yIGNvbnRhaW5lciBoZWFsdGggc3RhdHVzLi4uIgpmb3Igc3ZjIGluICIke1NFUlZJQ0VTW0BdfSI7IGRvCiAgQ09OVEFJTkVSX0lEPSQoZG9ja2VyIGNvbXBvc2UgLXAgIiR7UFJPSkVDVH0iIC1mIGRvY2tlci1jb21wb3NlLnByb2QueW1sIHBzIC1xICIke3N2Y30iKQogIGlmIFtbIC1uICIkQ09OVEFJTkVSX0lEIiBdXTsgdGhlbgogICAgZWNobyAiWytdIENoZWNraW5nIGhlYWx0aCBvZiBjb250YWluZXIgJHtDT05UQUlORVJfSUR9ICgke3N2Y30pLi4uIgogICAgQVRURU1QVFM9MAogICAgTUFYX0FUVEVNUFRTPTIwCiAgICBIRUFMVEhZPWZhbHNlCiAgICB3aGlsZSBbWyAkQVRURU1QVFMgLWx0ICRNQVhfQVRURU1QVFMgXV07IGRvCiAgICAgIFNUQVRVUz0kKGRvY2tlciBpbnNwZWN0IC0tZm9ybWF0PSd7e2pzb24gLlN0YXRlLkhlYWx0aC5TdGF0dXN9fScgIiRDT05UQUlORVJfSUQiIDI+L2Rldi9udWxsIHx8IGVjaG8gJyJ1bmtub3duIicpCiAgICAgIFNUQVRVUz0iJHtTVEFUVVMlXCJ9IgogICAgICBTVEFUVVM9IiR7U1RBVFVTI1wifSIKICAgICAgaWYgW1sgIiRTVEFUVVMiID09ICJoZWFsdGh5IiBdXTsgdGhlbgogICAgICAgIGVjaG8gIlsrXSBTZXJ2aWNlICR7c3ZjfSBpcyBIRUFMVEhZISIKICAgICAgICBIRUFMVEhZPXRydWUKICAgICAgICBicmVhawogICAgICBlbGlmIFtbICIkU1RBVFVTIiA9PSAidW5oZWFsdGh5IiBdXTsgdGhlbgogICAgICAgIGVjaG8gIlstXSBTZXJ2aWNlICR7c3ZjfSByZXBvcnRlZCBVTkhFQUxUSFkhIgogICAgICAgIGRvY2tlciBsb2dzIC0tdGFpbCA1MCAiJENPTlRBSU5FUl9JRCIKICAgICAgICBleGl0IDEKICAgICAgZmkKICAgICAgZWNobyAiICAgIEN1cnJlbnQgc3RhdHVzOiAnJHtTVEFUVVN9Jy4uLiB3YWl0aW5nIDNzIChhdHRlbXB0ICQoKEFUVEVNUFRTKzEpKS8kTUFYX0FUVEVNUFRTKSIKICAgICAgc2xlZXAgMwogICAgICBBVFRFTVBUUz0kKChBVFRFTVBUUysxKSkKICAgIGRvbmUKCiAgICBpZiBbWyAiJEhFQUxUSFkiICE9ICJ0cnVlIiAmJiAiJFNUQVRVUyIgIT0gInVua25vd24iIF1dOyB0aGVuCiAgICAgIGVjaG8gIlstXSBXYXJuaW5nOiBIZWFsdGhjaGVjayB0aW1lZCBvdXQgZm9yIHNlcnZpY2UgJHtzdmN9LiIKICAgIGZpCiAgZmkKZG9uZQoKIyBQcnVuZSBkYW5nbGluZy9vbGQgaW1hZ2VzCmVjaG8gIlsrXSBQcnVuaW5nIHVudXNlZCBkYW5nbGluZyBpbWFnZXMuLi4iCmRvY2tlciBpbWFnZSBwcnVuZSAtZiA+L2Rldi9udWxsIDI+JjEgfHwgdHJ1ZQoKZWNobyAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKZWNobyAiIERlcGxveW1lbnQgU3VjY2Vzc2Z1bGx5IEZpbmlzaGVkISIKZWNobyAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIK
+          EOF_B64_DEPLOY
+          chmod +x /usr/local/bin/deploy-app
+
+          echo "=== 5. Authenticate GHCR and Launch Stack ==="
+          cd "$APP_DIR"
+          if [[ -n "${GhcrToken}" ]]; then
+            echo "${GhcrToken}" | docker login ghcr.io -u "${GhcrUsername}" --password-stdin
+          fi
+
+          # Pull API image
+          docker compose -f docker-compose.prod.yml pull || true
+
+          # Create systemd service for vivid-imagination
+          cat <<EOF_SERVICE > /etc/systemd/system/vivid-imagination.service
+          [Unit]
+          Description=Vivid Imagination Docker Compose Stack
+          Requires=docker.service
+          After=docker.service network.target
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          WorkingDirectory=/opt/vivid-imagination
+          ExecStart=/usr/local/lib/docker/cli-plugins/docker-compose -f docker-compose.prod.yml up -d
+          ExecStop=/usr/local/lib/docker/cli-plugins/docker-compose -f docker-compose.prod.yml down
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF_SERVICE
+
+          systemctl daemon-reload
+          systemctl enable vivid-imagination
+          systemctl start vivid-imagination
+
+          echo "=== Stack successfully initialized! ==="
+
+Outputs:
+  VpcId:
+    Description: ID of the created VPC
+    Value: !Ref VPC
+
+  PublicSubnetId:
+    Description: ID of the public subnet
+    Value: !Ref PublicSubnet
+
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref EC2Instance
+
+  PublicIp:
+    Description: Public IP of the EC2 Instance (for reference or direct management if needed)
+    Value: !GetAtt EC2Instance.PublicIp
+
+  PhotoBucketName:
+    Description: Amazon S3 bucket provisioned for photo uploads & transcoded variants
+    Value: !Ref PhotoBucket
+
+  PhotoBucketArn:
+    Description: ARN of the Amazon S3 photo bucket
+    Value: !GetAtt PhotoBucket.Arn
+
+  SSMConnectCommand:
+    Description: AWS CLI command to connect to EC2 via Systems Manager Session Manager
+    Value: !Sub "aws ssm start-session --target ${EC2Instance} --region ${AWS::Region}"
+
+  CloudflareTunnelVerification:
+    Description: Expected local ingress target for Cloudflare Tunnel
+    Value: "http://localhost:8080"
