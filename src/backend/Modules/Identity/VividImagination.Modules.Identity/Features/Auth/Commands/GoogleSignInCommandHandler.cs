@@ -55,15 +55,12 @@ public class GoogleSignInCommandHandler(
         {
             isNewUser = true;
 
-            // Ensure 'User' role exists
+            // Validate 'User' role exists before JIT provisioning
             if (roleManager != null && !await roleManager.RoleExistsAsync(SystemRoleNames.User))
             {
-                await roleManager.CreateAsync(new IdentityRole<long>
-                {
-                    Id = SnowFlakIdGenerator.NewId(),
-                    Name = SystemRoleNames.User,
-                    NormalizedName = SystemRoleNames.User.ToUpperInvariant()
-                });
+                throw new SystemErrorException(
+                    $"Default role '{SystemRoleNames.User}' does not exist. Ensure database seeding has completed.",
+                    "ROLE_NOT_CONFIGURED");
             }
 
             user = new User

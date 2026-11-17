@@ -28,15 +28,12 @@ public class RegisterUserCommandHandler(
             throw new BadRequestException("An account with this email address already exists.", "EMAIL_ALREADY_EXISTS");
         }
 
-        // 2. Ensure default 'User' role exists if roleManager is configured
+        // 2. Validate default 'User' role exists if roleManager is configured
         if (roleManager != null && !await roleManager.RoleExistsAsync(SystemRoleNames.User))
         {
-            await roleManager.CreateAsync(new IdentityRole<long>
-            {
-                Id = SnowFlakIdGenerator.NewId(),
-                Name = SystemRoleNames.User,
-                NormalizedName = SystemRoleNames.User.ToUpperInvariant()
-            });
+            throw new SystemErrorException(
+                $"Default role '{SystemRoleNames.User}' does not exist. Ensure database seeding has completed.",
+                "ROLE_NOT_CONFIGURED");
         }
 
         // 3. Create user entity with UserName = normalized email

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using VividImagination.Modules.Identity.Controllers.v1;
 using VividImagination.Modules.Identity.Features.Auth.Services;
 using VividImagination.Modules.Identity.Persistence;
+using VividImagination.Modules.Identity.Persistence.Seed;
 using VividImagination.Modules.Identity.Services;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure;
@@ -25,7 +26,7 @@ public class IdentityModule : IAppModule
     public IServiceCollection AddModule(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         services.AddPersistence<IdentityDbContext>(ModuleName, configuration);
-        services.AddMigration<IdentityDbContext>();
+        services.AddMigration<IdentityDbContext, IdentityContextSeed>();
         
         services.AddCustomIdentityServer(environment, configuration);
         services.AddCustomMediatR(Assembly.GetExecutingAssembly());

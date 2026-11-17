@@ -11,6 +11,7 @@ using VividImagination.Modules.Identity.Features.Preferences.Validators;
 using VividImagination.Modules.Identity.Persistence.Entities;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Contract.Identity.Enums;
+using VividImagination.Shared.Infrastructure.Common;
 using VividImagination.Shared.Infrastructure.Exceptions;
 using VividImagination.Shared.Infrastructure.Web.Identity;
 using Xunit;
@@ -433,5 +434,165 @@ public class IdentityFeatureTests
         publishEndpointMock.Verify(p => p.Publish(
             It.IsAny<VividImagination.Modules.Identity.Contracts.Events.UserRegisteredIntegrationEvent>(),
             It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static Mock<RoleManager<IdentityRole<long>>> CreateRoleManagerMock()
+    {
+        var roleStoreMock = new Mock<IRoleStore<IdentityRole<long>>>();
+        return new Mock<RoleManager<IdentityRole<long>>>(
+            roleStoreMock.Object,
+            Array.Empty<IRoleValidator<IdentityRole<long>>>(),
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!);
+    }
+
+    [Fact]
+    public async Task RegisterUserCommandHandler_WhenUserRoleDoesNotExist_ShouldThrowSystemErrorException()
+    {
+        // Arrange
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        userManagerMock.Setup(m => m.FindByEmailAsync("newuser@vivid.local"))
+            .ReturnsAsync((User?)null);
+
+        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
+
+        var roleManagerMock = CreateRoleManagerMock();
+        roleManagerMock.Setup(r => r.RoleExistsAsync(SystemRoleNames.User))
+            .ReturnsAsync(false);
+
+        var handler = new VividImagination.Modules.Identity.Features.Users.Commands.RegisterUserCommandHandler(
+            userManagerMock.Object, publishEndpointMock.Object, roleManagerMock.Object);
+
+        // Act & Assert
+        var act = () => handler.Handle(
+            new VividImagination.Modules.Identity.Features.Users.Commands.RegisterUserCommand(
+                "newuser@vivid.local", "StrongPassword123!"),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<SystemErrorException>()
+            .WithMessage($"*{SystemRoleNames.User}*");
+    }
+
+    [Fact]
+    public async Task RegisterUserCommandHandler_WhenUserRoleExists_ShouldAssignRole()
+    {
+        // Arrange
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        userManagerMock.Setup(m => m.FindByEmailAsync("newuser@vivid.local"))
+            .ReturnsAsync((User?)null);
+        userManagerMock.Setup(m => m.CreateAsync(It.IsAny<User>(), It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        userManagerMock.Setup(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
+
+        var roleManagerMock = CreateRoleManagerMock();
+        roleManagerMock.Setup(r => r.RoleExistsAsync(SystemRoleNames.User))
+            .ReturnsAsync(true);
+
+        var handler = new VividImagination.Modules.Identity.Features.Users.Commands.RegisterUserCommandHandler(
+            userManagerMock.Object, publishEndpointMock.Object, roleManagerMock.Object);
+
+        // Act
+        var result = await handler.Handle(
+            new VividImagination.Modules.Identity.Features.Users.Commands.RegisterUserCommand(
+                "newuser@vivid.local", "StrongPassword123!"),
+            CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        userManagerMock.Verify(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User), Times.Once);
+    }
+
+    [Fact]
+    public async Task GoogleSignInCommandHandler_WhenNewUserAndRoleDoesNotExist_ShouldThrowSystemErrorException()
+    {
+        // Arrange
+        var validatorMock = new Mock<VividImagination.Modules.Identity.Features.Auth.Services.IGoogleTokenValidator>();
+        validatorMock.Setup(v => v.ValidateAsync("valid_google_token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new VividImagination.Modules.Identity.Features.Auth.Services.GoogleTokenPayload(
+                "google-sub-99999",
+                "brandnew@gmail.com",
+                true,
+                "New",
+                "User"));
+
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        userManagerMock.Setup(m => m.FindByLoginAsync("Google", "google-sub-99999"))
+            .ReturnsAsync((User?)null);
+        userManagerMock.Setup(m => m.FindByEmailAsync("brandnew@gmail.com"))
+            .ReturnsAsync((User?)null);
+
+        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
+
+        var roleManagerMock = CreateRoleManagerMock();
+        roleManagerMock.Setup(r => r.RoleExistsAsync(SystemRoleNames.User))
+            .ReturnsAsync(false);
+
+        var handler = new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommandHandler(
+            validatorMock.Object, userManagerMock.Object, publishEndpointMock.Object, roleManagerMock.Object);
+
+        // Act & Assert
+        var act = () => handler.Handle(
+            new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommand("valid_google_token"),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<SystemErrorException>()
+            .WithMessage($"*{SystemRoleNames.User}*");
+    }
+
+    [Fact]
+    public async Task GoogleSignInCommandHandler_WhenNewUserAndRoleExists_ShouldAssignRole()
+    {
+        // Arrange
+        var validatorMock = new Mock<VividImagination.Modules.Identity.Features.Auth.Services.IGoogleTokenValidator>();
+        validatorMock.Setup(v => v.ValidateAsync("valid_google_token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new VividImagination.Modules.Identity.Features.Auth.Services.GoogleTokenPayload(
+                "google-sub-99999",
+                "brandnew@gmail.com",
+                true,
+                "New",
+                "User"));
+
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        userManagerMock.Setup(m => m.FindByLoginAsync("Google", "google-sub-99999"))
+            .ReturnsAsync((User?)null);
+        userManagerMock.Setup(m => m.FindByEmailAsync("brandnew@gmail.com"))
+            .ReturnsAsync((User?)null);
+        userManagerMock.Setup(m => m.CreateAsync(It.IsAny<User>()))
+            .ReturnsAsync(IdentityResult.Success);
+        userManagerMock.Setup(m => m.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()))
+            .ReturnsAsync(IdentityResult.Success);
+        userManagerMock.Setup(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
+
+        var roleManagerMock = CreateRoleManagerMock();
+        roleManagerMock.Setup(r => r.RoleExistsAsync(SystemRoleNames.User))
+            .ReturnsAsync(true);
+
+        var handler = new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommandHandler(
+            validatorMock.Object, userManagerMock.Object, publishEndpointMock.Object, roleManagerMock.Object);
+
+        // Act
+        var result = await handler.Handle(
+            new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommand("valid_google_token"),
+            CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsNewUser.Should().BeTrue();
+        userManagerMock.Verify(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User), Times.Once);
     }
 }
