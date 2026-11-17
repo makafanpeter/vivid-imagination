@@ -1,6 +1,6 @@
-namespace VividImagination.Modules.Media.Entities;
+namespace VividImagination.Modules.Media.Persistence.Entities;
 
-public class Photo
+public class FileEntry
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserId { get; set; }
