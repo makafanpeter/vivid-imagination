@@ -190,4 +190,63 @@ public class MediaFeatureTests
         validator.Validate(validCommand).IsValid.Should().BeTrue();
         validator.Validate(emptyCommand).IsValid.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task DeleteDocument_Should_Prune_All_WebP_Variants_From_Storage_When_Variants_Present()
+    {
+        var fileServiceManagerMock = new Mock<IFileServiceManager>();
+        var fileRepositoryMock = new Mock<IMongoRepository<FileEntry, Guid>>();
+        var currentUserMock = new Mock<ICurrentUser>();
+        var authorizationServiceMock = new Mock<IAuthorizationService>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
+
+        var photoId = Guid.NewGuid();
+        var existingFile = new FileEntry
+        {
+            Id = photoId,
+            Name = "sunset_photo",
+            FileName = "sunset_photo.jpg",
+            FileLocation = "photos/sunset_photo.jpg",
+            ContentType = "image/jpeg",
+            FileExtension = ".jpg",
+            OwnerId = "user456",
+            Deleted = false,
+            Variants = new Dictionary<string, FileVariantInfo>
+            {
+                ["original"] = new() { VariantName = "original", StorageKey = "photos/sunset_photo_original.webp", Width = 1920, Height = 1080, Size = 40000 },
+                ["medium"] = new() { VariantName = "medium", StorageKey = "photos/sunset_photo_medium.webp", Width = 1080, Height = 608, Size = 25000 },
+                ["thumbnail"] = new() { VariantName = "thumbnail", StorageKey = "photos/sunset_photo_thumb.webp", Width = 256, Height = 144, Size = 5000 }
+            }
+        };
+
+        fileRepositoryMock.Setup(r => r.FindByIdAsync(photoId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingFile);
+
+        currentUserMock.Setup(c => c.User).Returns(new ClaimsPrincipal());
+        currentUserMock.Setup(c => c.CurrentUser).Returns(new UserProfile { PreferredUsername = "user456" });
+
+        authorizationServiceMock.Setup(a => a.AuthorizeAsync(
+                It.IsAny<ClaimsPrincipal>(),
+                It.IsAny<object?>(),
+                It.IsAny<IEnumerable<IAuthorizationRequirement>>()))
+            .ReturnsAsync(AuthorizationResult.Success());
+
+        var handler = new DeleteDocumentCommandHandler(
+            fileServiceManagerMock.Object,
+            fileRepositoryMock.Object,
+            currentUserMock.Object,
+            authorizationServiceMock.Object,
+            publishEndpointMock.Object);
+
+        await handler.Handle(new DeleteDocumentCommand { Id = photoId }, CancellationToken.None);
+
+        existingFile.Deleted.Should().BeTrue();
+
+        // 1 raw file + 3 WebP variants = 4 delete calls
+        fileServiceManagerMock.Verify(f => f.DeleteAsync(It.IsAny<IFileEntry>(), It.IsAny<CancellationToken>()), Times.Exactly(4));
+
+        publishEndpointMock.Verify(p => p.Publish(
+            It.Is<PhotoDeletedIntegrationEvent>(e => e.PhotoId == photoId && e.StorageKey == "photos/sunset_photo.jpg"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
 }
