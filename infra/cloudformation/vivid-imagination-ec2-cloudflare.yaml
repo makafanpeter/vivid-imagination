@@ -345,6 +345,8 @@ Resources:
               originRequest:
                 connectTimeout: 30s
                 noTLSVerify: false
+            - hostname: "ssh.*"
+              service: ssh://127.0.0.1:22
             - service: http_status:404
           EOF_CF_CONFIG
           chmod 600 /etc/cloudflared/config.yml

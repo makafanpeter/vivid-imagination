@@ -242,7 +242,7 @@ jobs:
         run: |
           ssh sandbox-tunnel \
             "GITHUB_TOKEN=${{ secrets.GHCR_READ_TOKEN }} \
-             deploy-app --dir /home/peter/vividimagination-compose \
-                        --project vividimagination-app \
+             deploy-app --dir /opt/vivid-imagination \
+                        --project vivid-imagination \
                         --tag ${{ needs.build.outputs.image_tag }} \
                         ${{ steps.svclist.outputs.services }}"
