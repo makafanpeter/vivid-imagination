@@ -3,11 +3,12 @@ name: CI/CD
 on:
   push:
     branches: [main, develop, "feature/*", "chore/*"]
+    tags: ["v*"]
   pull_request:
     branches: [main, develop]
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   pull-requests: read
 
@@ -84,7 +85,7 @@ jobs:
   build-mobile-android:
     needs: changes
     runs-on: ubuntu-latest
-    if: needs.changes.outputs.mobile == 'true'
+    if: needs.changes.outputs.mobile == 'true' || startsWith(github.ref, 'refs/tags/v')
     steps:
       - uses: actions/checkout@v4
 
@@ -149,6 +150,18 @@ jobs:
             src/mobile/VividImagination.Mobile/bin/Release/net10.0-android/*Signed.apk
             src/mobile/VividImagination.Mobile/bin/Release/net10.0-android/*.apk
             src/mobile/VividImagination.Mobile/bin/Release/net10.0-android/*.aab
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            src/mobile/VividImagination.Mobile/bin/Release/net10.0-android/*Signed.apk
+            src/mobile/VividImagination.Mobile/bin/Release/net10.0-android/*.apk
+            src/mobile/VividImagination.Mobile/bin/Release/net10.0-android/*.aab
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── Build & push Docker images to GHCR ─────────────────────────────────────
   build:
