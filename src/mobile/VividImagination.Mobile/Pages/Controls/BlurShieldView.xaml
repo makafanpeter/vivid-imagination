@@ -7,7 +7,7 @@
              x:DataType="vm:FeedItemViewModel">
 
     <!-- Edge-to-edge photo container (no frame or padding) -->
-    <Grid HeightRequest="380" HorizontalOptions="Fill" ClipToBounds="True">
+    <Grid HeightRequest="380" HorizontalOptions="Fill" IsClippedToBounds="True">
 
         <!-- Main Photo: Loaded edge-to-edge -->
         <Image Source="{Binding ImageUrl}"

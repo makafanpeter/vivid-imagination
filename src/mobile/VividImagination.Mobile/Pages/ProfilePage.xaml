@@ -172,7 +172,7 @@
                                     BackgroundColor="{StaticResource AppSurface}"
                                     HeightRequest="130"
                                     Padding="0"
-                                    ClipToBounds="True">
+                                    IsClippedToBounds="True">
 
                                 <Grid>
                                     <!-- Photo Image filling the square -->

@@ -38,13 +38,13 @@ public sealed class AuthService(
     {
         try
         {
-            var content = new FormUrlEncodedContent(
-            [
+            var content = new FormUrlEncodedContent(new[]
+            {
                 new KeyValuePair<string, string>("grant_type", "password"),
                 new KeyValuePair<string, string>("username", username),
                 new KeyValuePair<string, string>("password", password),
                 new KeyValuePair<string, string>("scope", "offline_access openid profile")
-            ]);
+            });
 
             var tokenUrl = configurationService.GetTokenUrl();
             var response = await httpClient.PostAsync(tokenUrl, content, ct);
