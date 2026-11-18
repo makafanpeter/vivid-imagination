@@ -13,7 +13,7 @@
   },
   {
     "ParameterKey": "CloudflareCertPem",
-    "ParameterValue": "-----BEGIN CERTIFICATE-----\\n...paste contents of ~/.cloudflared/cert.pem here...\\n-----END CERTIFICATE-----"
+     "ParameterValue": "-----BEGIN ARGO TUNNEL TOKEN-----\n<base64 lines>\n-----END ARGO TUNNEL TOKEN-----\n"
   },
   {
     "ParameterKey": "GhcrUsername",
