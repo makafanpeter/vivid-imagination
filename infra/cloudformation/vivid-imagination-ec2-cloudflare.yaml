@@ -308,7 +308,7 @@ Resources:
 
           echo "=== 1. Update OS and Install Prerequisites ==="
           dnf update -y
-          dnf install -y docker git curl jq
+          dnf install -y --allowerasing docker git jq
 
           # Install cfn-bootstrap tools
           dnf install -y python3-pip
@@ -319,19 +319,55 @@ Resources:
           curl -SL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64" \
             -o /usr/local/lib/docker/cli-plugins/docker-compose
           chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
 
           # Start and enable Docker
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ec2-user
 
-          echo "=== 2. Install and Configure Cloudflare Tunnel ==="
+          echo "=== 2. Install and Configure Cloudflare Tunnel (Host Native + Config File) ==="
           curl -fsSL -o /tmp/cloudflared.rpm "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm"
-          dnf install -y /tmp/cloudflared.rpm
+          dnf install -y --allowerasing /tmp/cloudflared.rpm
           rm -f /tmp/cloudflared.rpm
 
-          # Install systemd service for cloudflared tunnel
-          cloudflared service install "${CloudflareTunnelToken}"
+          # Extract hostname from AppBaseUrl (e.g. api.yourdomain.com)
+          APP_HOST=$(echo "${AppBaseUrl}" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
+
+          # Create Cloudflare configuration directory and config.yml
+          mkdir -p /etc/cloudflared
+          cat <<EOF_CF_CONFIG > /etc/cloudflared/config.yml
+          # Cloudflare Tunnel Host Configuration
+          tunnel-token: ${CloudflareTunnelToken}
+          ingress:
+            - hostname: ${!APP_HOST}
+              service: http://127.0.0.1:8080
+              originRequest:
+                connectTimeout: 30s
+                noTLSVerify: false
+            - service: http_status:404
+          EOF_CF_CONFIG
+          chmod 600 /etc/cloudflared/config.yml
+
+          # Install systemd service for host-native cloudflared
+          cat <<EOF_CF_SERVICE > /etc/systemd/system/cloudflared.service
+          [Unit]
+          Description=Cloudflare Tunnel Daemon
+          After=network.target
+
+          [Service]
+          Type=notify
+          ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/config.yml tunnel run --token ${CloudflareTunnelToken}
+          Restart=on-failure
+          RestartSec=5s
+          KillMode=mixed
+          TimeoutStopSec=20s
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF_CF_SERVICE
+
+          systemctl daemon-reload
           systemctl enable cloudflared
           systemctl start cloudflared
 
@@ -441,8 +477,8 @@ Resources:
           Type=oneshot
           RemainAfterExit=yes
           WorkingDirectory=/opt/vivid-imagination
-          ExecStart=/usr/local/lib/docker/cli-plugins/docker-compose -f docker-compose.prod.yml up -d
-          ExecStop=/usr/local/lib/docker/cli-plugins/docker-compose -f docker-compose.prod.yml down
+          ExecStart=/usr/local/bin/docker-compose -f docker-compose.prod.yml up -d
+          ExecStop=/usr/local/bin/docker-compose -f docker-compose.prod.yml down
 
           [Install]
           WantedBy=multi-user.target
