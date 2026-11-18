@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup Condition="!$(MSBuildProjectFile.Contains('Mobile'))">
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

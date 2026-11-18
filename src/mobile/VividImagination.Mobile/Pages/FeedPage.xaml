@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VividImagination.Mobile.ViewModels"
+             xmlns:controls="clr-namespace:VividImagination.Mobile.Pages.Controls"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="VividImagination.Mobile.Pages.FeedPage"
+             x:DataType="vm:FeedViewModel"
+             Title="Vivid Imagination"
+             BackgroundColor="{AppThemeBinding Light=#F7F7FA, Dark=#141418}">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Error Banner -->
+        <Border Grid.Row="0"
+                IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"
+                BackgroundColor="#FFCDD2"
+                StrokeShape="RoundRectangle 8"
+                Margin="12,8"
+                Padding="12,8">
+            <HorizontalStackLayout Spacing="8">
+                <Label Text="⚠️" FontSize="16" VerticalOptions="Center" />
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#B71C1C"
+                       FontSize="13"
+                       VerticalOptions="Center"
+                       LineBreakMode="WordWrap" />
+            </HorizontalStackLayout>
+        </Border>
+
+        <!-- Main Feed List with Pull-to-Refresh & Infinite Scroll -->
+        <RefreshView Grid.Row="1"
+                     IsRefreshing="{Binding IsRefreshing}"
+                     Command="{Binding RefreshFeedCommand}">
+
+            <CollectionView ItemsSource="{Binding Items}"
+                            RemainingItemsThreshold="3"
+                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
+                            ItemSizingStrategy="MeasureAllItems">
+
+                <CollectionView.Header>
+                    <VerticalStackLayout Padding="16,12,16,4">
+                        <Label Text="Ranked Community Feed"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+                        <Label Text="AI content moderation with intelligent UI blur shields"
+                               FontSize="13"
+                               TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FeedItemViewModel">
+                        <controls:FeedItemCard />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <!-- Empty Feed View -->
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout HorizontalOptions="Center"
+                                         VerticalOptions="Center"
+                                         Spacing="16"
+                                         Padding="32"
+                                         IsVisible="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}">
+                        <Border StrokeShape="RoundRectangle 40"
+                                WidthRequest="80"
+                                HeightRequest="80"
+                                BackgroundColor="{AppThemeBinding Light=#E8E5FA, Dark=#27233D}"
+                                StrokeThickness="0"
+                                HorizontalOptions="Center">
+                            <Label Text="📷"
+                                   FontSize="36"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Border>
+
+                        <Label Text="No photos yet"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{AppThemeBinding Light=#212121, Dark=White}" />
+
+                        <Label Text="Be the first to capture and share a photo with the Vivid Imagination community!"
+                               FontSize="14"
+                               TextColor="{AppThemeBinding Light=#757575, Dark=#9E9E9E}"
+                               HorizontalTextAlignment="Center" />
+
+                        <Button Text="Refresh Feed"
+                                Command="{Binding LoadFeedCommand}"
+                                BackgroundColor="#512BD4"
+                                TextColor="White"
+                                CornerRadius="20"
+                                Padding="24,0"
+                                HeightRequest="40"
+                                HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <!-- Footer Activity Indicator for Infinite Loading -->
+                <CollectionView.Footer>
+                    <ActivityIndicator IsRunning="{Binding IsLoadingMore}"
+                                       IsVisible="{Binding IsLoadingMore}"
+                                       Color="#512BD4"
+                                       HeightRequest="36"
+                                       Margin="0,8" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Initial Full Loading Indicator -->
+        <ActivityIndicator Grid.Row="1"
+                           IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           Color="#512BD4"
+                           WidthRequest="40"
+                           HeightRequest="40"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+    </Grid>
+
+</ContentPage>

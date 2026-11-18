@@ -1,0 +1,45 @@
+<Solution>
+  <Folder Name="/Backend/" />
+  <Folder Name="/Backend/BuildingBlocks/">
+    <Project Path="src/backend/BuildingBlocks/VividImagination.Shared.Application/VividImagination.Shared.Application.csproj" Id="3919593c-c7ee-456a-b46f-0dc199af367f" />
+    <Project Path="src/backend/BuildingBlocks/VividImagination.Shared.Contract/VividImagination.Shared.Contract.csproj" Id="d14f624d-131b-4067-936b-8c9928f72134" />
+    <Project Path="src/backend/BuildingBlocks/VividImagination.Shared.Domain/VividImagination.Shared.Domain.csproj" Id="2c505cb6-a335-4aa1-a677-31b312dcc73a" />
+    <Project Path="src/backend/BuildingBlocks/VividImagination.Shared.Infrastructure/VividImagination.Shared.Infrastructure.csproj" Id="2c48c213-c1fd-4540-9e33-bd3f1d93d17e" />
+  </Folder>
+  <Folder Name="/Backend/Hosts/">
+    <Project Path="src/backend/Host/VividImagination.Api/VividImagination.Api.csproj" Id="f62584b1-05ff-4237-a81f-5eba6d413946" />
+  </Folder>
+  <Folder Name="/Backend/Modules/" />
+  <Folder Name="/Backend/Modules/Feed/">
+    <Project Path="src/backend/Modules/Feed/VividImagination.Modules.Feed.Contracts/VividImagination.Modules.Feed.Contracts.csproj" Id="dcc0640b-3932-451e-a3d2-aca9b7452b01" />
+    <Project Path="src/backend/Modules/Feed/VividImagination.Modules.Feed/VividImagination.Modules.Feed.csproj" Id="e33920ae-d106-4e30-868f-237f9b6823fe" />
+  </Folder>
+  <Folder Name="/Backend/Modules/Identity/">
+    <Project Path="src/backend/Modules/Identity/VividImagination.Modules.Identity.Contracts/VividImagination.Modules.Identity.Contracts.csproj" Id="ca5c8677-a588-4a1e-876a-147c7aa68330" />
+    <Project Path="src/backend/Modules/Identity/VividImagination.Modules.Identity/VividImagination.Modules.Identity.csproj" Id="03a48088-2802-4bbe-a0a5-fb9fb256dbbe" />
+  </Folder>
+  <Folder Name="/Backend/Modules/Media/">
+    <Project Path="src/backend/Modules/Media/VividImagination.Modules.Media.Contracts/VividImagination.Modules.Media.Contracts.csproj" Id="b197a1a8-5cd1-4719-98a9-3443a07d9451" />
+    <Project Path="src/backend/Modules/Media/VividImagination.Modules.Media/VividImagination.Modules.Media.csproj" Id="73a7edf0-d801-4a1b-9b0c-d8994d90b6d0" />
+  </Folder>
+  <Folder Name="/Backend/Modules/Moderation/">
+    <Project Path="src/backend/Modules/Moderation/VividImagination.Modules.Moderation.Contracts/VividImagination.Modules.Moderation.Contracts.csproj" Id="5914d2b1-a0cd-4889-a760-be795c96e2c9" />
+    <Project Path="src/backend/Modules/Moderation/VividImagination.Modules.Moderation/VividImagination.Modules.Moderation.csproj" Id="a2fa5672-fa1e-4651-ab5d-3a859783545d" />
+  </Folder>
+  <Folder Name="/Backend/Modules/Social/">
+    <Project Path="src/backend/Modules/Social/VividImagination.Modules.Social.Contracts/VividImagination.Modules.Social.Contracts.csproj" Id="5df7c342-7eea-4872-ba93-fdd9002c2464" />
+    <Project Path="src/backend/Modules/Social/VividImagination.Modules.Social/VividImagination.Modules.Social.csproj" Id="cd02c2ed-4009-454b-83de-3d37f1d8de12" />
+  </Folder>
+  <Folder Name="/Mobile/">
+    <Project Path="src/mobile/VividImagination.Mobile/VividImagination.Mobile.csproj" Id="92808cf7-f0ea-4f5d-8823-f826470c8e78">
+      <Deploy Solution="Debug|*" />
+    </Project>
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/VividImagination.ArchitectureTests/VividImagination.ArchitectureTests.csproj" />
+    <Project Path="tests/VividImagination.UnitTests/VividImagination.UnitTests.csproj" />
+  </Folder>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+</Solution>

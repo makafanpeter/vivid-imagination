@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vivid-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vivid_user
+      POSTGRES_PASSWORD: vivid_password
+      POSTGRES_DB: vivid_imagination
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql:ro
+
+  mongodb:
+    image: mongo:7.0
+    container_name: vivid-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: vivid-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  redis:
+    image: redis:7-alpine
+    container_name: vivid-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  localstack:
+    image: localstack/localstack:latest
+    container_name: vivid-localstack
+    restart: unless-stopped
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - AWS_DEFAULT_REGION=eu-west-1
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:

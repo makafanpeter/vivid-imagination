@@ -1,0 +1,66 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "m7i-flex.large"
+  },
+  {
+    "ParameterKey": "VolumeSize",
+    "ParameterValue": "50"
+  },
+  {
+    "ParameterKey": "CloudflareCertPem",
+    "ParameterValue": "-----BEGIN ARGO TUNNEL TOKEN-----\n<base64 lines>\n-----END ARGO TUNNEL TOKEN-----\n"
+  },
+  {
+    "ParameterKey": "GhcrUsername",
+    "ParameterValue": "your-github-username"
+  },
+  {
+    "ParameterKey": "GhcrToken",
+    "ParameterValue": "ghp_yourPersonalAccessTokenWithReadPackagesScope"
+  },
+  {
+    "ParameterKey": "GhcrImageRepository",
+    "ParameterValue": "ghcr.io/your-github-username/vividimagination.backend.api"
+  },
+  {
+    "ParameterKey": "AppImageTag",
+    "ParameterValue": "latest"
+  },
+  {
+    "ParameterKey": "PostgresUser",
+    "ParameterValue": "vivid_user"
+  },
+  {
+    "ParameterKey": "PostgresPassword",
+    "ParameterValue": "ReplaceWithStrongPostgresPassword123!"
+  },
+  {
+    "ParameterKey": "PostgresDb",
+    "ParameterValue": "vivid_imagination"
+  },
+  {
+    "ParameterKey": "JwtSecretKey",
+    "ParameterValue": "vivid-imagination-prod-jwt-secret-key-at-least-32-chars!"
+  },
+  {
+    "ParameterKey": "EncryptionKey",
+    "ParameterValue": "vivid-imagination-prod-encryption-key-32-chars!"
+  },
+  {
+    "ParameterKey": "AppBaseUrl",
+    "ParameterValue": "https://api.yourdomain.com"
+  },
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "SshPublicKey",
+    "ParameterValue": ""
+  }
+]

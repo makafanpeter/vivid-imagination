@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="VividImagination.Mobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:pages="clr-namespace:VividImagination.Mobile.Pages"
+    Title="Vivid Imagination">
+
+    <TabBar>
+        <Tab Title="Explore" Route="feed">
+            <ShellContent Title="Feed"
+                          ContentTemplate="{DataTemplate pages:FeedPage}"
+                          Route="feedpage" />
+        </Tab>
+
+        <Tab Title="Share" Route="upload">
+            <ShellContent Title="Upload"
+                          ContentTemplate="{DataTemplate pages:PhotoUploadPage}"
+                          Route="uploadpage" />
+        </Tab>
+
+        <Tab Title="Profile" Route="profile">
+            <ShellContent Title="Profile"
+                          ContentTemplate="{DataTemplate pages:ProfilePage}"
+                          Route="profilepage" />
+        </Tab>
+    </TabBar>
+
+</Shell>

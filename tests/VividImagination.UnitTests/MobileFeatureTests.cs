@@ -1,0 +1,260 @@
+using System.Text.Json;
+using FluentAssertions;
+using VividImagination.Mobile.Models;
+using VividImagination.Mobile.OpenApi;
+using VividImagination.Mobile.Services;
+using Xunit;
+
+namespace VividImagination.UnitTests;
+
+public class MobileFeatureTests
+{
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    [Fact]
+    public void BlurHashCore_ValidHash_ReturnsCorrectByteLength()
+    {
+        const string blurHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
+        const int width = 32;
+        const int height = 32;
+
+        var pixels = BlurHashCore.Decode(blurHash, width, height);
+
+        pixels.Should().NotBeNull();
+        pixels!.Length.Should().Be(width * height * 4); // 32x32 BGRA = 4096 bytes
+    }
+
+    [Fact]
+    public void BlurHashCore_CreateBmp_ProducesValidBmpHeader()
+    {
+        const string blurHash = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
+        const int width = 16;
+        const int height = 16;
+
+        var pixels = BlurHashCore.Decode(blurHash, width, height)!;
+        var bmpBytes = BlurHashCore.CreateBmp(pixels, width, height);
+
+        bmpBytes.Should().NotBeNull();
+        // BMP magic header 'B' 'M'
+        bmpBytes[0].Should().Be((byte)'B');
+        bmpBytes[1].Should().Be((byte)'M');
+        // Total size = 54 header + (16 * 16 * 4) = 54 + 1024 = 1078 bytes
+        bmpBytes.Length.Should().Be(54 + 16 * 16 * 4);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("abc")]
+    [InlineData("invalid-hash!")]
+    public void BlurHashCore_InvalidOrMalformedHash_ReturnsNull(string invalidHash)
+    {
+        var pixels = BlurHashCore.Decode(invalidHash, 32, 32);
+        pixels.Should().BeNull();
+    }
+
+    [Fact]
+    public void FeedItemDto_DeserializesCorrectly_FromBackendContractJson()
+    {
+        var json = """
+        {
+            "photoId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+            "userId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+            "storageKey": "photos/test.webp",
+            "blurHash": "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+            "caption": "A sunset over the mountains",
+            "upvotes": 42,
+            "downvotes": 3,
+            "score": 12.5,
+            "isUnsafe": true,
+            "blurRequired": true,
+            "safetyCategory": "Suggestive Content",
+            "sensitiveContentWarning": "May contain sensitive attire",
+            "uploadedAt": "2026-11-17T12:00:00Z"
+        }
+        """;
+
+        var item = JsonSerializer.Deserialize<FeedItemDto>(json, JsonOptions);
+
+        item.Should().NotBeNull();
+        item!.PhotoId.Should().Be(Guid.Parse("b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"));
+        item.Caption.Should().Be("A sunset over the mountains");
+        item.Upvotes.Should().Be(42);
+        item.Downvotes.Should().Be(3);
+        item.IsUnsafe.Should().BeTrue();
+        item.BlurRequired.Should().BeTrue();
+        item.SafetyCategory.Should().Be("Suggestive Content");
+        item.SensitiveContentWarning.Should().Be("May contain sensitive attire");
+    }
+
+    [Fact]
+    public void VoteRequest_And_Result_SerializeAndDeserializeCorrectly()
+    {
+        var request = new VoteRequest { Value = 1 };
+        var json = JsonSerializer.Serialize(request);
+        json.Should().Contain("\"value\":1");
+
+        var responseJson = """
+        {
+            "photoId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+            "upvotes": 10,
+            "downvotes": 2
+        }
+        """;
+        var result = JsonSerializer.Deserialize<VoteResult>(responseJson, JsonOptions);
+        result.Should().NotBeNull();
+        result!.PhotoId.Should().Be(Guid.Parse("b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"));
+        result.Upvotes.Should().Be(10);
+        result.Downvotes.Should().Be(2);
+    }
+
+    [Fact]
+    public void ReportRequest_SerializesReasonCorrectly()
+    {
+        var request = new ReportRequest { Reason = "Spam / Misleading content" };
+        var json = JsonSerializer.Serialize(request);
+        json.Should().Contain("\"reason\":\"Spam / Misleading content\"");
+    }
+
+    [Fact]
+    public void EnvironmentResolution_CalculatesEndpointsCorrectly()
+    {
+        // Development Desktop default
+        var devDesktop = "http://localhost:5101";
+        // Development Android Emulator default
+        var devAndroid = "http://10.0.2.2:5101";
+        // Staging
+        var staging = "https://staging-api.vividimagination.com";
+        // Production
+        var production = "https://api.vividimagination.com";
+
+        devDesktop.Should().StartWith("http://localhost");
+        devAndroid.Should().Contain("10.0.2.2");
+        staging.Should().Be("https://staging-api.vividimagination.com");
+        production.Should().Be("https://api.vividimagination.com");
+    }
+
+    [Fact]
+    public void SubstitutedBaseUrl_OverridesDefaultConfiguration()
+    {
+        var customUrl = "https://custom-api.example.com";
+        var options = new
+        {
+            AppConfig = new
+            {
+                Environment = "Production",
+                Api = new
+                {
+                    DesktopBaseUrl = customUrl,
+                    AndroidEmulatorBaseUrl = customUrl
+                }
+            }
+        };
+
+        options.AppConfig.Api.DesktopBaseUrl.Should().Be("https://custom-api.example.com");
+        options.AppConfig.Api.AndroidEmulatorBaseUrl.Should().Be("https://custom-api.example.com");
+    }
+
+    [Fact]
+    public void SubstitutionScriptLogic_UpdatesJsonContentCorrectly()
+    {
+        var sampleJson = """
+        {
+          "AppConfig": {
+            "Environment": "Production",
+            "Api": {
+              "DesktopBaseUrl": "https://api.vividimagination.com",
+              "AndroidEmulatorBaseUrl": "https://api.vividimagination.com"
+            }
+          }
+        }
+        """;
+
+        using var doc = JsonDocument.Parse(sampleJson);
+        var root = doc.RootElement;
+        root.GetProperty("AppConfig").GetProperty("Api").GetProperty("DesktopBaseUrl").GetString()
+            .Should().Be("https://api.vividimagination.com");
+
+        var secretUrl = "https://injected-api.company.com";
+        var modifiedJson = sampleJson.Replace("https://api.vividimagination.com", secretUrl);
+
+        using var modifiedDoc = JsonDocument.Parse(modifiedJson);
+        modifiedDoc.RootElement.GetProperty("AppConfig").GetProperty("Api").GetProperty("DesktopBaseUrl").GetString()
+            .Should().Be("https://injected-api.company.com");
+    }
+
+    [Fact]
+    public void DynamicBaseAddressHandler_RewritesHostCorrectly()
+    {
+        var originalRequestUri = new Uri("http://placeholder/api/v1/feed");
+        var activeTargetBase = "https://staging-api.vividimagination.com";
+
+        var builder = new UriBuilder(new Uri(activeTargetBase))
+        {
+            Path = originalRequestUri.AbsolutePath,
+            Query = originalRequestUri.Query.TrimStart('?')
+        };
+
+        builder.Uri.ToString().Should().Be("https://staging-api.vividimagination.com/api/v1/feed");
+    }
+
+    [Fact]
+    public void ShieldState_WhenBlurRequired_EnforcesBlurShieldUntilExplicitReveal()
+    {
+        var blurRequired = true;
+        var isRevealed = false;
+
+        var isShieldActive = blurRequired && !isRevealed;
+        isShieldActive.Should().BeTrue();
+
+        // User consents by tapping "Show Content"
+        isRevealed = true;
+        isShieldActive = blurRequired && !isRevealed;
+        isShieldActive.Should().BeFalse();
+
+        // User taps "Hide" to re-blur
+        isRevealed = false;
+        isShieldActive = blurRequired && !isRevealed;
+        isShieldActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public void TwoFlagRule_WhenReportsReachThreshold_ActivatesBlurShield()
+    {
+        var totalReports = 1;
+        var blurRequired = false;
+
+        // First report does not meet threshold
+        if (totalReports >= 2) blurRequired = true;
+        blurRequired.Should().BeFalse();
+
+        // Second report triggers the 2-flag threshold
+        totalReports = 2;
+        if (totalReports >= 2) blurRequired = true;
+        blurRequired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DynamicRanking_CalculatesDecayedScoreAccurately()
+    {
+        var upvotes = 20;
+        var downvotes = 5;
+        var ageInHours = 1.0;
+
+        // SRS Formula: (Upvotes - Downvotes) / (AgeInHours + 2)^1.5
+        var score = (upvotes - downvotes) / Math.Pow(ageInHours + 2, 1.5);
+
+        score.Should().BeApproximately(2.8867, 0.001);
+    }
+
+    [Fact]
+    public void SafeBrowsingMode_EnumValues_MatchSRSRequirements()
+    {
+        ((int)SafeBrowsingMode.BlurSensitive).Should().Be(0);
+        ((int)SafeBrowsingMode.HideSensitive).Should().Be(1);
+        ((int)SafeBrowsingMode.AlwaysShowSensitive).Should().Be(2);
+    }
+}

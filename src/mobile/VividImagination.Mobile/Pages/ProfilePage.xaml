@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VividImagination.Mobile.ViewModels"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="VividImagination.Mobile.Pages.ProfilePage"
+             x:DataType="vm:ProfileViewModel"
+             Title="Profile &amp; Settings"
+             BackgroundColor="{AppThemeBinding Light=#F7F7FA, Dark=#141418}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Profile Card -->
+            <Border StrokeShape="RoundRectangle 16"
+                    Stroke="#33808080"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
+                    Padding="20">
+
+                <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                    <Border StrokeShape="RoundRectangle 36"
+                            WidthRequest="72"
+                            HeightRequest="72"
+                            BackgroundColor="#512BD4"
+                            StrokeThickness="0"
+                            HorizontalOptions="Center">
+                        <Label Text="👤"
+                               FontSize="32"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+                    </Border>
+
+                    <Label Text="{Binding DisplayName}"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+
+                    <Label Text="{Binding UserEmail}"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light=#757575, Dark=#9E9E9E}"
+                           HorizontalTextAlignment="Center" />
+
+                    <!-- Login Button when unauthenticated -->
+                    <Button Text="Sign In"
+                            Command="{Binding OpenLoginCommand}"
+                            IsVisible="{Binding IsAuthenticated, Converter={toolkit:InvertedBoolConverter}}"
+                            BackgroundColor="#512BD4"
+                            TextColor="White"
+                            CornerRadius="20"
+                            HeightRequest="40"
+                            Padding="28,0"
+                            HorizontalOptions="Center" />
+
+                    <!-- Logout Button when authenticated -->
+                    <Button Text="Sign Out"
+                            Command="{Binding LogoutCommand}"
+                            IsVisible="{Binding IsAuthenticated}"
+                            BackgroundColor="{AppThemeBinding Light=#FFEBEE, Dark=#372224}"
+                            TextColor="#D32F2F"
+                            CornerRadius="20"
+                            HeightRequest="40"
+                            Padding="28,0"
+                            HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Safe Browsing Preference Section -->
+            <Border StrokeShape="RoundRectangle 16"
+                    Stroke="#33808080"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
+                    Padding="20">
+
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="🛡️ Safe Browsing Mode"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+
+                    <Label Text="Control how AI-flagged sensitive content appears on your community feed:"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
+
+                    <Picker SelectedIndex="{Binding SafeBrowsingIndex}"
+                            Title="Select Safe Browsing Mode"
+                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                            BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#2A2A32}">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>Blur Sensitive Content (Default)</x:String>
+                                <x:String>Hide Sensitive Content Completely</x:String>
+                                <x:String>Always Show Without Blur</x:String>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Environment & OpenAPI Host Configuration Section -->
+            <Border StrokeShape="RoundRectangle 16"
+                    Stroke="#33808080"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
+                    Padding="20">
+
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="🌐 Environment &amp; API Configuration"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+
+                    <Label Text="Select active environment for the OpenAPI client:"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
+
+                    <!-- Environment Selector -->
+                    <Picker SelectedIndex="{Binding EnvironmentIndex}"
+                            Title="Select Environment"
+                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
+                            BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#2A2A32}">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>Development (Local / Emulator)</x:String>
+                                <x:String>Staging (Cloud Preview)</x:String>
+                                <x:String>Production (Live Cloud)</x:String>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+
+                    <!-- Active Base URL Badge -->
+                    <Border StrokeShape="RoundRectangle 8"
+                            BackgroundColor="{AppThemeBinding Light=#E8E5FA, Dark=#25203D}"
+                            StrokeThickness="0"
+                            Padding="12,8">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="Active OpenAPI Host:"
+                                   FontSize="11"
+                                   FontAttributes="Bold"
+                                   TextColor="#512BD4" />
+                            <Label Text="{Binding ActiveBaseUrl}"
+                                   FontSize="13"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Custom URL Override (for Development only) -->
+                    <VerticalStackLayout Spacing="6" IsVisible="{Binding IsDevelopment}">
+                        <Label Text="Custom Development URL (Optional Override):"
+                               FontSize="12"
+                               TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
+                        <Border StrokeShape="RoundRectangle 10"
+                                Stroke="#33808080"
+                                BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A32}"
+                                Padding="12,0">
+                            <Entry Text="{Binding CustomApiUrl}"
+                                   Placeholder="e.g. http://192.168.1.100:5101"
+                                   PlaceholderColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}"
+                                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                        </Border>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Save Preferences Button -->
+            <Button Text="Save Preferences"
+                    Command="{Binding SaveSettingsCommand}"
+                    BackgroundColor="#512BD4"
+                    TextColor="White"
+                    CornerRadius="24"
+                    HeightRequest="46"
+                    FontAttributes="Bold"
+                    Margin="0,0,0,24" />
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
