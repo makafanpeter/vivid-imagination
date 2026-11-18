@@ -212,27 +212,19 @@ jobs:
             -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
             -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}"
 
-      - name: Open Cloudflare TCP tunnel
-        env:
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-        run: |
-          cloudflared access tcp \
-          --hostname ${{ secrets.SANDBOX_SSH_HOST }} \
-          --url localhost:2222 \
-          --id ${{ secrets.CF_ACCESS_CLIENT_ID }} \
-          --secret ${{ secrets.CF_ACCESS_CLIENT_SECRET }} &
-          sleep 3  # wait for listener to be ready
-
-      - name: Configure SSH through local listener
+      - name: Configure SSH via Cloudflare Access ProxyCommand
         run: |
           cat >> ~/.ssh/config <<EOF
           Host sandbox-tunnel
-            HostName localhost
-            Port 2222
+            HostName ${{ secrets.SANDBOX_SSH_HOST }}
+            User ${{ secrets.SANDBOX_DEPLOY_USER }}
             IdentityFile ~/.ssh/deploy_key
             StrictHostKeyChecking no
-            User ${{ secrets.SANDBOX_DEPLOY_USER }}
+            BatchMode yes
+            ConnectTimeout 30
+            ServerAliveInterval 15
+            ServerAliveCountMax 3
+            ProxyCommand cloudflared access ssh --hostname %h --id ${{ secrets.CF_ACCESS_CLIENT_ID }} --secret ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
           EOF
 
       - name: Deploy to sandbox
@@ -240,7 +232,7 @@ jobs:
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
-          ssh sandbox-tunnel \
+          ssh -v sandbox-tunnel \
             "GITHUB_TOKEN=${{ secrets.GHCR_READ_TOKEN }} \
              deploy-app --dir /opt/vivid-imagination \
                         --project vivid-imagination \

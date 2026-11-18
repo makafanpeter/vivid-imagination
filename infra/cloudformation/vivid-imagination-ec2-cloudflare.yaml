@@ -97,6 +97,11 @@ Parameters:
     Default: ""
     Description: Optional EC2 Key Pair for SSH fallback (leave blank to rely on SSM Session Manager & Cloudflare Access)
 
+  SshPublicKey:
+    Type: String
+    Default: ""
+    Description: Optional SSH public key (e.g. ssh-ed25519 or ssh-rsa) to authorize for ec2-user SSH deploy access
+
 Conditions:
   HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
 
@@ -322,6 +327,14 @@ Resources:
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ec2-user
+
+          if [ -n "${SshPublicKey}" ]; then
+            mkdir -p /home/ec2-user/.ssh
+            echo "${SshPublicKey}" >> /home/ec2-user/.ssh/authorized_keys
+            chmod 700 /home/ec2-user/.ssh
+            chmod 600 /home/ec2-user/.ssh/authorized_keys
+            chown -R ec2-user:ec2-user /home/ec2-user/.ssh
+          fi
 
           echo "=== 2. Install and Configure Cloudflare Tunnel (Host Native + Config File) ==="
           curl -fsSL -o /tmp/cloudflared.rpm "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm"
