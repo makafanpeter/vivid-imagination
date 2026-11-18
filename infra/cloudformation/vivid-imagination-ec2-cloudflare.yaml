@@ -345,7 +345,9 @@ Resources:
               originRequest:
                 connectTimeout: 30s
                 noTLSVerify: false
-            - hostname: "ssh.*"
+            - hostname: ssh-${!APP_HOST}
+              service: ssh://127.0.0.1:22
+            - hostname: "ssh-*"
               service: ssh://127.0.0.1:22
             - service: http_status:404
           EOF_CF_CONFIG
