@@ -17,7 +17,7 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         IdentityUserToken<long>>(options)
 {
     public const string Schema = "identity";
-
+    public DbSet<User> ApplicationUsers { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

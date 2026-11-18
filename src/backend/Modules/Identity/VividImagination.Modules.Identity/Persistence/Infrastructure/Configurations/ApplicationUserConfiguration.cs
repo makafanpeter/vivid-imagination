@@ -9,7 +9,6 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable("users");
         builder.Property(x => x.UserName).HasMaxLength(100);
         builder.HasIndex(x => x.UserName).IsUnique();
         

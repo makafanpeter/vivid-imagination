@@ -49,7 +49,8 @@ public static class IdentityServerExtensions
                 .AddCore(options =>
                 {
                     options.UseEntityFrameworkCore()
-                        .UseDbContext<IdentityDbContext>();
+                        .UseDbContext<IdentityDbContext>()
+                        .ReplaceDefaultEntities<long>();
                 }).AddServer(options =>
                 {
                     // Enable the token, userinfo and logout endpoints

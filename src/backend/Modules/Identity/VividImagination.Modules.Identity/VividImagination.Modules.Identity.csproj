@@ -11,4 +11,8 @@
     <ProjectReference Include="..\VividImagination.Modules.Identity.Contracts\VividImagination.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Persistence\Migrations\" />
+  </ItemGroup>
+
 </Project>

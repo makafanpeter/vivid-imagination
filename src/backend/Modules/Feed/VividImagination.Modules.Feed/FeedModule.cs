@@ -33,7 +33,7 @@ public class FeedModule : IAppModule, IMessagingModule
 
     public IServiceCollection AddModule(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
-        var mongoSection = configuration.GetSection($"{ModuleName}");
+        var mongoSection = configuration.GetSection(ModuleName);
         
         services.AddMongoDbContext<FeedDbContext>(mongoSection)
             .AddRepository<FeedItem, Guid, FeedDbContext>(ctx => ctx.FeedItems);

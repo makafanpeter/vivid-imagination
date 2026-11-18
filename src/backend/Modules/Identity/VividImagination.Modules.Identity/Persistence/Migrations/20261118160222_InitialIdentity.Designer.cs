@@ -12,7 +12,7 @@ using VividImagination.Modules.Identity.Persistence;
 namespace VividImagination.Modules.Identity.Persistence.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    [Migration("20261117125219_InitialIdentity")]
+    [Migration("20261118160222_InitialIdentity")]
     partial class InitialIdentity
     {
         /// <inheritdoc />
@@ -469,7 +469,7 @@ namespace VividImagination.Modules.Identity.Persistence.Migrations
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("users", "identity");
+                    b.ToTable("AspNetUsers", "identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<long>", b =>

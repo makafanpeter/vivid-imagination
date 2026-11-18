@@ -150,7 +150,6 @@ try
 
 
     var app = builder.Build();
-    
 
 
     app.UseHttpsRedirection();

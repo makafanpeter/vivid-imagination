@@ -31,9 +31,7 @@ public static class MediaApis
     {
         var group = api.MapGroup($"{AppConstants.ApiRoute}{MediaModule.ModuleConstants.ModuleNameForRouting}")
             .WithTags(MediaModule.ModuleConstants.FormattedModuleName)
-            .WithApiVersionSet(api.NewApiVersionSet()
-                .HasApiVersion(new ApiVersion(1))
-                .Build());
+            .HasApiVersion(1.0);
 
         group.MapPost("", UploadAsync)
             .WithName(nameof(UploadAsync))
