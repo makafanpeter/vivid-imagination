@@ -204,6 +204,19 @@ jobs:
           sed -i 's/\r$//' ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
+          # Verify that the private key is valid and has no passphrase, then extract public key
+          if ! ssh-keygen -y -f ~/.ssh/deploy_key -P "" > ~/.ssh/deploy_key.pub; then
+            echo "ERROR: The SSH_PRIVATE_KEY is either invalid or encrypted with a passphrase!"
+            echo "CI/CD requires an unencrypted private key (empty passphrase)."
+            exit 1
+          fi
+          chmod 644 ~/.ssh/deploy_key.pub
+
+          echo "=== Client Key Fingerprint ==="
+          ssh-keygen -lf ~/.ssh/deploy_key.pub
+          echo "=== Expected Public Key in authorized_keys ==="
+          cat ~/.ssh/deploy_key.pub
+
       - name: Test service token auth
         env:
           CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
