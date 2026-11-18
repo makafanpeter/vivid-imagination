@@ -84,13 +84,17 @@ public sealed class ConfigurationService : IConfigurationService
                 return _customUrl;
             }
 
+            var configuredUrl = Options.Api.ResolveDefaultBaseUrl(DeviceInfo.Platform);
+            if (!string.IsNullOrWhiteSpace(configuredUrl))
+            {
+                return configuredUrl;
+            }
+
             return CurrentEnvironment switch
             {
-                AppEnvironment.Production => Options.Api.DesktopBaseUrl.StartsWith("https://api")
-                    ? Options.Api.DesktopBaseUrl
-                    : "https://api.vividimagination.com",
-                AppEnvironment.Staging => "https://staging-api.vividimagination.com",
-                _ => Options.Api.ResolveDefaultBaseUrl(DeviceInfo.Platform)
+                AppEnvironment.Production => "https://api-vivid-imagination-prod.lumenarclabs.co",
+                AppEnvironment.Staging => "https://api-vivid-imagination-prod.lumenarclabs.co",
+                _ => DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:5101" : "http://localhost:5101"
             };
         }
     }

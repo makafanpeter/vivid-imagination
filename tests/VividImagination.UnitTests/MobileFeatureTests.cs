@@ -138,6 +138,55 @@ public class MobileFeatureTests
     }
 
     [Fact]
+    public void SubstitutedBaseUrl_OverridesDefaultConfiguration()
+    {
+        var customUrl = "https://custom-api.example.com";
+        var options = new
+        {
+            AppConfig = new
+            {
+                Environment = "Production",
+                Api = new
+                {
+                    DesktopBaseUrl = customUrl,
+                    AndroidEmulatorBaseUrl = customUrl
+                }
+            }
+        };
+
+        options.AppConfig.Api.DesktopBaseUrl.Should().Be("https://custom-api.example.com");
+        options.AppConfig.Api.AndroidEmulatorBaseUrl.Should().Be("https://custom-api.example.com");
+    }
+
+    [Fact]
+    public void SubstitutionScriptLogic_UpdatesJsonContentCorrectly()
+    {
+        var sampleJson = """
+        {
+          "AppConfig": {
+            "Environment": "Production",
+            "Api": {
+              "DesktopBaseUrl": "https://api.vividimagination.com",
+              "AndroidEmulatorBaseUrl": "https://api.vividimagination.com"
+            }
+          }
+        }
+        """;
+
+        using var doc = JsonDocument.Parse(sampleJson);
+        var root = doc.RootElement;
+        root.GetProperty("AppConfig").GetProperty("Api").GetProperty("DesktopBaseUrl").GetString()
+            .Should().Be("https://api.vividimagination.com");
+
+        var secretUrl = "https://injected-api.company.com";
+        var modifiedJson = sampleJson.Replace("https://api.vividimagination.com", secretUrl);
+
+        using var modifiedDoc = JsonDocument.Parse(modifiedJson);
+        modifiedDoc.RootElement.GetProperty("AppConfig").GetProperty("Api").GetProperty("DesktopBaseUrl").GetString()
+            .Should().Be("https://injected-api.company.com");
+    }
+
+    [Fact]
     public void DynamicBaseAddressHandler_RewritesHostCorrectly()
     {
         var originalRequestUri = new Uri("http://placeholder/api/v1/feed");

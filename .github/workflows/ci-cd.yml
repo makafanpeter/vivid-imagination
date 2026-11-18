@@ -103,6 +103,37 @@ jobs:
       - name: Install .NET MAUI Android Workload
         run: dotnet workload install maui-android
 
+      - name: Substitute API Base URL from Secret
+        env:
+          BASE_API_URL: ${{ secrets.BASE_API_URL }}
+        run: |
+          python3 -c "
+          import json, os
+
+          url = os.environ.get('BASE_API_URL', '').strip().rstrip('/')
+          if not url:
+              print('[!] BASE_API_URL secret is not set. Using default configuration.')
+              exit(0)
+
+          raw_dir = 'src/mobile/VividImagination.Mobile/Resources/Raw'
+          target_files = ['appsettings.json', 'appsettings.Production.json', 'appsettings.Staging.json']
+
+          for name in target_files:
+              path = os.path.join(raw_dir, name)
+              if os.path.exists(path):
+                  with open(path, 'r', encoding='utf-8') as f:
+                      data = json.load(f)
+
+                  api = data.setdefault('AppConfig', {}).setdefault('Api', {})
+                  api['DesktopBaseUrl'] = url
+                  api['AndroidEmulatorBaseUrl'] = url
+
+                  with open(path, 'w', encoding='utf-8') as f:
+                      json.dump(data, f, indent=2)
+
+                  print(f'[+] Injected BASE_API_URL into {name}')
+          "
+
       - name: Restore Mobile Dependencies
         run: dotnet restore src/mobile/VividImagination.Mobile/VividImagination.Mobile.csproj -p:TargetFramework=net10.0-android
 
