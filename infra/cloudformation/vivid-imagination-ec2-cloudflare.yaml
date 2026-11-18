@@ -30,10 +30,10 @@ Parameters:
     MaxValue: 500
     Description: Root EBS GP3 volume storage in GB
 
-  CloudflareTunnelToken:
+  CloudflareCertPem:
     Type: String
     NoEcho: true
-    Description: Secret token for Cloudflare Tunnel (cloudflared). Creates zero-ingress tunnel to Cloudflare Edge.
+    Description: Contents of ~/.cloudflared/cert.pem generated via 'cloudflared tunnel login' to automate tunnel creation and DNS routing
 
   GhcrUsername:
     Type: String
@@ -334,20 +334,50 @@ Resources:
           # Extract hostname from AppBaseUrl (e.g. api.yourdomain.com)
           APP_HOST=$(echo "${AppBaseUrl}" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
 
-          # Create Cloudflare configuration directory and config.yml
+          # Write Cloudflare Origin Certificate (cert.pem)
           mkdir -p /etc/cloudflared
+          cat <<'EOF_CERT' > /etc/cloudflared/cert.pem
+          ${CloudflareCertPem}
+          EOF_CERT
+          chmod 600 /etc/cloudflared/cert.pem
 
-          # Create Cloudflare configuration directory and config.yml
-          mkdir -p /etc/cloudflared
+          TUNNEL_NAME="${EnvironmentName}-vivid-tunnel"
+
+          # Create tunnel (clean up stale tunnel with same name if needed)
+          CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME" 2>&1 || true)
+          TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1)
+
+          if [ -z "$TUNNEL_ID" ]; then
+            echo "Tunnel $TUNNEL_NAME may already exist. Cleaning up and recreating..."
+            cloudflared tunnel --origincert /etc/cloudflared/cert.pem delete -f "$TUNNEL_NAME" 2>/dev/null || true
+            CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME")
+            TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1)
+          fi
+
+          echo "Tunnel provisioned with ID: $TUNNEL_ID"
+
+          # Ensure credentials file is in /etc/cloudflared/
+          if [ -f "/root/.cloudflared/$TUNNEL_ID.json" ]; then
+            cp -f "/root/.cloudflared/$TUNNEL_ID.json" "/etc/cloudflared/$TUNNEL_ID.json"
+          fi
+          chmod 600 "/etc/cloudflared/$TUNNEL_ID.json"
+
+          # Automatically create / update DNS CNAME routes in Cloudflare (Zero dashboard clicks!)
+          echo "Configuring DNS routes in Cloudflare for $APP_HOST and ssh-$APP_HOST..."
+          cloudflared tunnel --origincert /etc/cloudflared/cert.pem route dns -f "$TUNNEL_NAME" "$APP_HOST" || true
+          cloudflared tunnel --origincert /etc/cloudflared/cert.pem route dns -f "$TUNNEL_NAME" "ssh-$APP_HOST" || true
+
+          # Create /etc/cloudflared/config.yml
           cat <<EOF_CF_CONFIG > /etc/cloudflared/config.yml
-          tunnel-token: ${CloudflareTunnelToken}
+          tunnel: $TUNNEL_ID
+          credentials-file: /etc/cloudflared/$TUNNEL_ID.json
           ingress:
-            - hostname: ${!APP_HOST}
+            - hostname: $APP_HOST
               service: http://127.0.0.1:8080
               originRequest:
                 connectTimeout: 30s
                 noTLSVerify: false
-            - hostname: ssh-${!APP_HOST}
+            - hostname: ssh-$APP_HOST
               service: ssh://127.0.0.1:22
             - service: http_status:404
           EOF_CF_CONFIG
@@ -361,7 +391,7 @@ Resources:
 
           [Service]
           Type=notify
-          ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/config.yml tunnel run --token ${CloudflareTunnelToken}
+          ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/config.yml tunnel run
           Restart=on-failure
           RestartSec=5s
           KillMode=mixed

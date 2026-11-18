@@ -12,8 +12,8 @@
     "ParameterValue": "50"
   },
   {
-    "ParameterKey": "CloudflareTunnelToken",
-    "ParameterValue": "PASTE_YOUR_CLOUDFLARE_TUNNEL_TOKEN_HERE"
+    "ParameterKey": "CloudflareCertPem",
+    "ParameterValue": "-----BEGIN CERTIFICATE-----\\n...paste contents of ~/.cloudflared/cert.pem here...\\n-----END CERTIFICATE-----"
   },
   {
     "ParameterKey": "GhcrUsername",
