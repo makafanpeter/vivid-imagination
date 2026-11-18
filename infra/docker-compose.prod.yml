@@ -85,8 +85,8 @@ services:
     volumes:
       - api_dataprotection:/app/App_Data/DataProtection
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/docs || exit 1"]
-      interval: 15s
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s

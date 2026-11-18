@@ -86,6 +86,11 @@ for svc in "${SERVICES[@]}"; do
 done
 
 # Rolling update of target services
+echo "[+] Ensuring data protection volume permissions for non-root container (UID 1654)..."
+docker volume create "${PROJECT}_api_dataprotection" >/dev/null 2>&1 || true
+chown -R 1654:1654 /var/lib/docker/volumes/*dataprotection*/_data >/dev/null 2>&1 || true
+chmod -R 770 /var/lib/docker/volumes/*dataprotection*/_data >/dev/null 2>&1 || true
+
 echo "[+] Deploying updated service(s): ${SERVICES[*]}..."
 docker compose -p "${PROJECT}" -f docker-compose.prod.yml up -d --no-deps "${SERVICES[@]}"
 
