@@ -336,8 +336,10 @@ Resources:
 
           # Create Cloudflare configuration directory and config.yml
           mkdir -p /etc/cloudflared
+
+          # Create Cloudflare configuration directory and config.yml
+          mkdir -p /etc/cloudflared
           cat <<EOF_CF_CONFIG > /etc/cloudflared/config.yml
-          # Cloudflare Tunnel Host Configuration
           tunnel-token: ${CloudflareTunnelToken}
           ingress:
             - hostname: ${!APP_HOST}
@@ -346,8 +348,6 @@ Resources:
                 connectTimeout: 30s
                 noTLSVerify: false
             - hostname: ssh-${!APP_HOST}
-              service: ssh://127.0.0.1:22
-            - hostname: "ssh-*"
               service: ssh://127.0.0.1:22
             - service: http_status:404
           EOF_CF_CONFIG
