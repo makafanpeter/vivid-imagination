@@ -294,6 +294,7 @@ Resources:
         Fn::Base64: !Sub |
           #!/usr/bin/env bash
           set -xeou pipefail
+          exec > >(tee -a /var/log/vivid-bootstrap.log) 2>&1
 
           trap 'signal_cfn $?' EXIT
 
@@ -333,26 +334,29 @@ Resources:
           cat <<'EOF_CERT' > /etc/cloudflared/cert.pem
           ${CloudflareCertPem}
           EOF_CERT
+          python3 -c "p='/etc/cloudflared/cert.pem'; d=open(p).read().replace(r'\n','\n').replace('\r','').strip()+'\n'; open(p,'w').write(d)"
           chmod 600 /etc/cloudflared/cert.pem
 
           TUNNEL_NAME="${EnvironmentName}-vivid-tunnel"
 
           CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME" 2>&1 || true)
-          TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1)
+          TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1 || true)
 
           if [ -z "$TUNNEL_ID" ]; then
             echo "Tunnel $TUNNEL_NAME may already exist. Cleaning up and recreating..."
             cloudflared tunnel --origincert /etc/cloudflared/cert.pem delete -f "$TUNNEL_NAME" 2>/dev/null || true
-            CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME")
-            TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1)
+            CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME" 2>&1 || true)
+            TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1 || true)
           fi
 
           echo "Tunnel provisioned with ID: $TUNNEL_ID"
 
-          if [ -f "/root/.cloudflared/$TUNNEL_ID.json" ]; then
+          if [ -n "$TUNNEL_ID" ] && [ -f "/root/.cloudflared/$TUNNEL_ID.json" ]; then
             cp -f "/root/.cloudflared/$TUNNEL_ID.json" "/etc/cloudflared/$TUNNEL_ID.json"
           fi
-          chmod 600 "/etc/cloudflared/$TUNNEL_ID.json"
+          if [ -n "$TUNNEL_ID" ] && [ -f "/etc/cloudflared/$TUNNEL_ID.json" ]; then
+            chmod 600 "/etc/cloudflared/$TUNNEL_ID.json"
+          fi
 
           echo "Configuring DNS routes in Cloudflare for $APP_HOST and ssh-$APP_HOST..."
           cloudflared tunnel --origincert /etc/cloudflared/cert.pem route dns -f "$TUNNEL_NAME" "$APP_HOST" || true
@@ -464,7 +468,7 @@ Resources:
           echo "=== 5. Authenticate GHCR and Launch Stack ==="
           cd "$APP_DIR"
           if [[ -n "${GhcrToken}" ]]; then
-            echo "${GhcrToken}" | docker login ghcr.io -u "${GhcrUsername}" --password-stdin
+            echo "${GhcrToken}" | docker login ghcr.io -u "${GhcrUsername}" --password-stdin || echo "Warning: Docker login to GHCR failed. Proceeding..."
           fi
 
           docker compose -f docker-compose.prod.yml pull || true
