@@ -422,49 +422,29 @@ Resources:
           CREATE SCHEMA IF NOT EXISTS social;
           EOF_SQL
 
-          cat <<EOF_ENV > "$APP_DIR/.env"
-          API_IMAGE=${GhcrImageRepository}
-          APP_TAG=${AppImageTag}
-          ASPNETCORE_ENVIRONMENT=Production
-          ASPNETCORE_HTTP_PORTS=8080
-          AllowedHosts=*
-          POSTGRES_USER=${PostgresUser}
-          POSTGRES_PASSWORD=${PostgresPassword}
-          POSTGRES_DB=${PostgresDb}
-          ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=${PostgresDb};Username=${PostgresUser};Password=${PostgresPassword}
-          ConnectionStrings__Identity=Host=postgres;Port=5432;Database=${PostgresDb};Username=${PostgresUser};Password=${PostgresPassword}
-          ConnectionStrings__Social=Host=postgres;Port=5432;Database=${PostgresDb};Username=${PostgresUser};Password=${PostgresPassword}
-          ConnectionStrings__Mongo=mongodb://mongodb:27017
-          MongoOptions__ConnectionString=mongodb://mongodb:27017
-          MongoOptions__DatabaseName=${PostgresDb}
-          Media__MongoOptions__ConnectionString=mongodb://mongodb:27017
-          Media__MongoOptions__DatabaseName=${PostgresDb}
-          Moderation__MongoOptions__ConnectionString=mongodb://mongodb:27017
-          Moderation__MongoOptions__DatabaseName=${PostgresDb}
-          Feed__MongoOptions__ConnectionString=mongodb://mongodb:27017
-          Feed__MongoOptions__DatabaseName=${PostgresDb}
-          ConnectionStrings__Redis=redis:6379
-          ApplicationSettings__Cache__ConnectionString=redis:6379
-          RABBITMQ_USER=guest
-          RABBITMQ_PASSWORD=guest
-          RabbitMQ__Enabled=true
-          RabbitMQ__Host=rabbitmq://rabbitmq
-          RabbitMQ__Username=guest
-          RabbitMQ__Password=guest
-          ApplicationSettings__EventBus__RabbitMQ__Host=rabbitmq://rabbitmq
-          ApplicationSettings__EventBus__RabbitMQ__Username=guest
-          ApplicationSettings__EventBus__RabbitMQ__Password=guest
-          AWS__Region=${AWS::Region}
-          AWS__Bucket=${PhotoBucket}
-          ApplicationSettings__General__PublicBucket=${PhotoBucket}
-          ApplicationSettings__General__StorageType=S3
-          ApplicationSettings__General__SecretKey=${JwtSecretKey}
-          ApplicationSettings__General__EncryptionKey=${EncryptionKey}
-          ApplicationSettings__OpenIdConnectSettings__Authority=${AppBaseUrl}
-          ApplicationSettings__OpenIdConnectSettings__IssuerUri=${AppBaseUrl}
-          GHCR_USERNAME=${GhcrUsername}
-          GHCR_TOKEN=${GhcrToken}
-          EOF_ENV
+          # Write Base Environment Configuration from infra/.env (gzipped base64)
+          cat <<'EOF_GZ_ENV' | base64 -d | gzip -d > "$APP_DIR/.env"
+          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
+          EOF_GZ_ENV
+
+          # Inject Dynamic CloudFormation Parameters into .env
+          sed -i "s|^API_IMAGE=.*|API_IMAGE=${GhcrImageRepository}|" "$APP_DIR/.env"
+          sed -i "s|^APP_TAG=.*|APP_TAG=${AppImageTag}|" "$APP_DIR/.env"
+          sed -i "s|^ASPNETCORE_ENVIRONMENT=.*|ASPNETCORE_ENVIRONMENT=Production|" "$APP_DIR/.env"
+          sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=${PostgresUser}|" "$APP_DIR/.env"
+          sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PostgresPassword}|" "$APP_DIR/.env"
+          sed -i "s|^POSTGRES_DB=.*|POSTGRES_DB=${PostgresDb}|" "$APP_DIR/.env"
+          sed -i "s|^GHCR_USERNAME=.*|GHCR_USERNAME=${GhcrUsername}|" "$APP_DIR/.env"
+          sed -i "s|^GHCR_TOKEN=.*|GHCR_TOKEN=${GhcrToken}|" "$APP_DIR/.env"
+          sed -i "s|^AWS__Region=.*|AWS__Region=${AWS::Region}|" "$APP_DIR/.env"
+          sed -i "s|^AWS__Bucket=.*|AWS__Bucket=${PhotoBucket}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__General__PublicBucket=.*|ApplicationSettings__General__PublicBucket=${PhotoBucket}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__General__StorageType=.*|ApplicationSettings__General__StorageType=S3|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__General__SecretKey=.*|ApplicationSettings__General__SecretKey=${JwtSecretKey}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__General__EncryptionKey=.*|ApplicationSettings__General__EncryptionKey=${EncryptionKey}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__OpenIdConnectSettings__Authority=.*|ApplicationSettings__OpenIdConnectSettings__Authority=${AppBaseUrl}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__OpenIdConnectSettings__IssuerUri=.*|ApplicationSettings__OpenIdConnectSettings__IssuerUri=${AppBaseUrl}|" "$APP_DIR/.env"
+          sed -i "s|postgres:mysecretpassword|${PostgresUser}:${PostgresPassword}|g" "$APP_DIR/.env"
           chmod 600 "$APP_DIR/.env"
 
           # Write Production Docker Compose File (gzipped base64)
