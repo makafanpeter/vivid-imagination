@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -34,6 +35,19 @@ try
     Log.Information("Configuring web host ({ApplicationContext})...", env.ApplicationName);
 
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+
+    builder.Services.ConfigureHttpJsonOptions(options =>
+    {
+        options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.SerializerOptions.PropertyNameCaseInsensitive = true;
+    });
+
     builder.Services.AddControllers()
         .AddRegisteredModulesToMvc()
         .ConfigureApiBehaviorOptions(options =>
@@ -151,12 +165,14 @@ try
 
     var app = builder.Build();
 
+    app.UseForwardedHeaders();
+    app.UseExceptionHandler();
+    app.UseCorrelationId();
 
     app.UseHttpsRedirection();
     app.UseRouting();
 
     app.UseCustomCors(configuration);
-    app.UseCorrelationId();
     // Configure the HTTP request pipeline.
     app.UseOpenApi(configuration);
 
@@ -170,8 +186,6 @@ try
     app.MapModuleEndpoints();
 
     #endregion
-
-    app.UseExceptionHandler();
 
     app.MapGet("/", context =>
     {

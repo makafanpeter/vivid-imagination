@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -8,6 +9,9 @@ using VividImagination.Modules.Identity.Features.Preferences.Commands;
 using VividImagination.Modules.Identity.Features.Preferences.Dtos;
 using VividImagination.Modules.Identity.Features.Preferences.Queries;
 using VividImagination.Modules.Identity.Features.Preferences.Validators;
+using VividImagination.Modules.Identity.Features.Users.Commands;
+using VividImagination.Modules.Identity.Features.Users.Dtos;
+using VividImagination.Modules.Identity.Features.Users.Validators;
 using VividImagination.Modules.Identity.Persistence.Entities;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Contract.Identity.Enums;
@@ -594,5 +598,109 @@ public class IdentityFeatureTests
         result.Should().NotBeNull();
         result.IsNewUser.Should().BeTrue();
         userManagerMock.Verify(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("BlurSensitive", SafeBrowsingMode.BlurSensitive)]
+    [InlineData("HideSensitive", SafeBrowsingMode.HideSensitive)]
+    [InlineData("AlwaysShowSensitive", SafeBrowsingMode.AlwaysShowSensitive)]
+    public void RegisterUserRequest_WhenDeserializedFromStringEnum_ShouldSucceed(string modeString, SafeBrowsingMode expectedMode)
+    {
+        // Arrange
+        var json = $$"""
+        {
+            "email": "test@example.com",
+            "password": "Password123!",
+            "firstName": "John",
+            "lastName": "Doe",
+            "safeBrowsingMode": "{{modeString}}"
+        }
+        """;
+
+        // Act - deserialize using default JsonSerializer options (which relies on [JsonConverter] attribute)
+        var request = JsonSerializer.Deserialize<RegisterUserRequest>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        // Assert
+        request.Should().NotBeNull();
+        request!.Email.Should().Be("test@example.com");
+        request.Password.Should().Be("Password123!");
+        request.FirstName.Should().Be("John");
+        request.LastName.Should().Be("Doe");
+        request.SafeBrowsingMode.Should().Be(expectedMode);
+    }
+
+    [Fact]
+    public void RegisterUserRequest_WhenDeserializedFromNumericEnum_ShouldSucceed()
+    {
+        // Arrange
+        var json = """
+        {
+            "email": "test@example.com",
+            "password": "Password123!",
+            "safeBrowsingMode": 1
+        }
+        """;
+
+        // Act
+        var request = JsonSerializer.Deserialize<RegisterUserRequest>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        // Assert
+        request.Should().NotBeNull();
+        request!.SafeBrowsingMode.Should().Be(SafeBrowsingMode.HideSensitive);
+    }
+
+    [Fact]
+    public async Task RegisterUserCommandValidator_WhenValid_ShouldPass()
+    {
+        // Arrange
+        var validator = new RegisterUserCommandValidator();
+        var command = new RegisterUserCommand("valid.user@example.com", "SecureP@ssw0rd!", "Jane", "Doe", SafeBrowsingMode.BlurSensitive);
+
+        // Act
+        var result = await validator.ValidateAsync(command);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("short", "Password must be at least 8 characters long.")]
+    [InlineData("nocapital123!", "Password must contain at least one uppercase letter.")]
+    [InlineData("NOLOWERCASE123!", "Password must contain at least one lowercase letter.")]
+    [InlineData("NoDigitsHere!!", "Password must contain at least one digit.")]
+    [InlineData("NoSpecialChar123", "Password must contain at least one special character.")]
+    public async Task RegisterUserCommandValidator_WhenPasswordInvalid_ShouldFail(string password, string expectedError)
+    {
+        // Arrange
+        var validator = new RegisterUserCommandValidator();
+        var command = new RegisterUserCommand("valid@example.com", password);
+
+        // Act
+        var result = await validator.ValidateAsync(command);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage == expectedError);
+    }
+
+    [Fact]
+    public async Task RegisterUserCommandValidator_WhenSafeBrowsingModeOutOfRange_ShouldFail()
+    {
+        // Arrange
+        var validator = new RegisterUserCommandValidator();
+        var command = new RegisterUserCommand("valid@example.com", "ValidPass123!", null, null, (SafeBrowsingMode)999);
+
+        // Act
+        var result = await validator.ValidateAsync(command);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.ErrorMessage == "Invalid safe browsing mode specified.");
     }
 }
