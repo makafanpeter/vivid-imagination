@@ -6,91 +6,85 @@
              x:Class="VividImagination.Mobile.Pages.Controls.BlurShieldView"
              x:DataType="vm:FeedItemViewModel">
 
-    <Grid HeightRequest="320" HorizontalOptions="Fill">
-        <!-- Remote Photo (Always loaded under the shield or visible directly) -->
+    <!-- Edge-to-edge photo container (no frame or padding) -->
+    <Grid HeightRequest="380" HorizontalOptions="Fill" ClipToBounds="True">
+
+        <!-- Main Photo: Loaded edge-to-edge -->
         <Image Source="{Binding ImageUrl}"
                Aspect="AspectFill"
                HorizontalOptions="Fill"
                VerticalOptions="Fill" />
 
-        <!-- AI Moderation Blur Shield Overlay -->
-        <Grid IsVisible="{Binding IsShieldActive}"
+        <!-- Sensitive Cover Layer: Scaled up slightly with hard blur & dark translucent layer -->
+        <Grid x:Name="ShieldOverlay"
+              IsVisible="{Binding IsShieldActive}"
               HorizontalOptions="Fill"
               VerticalOptions="Fill">
 
-            <!-- BlurHash Canvas / Placeholder -->
+            <!-- High-blur placeholder canvas scaled up slightly -->
             <Image Source="{Binding BlurHashImageSource}"
                    Aspect="AspectFill"
+                   Scale="1.08"
                    HorizontalOptions="Fill"
                    VerticalOptions="Fill" />
 
-            <!-- Frosted Dark Blur Mask -->
-            <BoxView Color="#EE141418"
+            <!-- Dark Translucent Layer with Frosted Blur Effect -->
+            <BoxView Color="#E60D0B0A"
                      HorizontalOptions="Fill"
                      VerticalOptions="Fill" />
 
-            <!-- Shield Details & User Consent Reveal Action -->
+            <!-- Warning Information & Show Content Pill -->
             <VerticalStackLayout VerticalOptions="Center"
                                  HorizontalOptions="Center"
                                  Spacing="12"
                                  Padding="24">
 
+                <!-- Amber Eye-Off Icon -->
                 <Border StrokeShape="RoundRectangle 24"
-                        BackgroundColor="#33FFFFFF"
-                        StrokeThickness="0"
+                        BackgroundColor="#26F59E0B"
+                        Stroke="{StaticResource WarningAmber}"
+                        StrokeThickness="1"
                         HorizontalOptions="Center"
-                        HeightRequest="48"
-                        WidthRequest="48">
-                    <Label Text="🛡️"
+                        HeightRequest="52"
+                        WidthRequest="52">
+                    <Label Text="👁️‍🗨️"
                            FontSize="24"
                            HorizontalOptions="Center"
                            VerticalOptions="Center" />
                 </Border>
 
-                <Label Text="{Binding SensitiveContentWarning}"
-                       FontSize="16"
+                <!-- Words 'Sensitive content' in Warning Amber -->
+                <Label Text="Sensitive content"
+                       FontFamily="SyneBold"
+                       FontSize="18"
                        FontAttributes="Bold"
-                       TextColor="White"
+                       TextColor="{StaticResource WarningAmber}"
                        HorizontalTextAlignment="Center" />
 
-                <Label Text="{Binding SafetyCategory, StringFormat='Category: {0}'}"
+                <!-- Moderation Reason / Category -->
+                <Label Text="{Binding SafetyCategory}"
+                       FontFamily="ManropeRegular"
                        FontSize="13"
-                       TextColor="#C0C0C0"
+                       TextColor="{StaticResource TextMuted}"
                        HorizontalTextAlignment="Center"
                        IsVisible="{Binding SafetyCategory, Converter={toolkit:IsNotNullConverter}}" />
 
+                <!-- Show Content Pill Button (500ms fade on click) -->
                 <Button Text="Show Content"
-                        Command="{Binding ToggleRevealCommand}"
-                        BackgroundColor="#512BD4"
+                        Clicked="OnShowContentClicked"
+                        BackgroundColor="{StaticResource AccentVermilion}"
                         TextColor="White"
-                        CornerRadius="20"
-                        HeightRequest="42"
-                        Padding="20,0"
-                        FontAttributes="Bold"
-                        Margin="0,8,0,0" />
+                        FontFamily="ManropeSemiBold"
+                        CornerRadius="22"
+                        HeightRequest="44"
+                        Padding="28,0"
+                        Margin="0,8,0,0">
+                    <Button.Shadow>
+                        <Shadow Brush="{StaticResource AccentVermilion}" Offset="0,4" Radius="14" Opacity="0.4" />
+                    </Button.Shadow>
+                </Button>
             </VerticalStackLayout>
         </Grid>
-
-        <!-- Unblurred Sensitive Content Pill (Allows re-blurring) -->
-        <Border IsVisible="{Binding IsRevealed}"
-                StrokeShape="RoundRectangle 12"
-                BackgroundColor="#B3000000"
-                StrokeThickness="0"
-                HorizontalOptions="End"
-                VerticalOptions="Start"
-                Margin="12"
-                Padding="8,4">
-            <Border.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding ToggleRevealCommand}" />
-            </Border.GestureRecognizers>
-            <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                <Label Text="👁️ Hide"
-                       FontSize="12"
-                       TextColor="White"
-                       FontAttributes="Bold"
-                       IsVisible="{Binding BlurRequired}" />
-            </HorizontalStackLayout>
-        </Border>
     </Grid>
 
 </ContentView>

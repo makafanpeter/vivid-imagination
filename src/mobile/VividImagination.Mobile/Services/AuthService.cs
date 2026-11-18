@@ -28,6 +28,12 @@ public sealed class AuthService(
     public UserProfile? CurrentUser { get; private set; }
     public event EventHandler<UserProfile?>? AuthStateChanged;
 
+    public void SetManualProfile(UserProfile profile)
+    {
+        CurrentUser = profile;
+        AuthStateChanged?.Invoke(this, CurrentUser);
+    }
+
     public async Task<bool> LoginAsync(string username, string password, CancellationToken ct = default)
     {
         try

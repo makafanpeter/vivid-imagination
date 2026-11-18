@@ -6,117 +6,152 @@
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="VividImagination.Mobile.Pages.FeedPage"
              x:DataType="vm:FeedViewModel"
-             Title="Vivid Imagination"
-             BackgroundColor="{AppThemeBinding Light=#F7F7FA, Dark=#141418}">
+             Title="Vivid"
+             BackgroundColor="{StaticResource AppBackground}">
 
-    <Grid RowDefinitions="Auto,*">
+    <!-- Phone-first geometry: Centered column with maximum width -->
+    <Grid MaximumWidthRequest="450"
+          HorizontalOptions="Center"
+          RowDefinitions="Auto,*">
 
-        <!-- Error Banner -->
-        <Border Grid.Row="0"
-                IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"
-                BackgroundColor="#FFCDD2"
-                StrokeShape="RoundRectangle 8"
-                Margin="12,8"
-                Padding="12,8">
-            <HorizontalStackLayout Spacing="8">
-                <Label Text="⚠️" FontSize="16" VerticalOptions="Center" />
-                <Label Text="{Binding ErrorMessage}"
-                       TextColor="#B71C1C"
-                       FontSize="13"
-                       VerticalOptions="Center"
-                       LineBreakMode="WordWrap" />
-            </HorizontalStackLayout>
-        </Border>
+        <!-- Top Toast Notification System Overlay -->
+        <controls:TopToastView Grid.RowSpan="2" ZIndex="100" />
 
-        <!-- Main Feed List with Pull-to-Refresh & Infinite Scroll -->
-        <RefreshView Grid.Row="1"
-                     IsRefreshing="{Binding IsRefreshing}"
-                     Command="{Binding RefreshFeedCommand}">
+        <!-- 1. Pinned Header: Stays pinned while scrolling, frosted translucent with orange top glow -->
+        <Grid Grid.Row="0"
+              ZIndex="10"
+              BackgroundColor="#E60D0B0A"
+              Padding="16,14,16,10">
 
-            <CollectionView ItemsSource="{Binding Items}"
-                            RemainingItemsThreshold="3"
-                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
-                            ItemSizingStrategy="MeasureAllItems">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#38FF551C" Offset="0.0" />
+                    <GradientStop Color="#000D0B0A" Offset="1.0" />
+                </LinearGradientBrush>
+            </Grid.Background>
 
-                <CollectionView.Header>
-                    <VerticalStackLayout Padding="16,12,16,4">
-                        <Label Text="Ranked Community Feed"
-                               FontSize="20"
-                               FontAttributes="Bold"
-                               TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
-                        <Label Text="AI content moderation with intelligent UI blur shields"
-                               FontSize="13"
-                               TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
-                    </VerticalStackLayout>
-                </CollectionView.Header>
+            <VerticalStackLayout Spacing="3">
+                <!-- 'Vivid.' in bold display type with the full stop picked out in orange -->
+                <Label>
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="Vivid"
+                                  FontFamily="SyneBold"
+                                  FontSize="26"
+                                  FontAttributes="Bold"
+                                  TextColor="{StaticResource TextPrimary}" />
+                            <Span Text="."
+                                  FontFamily="SyneBold"
+                                  FontSize="26"
+                                  FontAttributes="Bold"
+                                  TextColor="{StaticResource AccentVermilion}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
 
-                <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:FeedItemViewModel">
-                        <controls:FeedItemCard />
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
+                <!-- In small grey type: 'Ranked by the community, fresh every hour.' -->
+                <Label Text="Ranked by the community, fresh every hour."
+                       FontFamily="ManropeRegular"
+                       FontSize="12"
+                       TextColor="{StaticResource TextMuted}" />
+            </VerticalStackLayout>
 
-                <!-- Empty Feed View -->
-                <CollectionView.EmptyView>
-                    <VerticalStackLayout HorizontalOptions="Center"
-                                         VerticalOptions="Center"
-                                         Spacing="16"
-                                         Padding="32"
-                                         IsVisible="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}">
-                        <Border StrokeShape="RoundRectangle 40"
-                                WidthRequest="80"
-                                HeightRequest="80"
-                                BackgroundColor="{AppThemeBinding Light=#E8E5FA, Dark=#27233D}"
-                                StrokeThickness="0"
-                                HorizontalOptions="Center">
-                            <Label Text="📷"
-                                   FontSize="36"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center" />
-                        </Border>
+            <!-- Bottom glow border of the frosted header -->
+            <BoxView HeightRequest="1"
+                     Color="{StaticResource BorderGlow}"
+                     VerticalOptions="End" />
+        </Grid>
 
-                        <Label Text="No photos yet"
-                               FontSize="18"
-                               FontAttributes="Bold"
-                               HorizontalTextAlignment="Center"
-                               TextColor="{AppThemeBinding Light=#212121, Dark=White}" />
+        <!-- Main Feed Area: Scrollable Photos Stream -->
+        <Grid Grid.Row="1">
 
-                        <Label Text="Be the first to capture and share a photo with the Vivid Imagination community!"
-                               FontSize="14"
-                               TextColor="{AppThemeBinding Light=#757575, Dark=#9E9E9E}"
-                               HorizontalTextAlignment="Center" />
+            <!-- 2. Loading State: Two grey portrait-shaped blocks that pulse in place (no spinner) -->
+            <VerticalStackLayout x:Name="SkeletonView"
+                                 IsVisible="{Binding IsBusy}"
+                                 Spacing="20"
+                                 Padding="0,16"
+                                 ZIndex="5">
+                <Border HeightRequest="360"
+                        StrokeShape="RoundRectangle 20"
+                        BackgroundColor="#1E1A18"
+                        Stroke="{StaticResource BorderGlow}"
+                        StrokeThickness="1"
+                        Margin="14,0" />
 
-                        <Button Text="Refresh Feed"
-                                Command="{Binding LoadFeedCommand}"
-                                BackgroundColor="#512BD4"
-                                TextColor="White"
-                                CornerRadius="20"
-                                Padding="24,0"
-                                HeightRequest="40"
-                                HorizontalOptions="Center" />
-                    </VerticalStackLayout>
-                </CollectionView.EmptyView>
+                <Border HeightRequest="360"
+                        StrokeShape="RoundRectangle 20"
+                        BackgroundColor="#1E1A18"
+                        Stroke="{StaticResource BorderGlow}"
+                        StrokeThickness="1"
+                        Margin="14,0" />
+            </VerticalStackLayout>
 
-                <!-- Footer Activity Indicator for Infinite Loading -->
-                <CollectionView.Footer>
-                    <ActivityIndicator IsRunning="{Binding IsLoadingMore}"
-                                       IsVisible="{Binding IsLoadingMore}"
-                                       Color="#512BD4"
-                                       HeightRequest="36"
-                                       Margin="0,8" />
-                </CollectionView.Footer>
-            </CollectionView>
-        </RefreshView>
+            <!-- Scrolling Stream of Full-Width Photos -->
+            <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                         Command="{Binding RefreshFeedCommand}"
+                         RefreshColor="{StaticResource AccentVermilion}">
 
-        <!-- Initial Full Loading Indicator -->
-        <ActivityIndicator Grid.Row="1"
-                           IsRunning="{Binding IsBusy}"
-                           IsVisible="{Binding IsBusy}"
-                           Color="#512BD4"
-                           WidthRequest="40"
-                           HeightRequest="40"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
+                <CollectionView ItemsSource="{Binding Items}"
+                                RemainingItemsThreshold="3"
+                                RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
+                                ItemSizingStrategy="MeasureAllItems">
+
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:FeedItemViewModel">
+                            <controls:FeedItemCard />
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+
+                    <!-- 3. Empty State: Centred 'Nothing here yet' with 'Be the first to share a photo — tap the + below.' -->
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout HorizontalOptions="Center"
+                                             VerticalOptions="Center"
+                                             Spacing="14"
+                                             Padding="32"
+                                             IsVisible="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}">
+                            <Border StrokeShape="RoundRectangle 28"
+                                    WidthRequest="64"
+                                    HeightRequest="64"
+                                    BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    HorizontalOptions="Center">
+                                <Label Text="📷"
+                                       FontSize="28"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center" />
+                            </Border>
+
+                            <Label Text="Nothing here yet"
+                                   FontFamily="SyneBold"
+                                   FontSize="20"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                            <Label Text="Be the first to share a photo — tap the + below."
+                                   FontFamily="ManropeRegular"
+                                   FontSize="14"
+                                   TextColor="{StaticResource TextMuted}"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+
+                    <!-- Footer: Small 'Loading more…' while quietly fetching next 10 -->
+                    <CollectionView.Footer>
+                        <VerticalStackLayout IsVisible="{Binding IsLoadingMore}"
+                                             Padding="0,12"
+                                             HorizontalOptions="Center">
+                            <Label Text="Loading more…"
+                                   FontFamily="ManropeRegular"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextMuted}"
+                                   HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.Footer>
+                </CollectionView>
+            </RefreshView>
+        </Grid>
     </Grid>
 
 </ContentPage>

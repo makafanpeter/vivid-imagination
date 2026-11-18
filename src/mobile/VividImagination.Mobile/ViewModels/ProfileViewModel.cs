@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.Services;
 using VividImagination.Mobile.Services.Configuration;
 
 namespace VividImagination.Mobile.ViewModels;
@@ -19,9 +21,13 @@ public partial class ProfileViewModel : ObservableObject
         _authService.AuthStateChanged += (s, e) => UpdateFromAuth();
         _configurationService.EnvironmentChanged += (s, e) => UpdateFromConfig();
 
+        MyUploads = [];
         UpdateFromAuth();
         UpdateFromConfig();
+        LoadSampleUploads();
     }
+
+    public ObservableCollection<UserUploadItemViewModel> MyUploads { get; }
 
     [ObservableProperty]
     private UserProfile? _profile;
@@ -30,25 +36,23 @@ public partial class ProfileViewModel : ObservableObject
     private bool _isAuthenticated;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBlurSelected))]
+    [NotifyPropertyChangedFor(nameof(IsHideSelected))]
+    [NotifyPropertyChangedFor(nameof(IsAlwaysShowSelected))]
     private int _safeBrowsingIndex = 0; // 0 = Blur, 1 = Hide, 2 = Always Show
 
+    public bool IsBlurSelected => SafeBrowsingIndex == 0;
+    public bool IsHideSelected => SafeBrowsingIndex == 1;
+    public bool IsAlwaysShowSelected => SafeBrowsingIndex == 2;
+
     [ObservableProperty]
-    private int _environmentIndex = 0; // 0 = Development, 1 = Staging, 2 = Production
+    private int _environmentIndex = 0;
 
     [ObservableProperty]
     private string _activeBaseUrl = string.Empty;
 
-    [ObservableProperty]
-    private string _customApiUrl = string.Empty;
-
-    [ObservableProperty]
-    private bool _isDevelopment;
-
-    [ObservableProperty]
-    private string? _statusMessage;
-
-    public string DisplayName => Profile?.DisplayName ?? "Anonymous Guest";
-    public string UserEmail => Profile?.Email ?? "Not signed in";
+    public string DisplayName => Profile?.DisplayName ?? "Creator";
+    public string PhotoCountText => $"{MyUploads.Count} photos";
 
     private void UpdateFromAuth()
     {
@@ -59,15 +63,62 @@ public partial class ProfileViewModel : ObservableObject
             SafeBrowsingIndex = (int)Profile.SafeBrowsingMode;
         }
         OnPropertyChanged(nameof(DisplayName));
-        OnPropertyChanged(nameof(UserEmail));
+        OnPropertyChanged(nameof(PhotoCountText));
     }
 
     private void UpdateFromConfig()
     {
         EnvironmentIndex = (int)_configurationService.CurrentEnvironment;
         ActiveBaseUrl = _configurationService.ActiveBaseUrl;
-        CustomApiUrl = _configurationService.CustomUrl ?? string.Empty;
-        IsDevelopment = _configurationService.CurrentEnvironment == AppEnvironment.Development;
+    }
+
+    private void LoadSampleUploads()
+    {
+        if (MyUploads.Count > 0) return;
+
+        MyUploads.Add(new UserUploadItemViewModel
+        {
+            Caption = "Alpine dawn over misty pine ridges #dawn",
+            Status = "Live",
+            ImageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500"
+        });
+
+        MyUploads.Add(new UserUploadItemViewModel
+        {
+            Caption = "Night lights reflections in city central #lights",
+            Status = "Live",
+            ImageUrl = "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=500"
+        });
+
+        MyUploads.Add(new UserUploadItemViewModel
+        {
+            Caption = "Action stunt arena session #sports",
+            Status = "Sensitive",
+            ImageUrl = "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=500"
+        });
+
+        MyUploads.Add(new UserUploadItemViewModel
+        {
+            Caption = "Golden hour ocean waves crash #coast",
+            Status = "Live",
+            ImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500"
+        });
+
+        MyUploads.Add(new UserUploadItemViewModel
+        {
+            Caption = "Pending moderation scan sample #scan",
+            Status = "Checking",
+            ImageUrl = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=500"
+        });
+
+        MyUploads.Add(new UserUploadItemViewModel
+        {
+            Caption = "Disallowed content test upload #flagged",
+            Status = "Removed",
+            ImageUrl = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500"
+        });
+
+        OnPropertyChanged(nameof(PhotoCountText));
     }
 
     [RelayCommand]
@@ -78,9 +129,55 @@ public partial class ProfileViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task OpenLoginAsync()
+    public void SetSafeBrowsingMode(string modeStr)
     {
-        await Shell.Current.GoToAsync("login");
+        if (int.TryParse(modeStr, out var mode))
+        {
+            SafeBrowsingIndex = mode;
+            if (Profile != null)
+            {
+                Profile.SafeBrowsingMode = (SafeBrowsingMode)mode;
+            }
+            ToastService.Current.Show($"Browsing mode set to {(SafeBrowsingMode)mode}", ToastType.Info);
+        }
+    }
+
+    [RelayCommand]
+    public async Task EditCaptionAsync(UserUploadItemViewModel? item)
+    {
+        if (item == null) return;
+
+        var newCaption = await Shell.Current.DisplayPromptAsync(
+            "Rewrite Caption",
+            "Update the caption for this photo:",
+            initialValue: item.Caption,
+            maxLength: 500,
+            keyboard: Keyboard.Text);
+
+        if (!string.IsNullOrWhiteSpace(newCaption) && newCaption != item.Caption)
+        {
+            item.Caption = newCaption;
+            ToastService.Current.Show("Caption updated!", ToastType.Success);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteUploadAsync(UserUploadItemViewModel? item)
+    {
+        if (item == null) return;
+
+        var confirm = await Shell.Current.DisplayAlertAsync(
+            "Delete Photo",
+            "Are you sure you want to delete this photo from your uploads?",
+            "Delete",
+            "Cancel");
+
+        if (confirm)
+        {
+            MyUploads.Remove(item);
+            OnPropertyChanged(nameof(PhotoCountText));
+            ToastService.Current.Show("Photo deleted", ToastType.Info);
+        }
     }
 
     [RelayCommand]
@@ -88,23 +185,13 @@ public partial class ProfileViewModel : ObservableObject
     {
         await _authService.LogoutAsync();
         UpdateFromAuth();
-        StatusMessage = "Signed out.";
+        ToastService.Current.Show("Signed out", ToastType.Info);
+        await Shell.Current.GoToAsync("//login");
     }
 
     [RelayCommand]
-    public async Task SaveSettingsAsync()
+    public async Task OpenLoginAsync()
     {
-        // Update environment
-        _configurationService.CurrentEnvironment = (AppEnvironment)EnvironmentIndex;
-        _configurationService.CustomUrl = string.IsNullOrWhiteSpace(CustomApiUrl) ? null : CustomApiUrl;
-
-        if (Profile != null)
-        {
-            Profile.SafeBrowsingMode = (SafeBrowsingMode)SafeBrowsingIndex;
-        }
-
-        UpdateFromConfig();
-        StatusMessage = "Settings saved successfully.";
-        await Shell.Current.DisplayAlertAsync("Settings", $"Configuration updated. Connected to: {ActiveBaseUrl}", "OK");
+        await Shell.Current.GoToAsync("//login");
     }
 }

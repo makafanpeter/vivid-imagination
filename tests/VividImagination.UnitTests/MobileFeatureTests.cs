@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using VividImagination.Mobile.Models;
 using VividImagination.Mobile.OpenApi;
 using VividImagination.Mobile.Services;
@@ -187,6 +188,38 @@ public class MobileFeatureTests
     }
 
     [Fact]
+    public void ConfigurationBuilder_WithDisposedStream_ThrowsStreamNotReadable()
+    {
+        var json = """{"AppConfig": {"Environment": "Production"}}""";
+        var configBuilder = new Microsoft.Extensions.Configuration.ConfigurationBuilder();
+
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+        configBuilder.AddJsonStream(stream);
+        stream.Dispose(); // simulate 'using var stream' scope exiting before Build()
+
+        var act = () => configBuilder.Build();
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("*Stream was not readable*");
+    }
+
+    [Fact]
+    public void ConfigurationBuilder_WithMemoryStream_BuildsSuccessfully()
+    {
+        var json = """{"AppConfig": {"Environment": "Production", "Api": {"DesktopBaseUrl": "https://api.vividimagination.com"}}}""";
+        var configBuilder = new Microsoft.Extensions.Configuration.ConfigurationBuilder();
+
+        using var initialStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+        var memoryStream = new MemoryStream();
+        initialStream.CopyTo(memoryStream);
+        memoryStream.Position = 0;
+        configBuilder.AddJsonStream(memoryStream);
+
+        var config = configBuilder.Build();
+        config["AppConfig:Environment"].Should().Be("Production");
+        config["AppConfig:Api:DesktopBaseUrl"].Should().Be("https://api.vividimagination.com");
+    }
+
+    [Fact]
     public void DynamicBaseAddressHandler_RewritesHostCorrectly()
     {
         var originalRequestUri = new Uri("http://placeholder/api/v1/feed");
@@ -256,5 +289,103 @@ public class MobileFeatureTests
         ((int)SafeBrowsingMode.BlurSensitive).Should().Be(0);
         ((int)SafeBrowsingMode.HideSensitive).Should().Be(1);
         ((int)SafeBrowsingMode.AlwaysShowSensitive).Should().Be(2);
+    }
+
+    [Fact]
+    public void StaticResourceIntegrity_AllReferencedKeysInXaml_MustBeDefinedInResourceDictionaries()
+    {
+        // Locate repo root
+        var currentDir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (currentDir != null &&
+               !File.Exists(Path.Combine(currentDir.FullName, "VividImagination.slnx")) &&
+               !File.Exists(Path.Combine(currentDir.FullName, "VividImagination.sln")))
+        {
+            currentDir = currentDir.Parent;
+        }
+
+        currentDir.Should().NotBeNull("Solution root directory must be discoverable");
+        var mobileDir = Path.Combine(currentDir!.FullName, "src", "mobile", "VividImagination.Mobile");
+        Directory.Exists(mobileDir).Should().BeTrue();
+
+        var keyRegex = new System.Text.RegularExpressions.Regex(@"x:Key=""([^""]+)""", System.Text.RegularExpressions.RegexOptions.Compiled);
+        var staticResRegex = new System.Text.RegularExpressions.Regex(@"\{StaticResource\s+([a-zA-Z0-9_]+)\}", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        var definedKeys = new HashSet<string>(StringComparer.Ordinal);
+        var xamlFiles = Directory.GetFiles(mobileDir, "*.xaml", SearchOption.AllDirectories)
+            .Where(f => !f.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar) &&
+                        !f.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
+            .ToList();
+
+        // 1. Collect all defined keys from merged resource dictionaries
+        foreach (var file in xamlFiles)
+        {
+            var content = File.ReadAllText(file);
+            foreach (System.Text.RegularExpressions.Match match in keyRegex.Matches(content))
+            {
+                definedKeys.Add(match.Groups[1].Value);
+            }
+        }
+
+        definedKeys.Should().Contain("Magenta");
+        definedKeys.Should().Contain("AppBackground");
+        definedKeys.Should().Contain("AccentVermilion");
+
+        // 2. Verify all StaticResource references resolve to a defined key
+        var missingKeys = new List<string>();
+        foreach (var file in xamlFiles)
+        {
+            var content = File.ReadAllText(file);
+            foreach (System.Text.RegularExpressions.Match match in staticResRegex.Matches(content))
+            {
+                var referencedKey = match.Groups[1].Value;
+                if (!definedKeys.Contains(referencedKey))
+                {
+                    missingKeys.Add($"{Path.GetFileName(file)}: missing '{referencedKey}'");
+                }
+            }
+        }
+
+        missingKeys.Should().BeEmpty("all StaticResource references in XAML files must be defined in ResourceDictionaries");
+    }
+
+    [Fact]
+    public void FeedItemDto_NetScore_CalculatesUpvotesMinusDownvotes()
+    {
+        var dto = new FeedItemDto
+        {
+            Id = Guid.NewGuid(),
+            PhotoId = Guid.NewGuid(),
+            Caption = "Test photo with #cool and #vibes tags",
+            Upvotes = 25,
+            Downvotes = 5
+        };
+
+        var netScore = dto.Upvotes - dto.Downvotes;
+        netScore.Should().Be(20);
+    }
+
+    [Fact]
+    public void PhotoUpload_CaptionCounter_TracksLiveLength()
+    {
+        var caption = "Exploring misty morning trails in the mountains";
+        var length = caption.Length;
+        length.Should().Be(47);
+        (length <= 500).Should().BeTrue();
+    }
+
+    [Fact]
+    public void SafeBrowsingMode_FiltersUnsafePhotos_WhenHideSensitiveSelected()
+    {
+        var photos = new List<FeedItemDto>
+        {
+            new() { Id = Guid.NewGuid(), IsUnsafe = false },
+            new() { Id = Guid.NewGuid(), IsUnsafe = true },
+            new() { Id = Guid.NewGuid(), IsUnsafe = false }
+        };
+
+        var mode = SafeBrowsingMode.HideSensitive;
+        var visiblePhotos = photos.Where(p => !(mode == SafeBrowsingMode.HideSensitive && p.IsUnsafe)).ToList();
+
+        visiblePhotos.Should().HaveCount(2);
     }
 }

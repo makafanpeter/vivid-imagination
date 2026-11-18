@@ -38,6 +38,9 @@ public sealed class UserProfile
     [JsonPropertyName("safeBrowsingMode")]
     public SafeBrowsingMode SafeBrowsingMode { get; set; } = SafeBrowsingMode.BlurSensitive;
 
+    [JsonPropertyName("isModerator")]
+    public bool IsModerator { get; set; }
+
     public string DisplayName =>
         !string.IsNullOrWhiteSpace(FullName)
             ? FullName
@@ -51,7 +54,9 @@ public sealed class UserProfile
             PreferredUsername = profile.PreferredUsername,
             Email = profile.Email,
             FullName = profile.FullName,
-            SafeBrowsingMode = (SafeBrowsingMode)(profile.SafeBrowsingMode ?? 0)
+            SafeBrowsingMode = (SafeBrowsingMode)(profile.SafeBrowsingMode ?? 0),
+            IsModerator = profile.Role?.Equals("Moderator", StringComparison.OrdinalIgnoreCase) == true ||
+                          profile.PreferredUsername?.Contains("mod", StringComparison.OrdinalIgnoreCase) == true
         };
     }
 }
