@@ -201,6 +201,7 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          sed -i 's/\r$//' ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
       - name: Test service token auth
@@ -219,6 +220,7 @@ jobs:
             HostName ${{ secrets.SANDBOX_SSH_HOST }}
             User ${{ secrets.SANDBOX_DEPLOY_USER }}
             IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
             StrictHostKeyChecking no
             BatchMode yes
             ConnectTimeout 30
