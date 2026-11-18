@@ -364,7 +364,7 @@ FodyWeavers.xsd
 
 .idea/
 appsettings.Development.json
-docs/
+docs/PRESENTATION_GUIDE.md
 parameters.prod.json
 App_Data/
 .env

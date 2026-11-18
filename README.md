@@ -24,7 +24,6 @@
 - 📋 **[Product & Software Requirements Specification (SRS)](docs/REQUIREMENTS.md)**
 - 🏗️ **[Modular Monolith Scope & Architecture Case Study](docs/ARCHITECTURE_SCOPE.md)**
 - 🚀 **[AWS EC2 & Cloudflare Deployment Guide](docs/DEPLOYMENT_GUIDE.md)**
-- 🎤 **[Speaker Deck & Presentation Narrative Guide](docs/PRESENTATION_GUIDE.md)**
 
 ---
 
@@ -181,10 +180,9 @@ vivid-imagination/
 ├── .github/
 │   └── workflows/
 │       └── ci-cd.yml                              # Multi-job CI/CD (Backend tests, Android build, GHCR, EC2)
-├── docs/                                          # Architecture specifications, deployment & speaker guides
+├── docs/                                          # Architecture specifications & deployment guides
 │   ├── ARCHITECTURE_SCOPE.md
 │   ├── DEPLOYMENT_GUIDE.md
-│   ├── PRESENTATION_GUIDE.md
 │   └── REQUIREMENTS.md
 ├── infra/                                         # Deployment infrastructure
 │   ├── cloudformation/                            # AWS CloudFormation (EC2, VPC, IAM, S3)
