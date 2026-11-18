@@ -295,7 +295,6 @@ Resources:
           #!/usr/bin/env bash
           set -xeou pipefail
 
-          # Trap signal for CloudFormation completion
           trap 'signal_cfn $?' EXIT
 
           signal_cfn() {
@@ -308,20 +307,17 @@ Resources:
 
           echo "=== 1. Update OS and Install Prerequisites ==="
           dnf update -y
-          dnf install -y --allowerasing docker git jq
+          dnf install -y --allowerasing docker git jq gzip
 
-          # Install cfn-bootstrap tools
           dnf install -y python3-pip
           pip3 install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz || true
 
-          # Install Docker Compose Plugin
           mkdir -p /usr/local/lib/docker/cli-plugins
           curl -SL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-x86_64" \
             -o /usr/local/lib/docker/cli-plugins/docker-compose
           chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
           ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
 
-          # Start and enable Docker
           systemctl start docker
           systemctl enable docker
           usermod -aG docker ec2-user
@@ -331,10 +327,8 @@ Resources:
           dnf install -y --allowerasing /tmp/cloudflared.rpm
           rm -f /tmp/cloudflared.rpm
 
-          # Extract hostname from AppBaseUrl (e.g. api.yourdomain.com)
           APP_HOST=$(echo "${AppBaseUrl}" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
 
-          # Write Cloudflare Origin Certificate (cert.pem)
           mkdir -p /etc/cloudflared
           cat <<'EOF_CERT' > /etc/cloudflared/cert.pem
           ${CloudflareCertPem}
@@ -343,7 +337,6 @@ Resources:
 
           TUNNEL_NAME="${EnvironmentName}-vivid-tunnel"
 
-          # Create tunnel (clean up stale tunnel with same name if needed)
           CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME" 2>&1 || true)
           TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1)
 
@@ -356,18 +349,15 @@ Resources:
 
           echo "Tunnel provisioned with ID: $TUNNEL_ID"
 
-          # Ensure credentials file is in /etc/cloudflared/
           if [ -f "/root/.cloudflared/$TUNNEL_ID.json" ]; then
             cp -f "/root/.cloudflared/$TUNNEL_ID.json" "/etc/cloudflared/$TUNNEL_ID.json"
           fi
           chmod 600 "/etc/cloudflared/$TUNNEL_ID.json"
 
-          # Automatically create / update DNS CNAME routes in Cloudflare (Zero dashboard clicks!)
           echo "Configuring DNS routes in Cloudflare for $APP_HOST and ssh-$APP_HOST..."
           cloudflared tunnel --origincert /etc/cloudflared/cert.pem route dns -f "$TUNNEL_NAME" "$APP_HOST" || true
           cloudflared tunnel --origincert /etc/cloudflared/cert.pem route dns -f "$TUNNEL_NAME" "ssh-$APP_HOST" || true
 
-          # Create /etc/cloudflared/config.yml
           cat <<EOF_CF_CONFIG > /etc/cloudflared/config.yml
           tunnel: $TUNNEL_ID
           credentials-file: /etc/cloudflared/$TUNNEL_ID.json
@@ -383,7 +373,6 @@ Resources:
           EOF_CF_CONFIG
           chmod 600 /etc/cloudflared/config.yml
 
-          # Install systemd service for host-native cloudflared
           cat <<EOF_CF_SERVICE > /etc/systemd/system/cloudflared.service
           [Unit]
           Description=Cloudflare Tunnel Daemon
@@ -409,7 +398,6 @@ Resources:
           APP_DIR="/opt/vivid-imagination"
           mkdir -p "$APP_DIR/scripts/postgres"
 
-          # Write init-schemas.sql
           cat <<'EOF_SQL' > "$APP_DIR/scripts/postgres/init-schemas.sql"
           -- Vivid Imagination Multi-Schema Initializer
           CREATE SCHEMA IF NOT EXISTS identity;
@@ -417,26 +405,18 @@ Resources:
           CREATE SCHEMA IF NOT EXISTS social;
           EOF_SQL
 
-          # Write Unified Production Environment File
           cat <<EOF_ENV > "$APP_DIR/.env"
-          # --- Container Image Tagging ---
           API_IMAGE=${GhcrImageRepository}
           APP_TAG=${AppImageTag}
-
-          # --- ASP.NET Core Runtime Settings ---
           ASPNETCORE_ENVIRONMENT=Production
           ASPNETCORE_HTTP_PORTS=8080
           AllowedHosts=*
-
-          # --- PostgreSQL Relational Database ---
           POSTGRES_USER=${PostgresUser}
           POSTGRES_PASSWORD=${PostgresPassword}
           POSTGRES_DB=${PostgresDb}
           ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=${PostgresDb};Username=${PostgresUser};Password=${PostgresPassword}
           ConnectionStrings__Identity=Host=postgres;Port=5432;Database=${PostgresDb};Username=${PostgresUser};Password=${PostgresPassword}
           ConnectionStrings__Social=Host=postgres;Port=5432;Database=${PostgresDb};Username=${PostgresUser};Password=${PostgresPassword}
-
-          # --- MongoDB Document Database ---
           ConnectionStrings__Mongo=mongodb://mongodb:27017
           MongoOptions__ConnectionString=mongodb://mongodb:27017
           MongoOptions__DatabaseName=${PostgresDb}
@@ -446,12 +426,8 @@ Resources:
           Moderation__DatabaseName=${PostgresDb}
           Feed__ConnectionString=mongodb://mongodb:27017
           Feed__DatabaseName=${PostgresDb}
-
-          # --- Redis Distributed Cache ---
           ConnectionStrings__Redis=redis:6379
           ApplicationSettings__Cache__ConnectionString=redis:6379
-
-          # --- RabbitMQ Modular Event Bus ---
           RABBITMQ_USER=guest
           RABBITMQ_PASSWORD=guest
           RabbitMQ__Enabled=true
@@ -461,34 +437,28 @@ Resources:
           ApplicationSettings__EventBus__RabbitMQ__Host=rabbitmq://rabbitmq
           ApplicationSettings__EventBus__RabbitMQ__Username=guest
           ApplicationSettings__EventBus__RabbitMQ__Password=guest
-
-          # --- AWS S3 Storage & AI Rekognition ---
           AWS__Region=${AWS::Region}
           AWS__Bucket=${PhotoBucket}
           ApplicationSettings__General__PublicBucket=${PhotoBucket}
           ApplicationSettings__General__StorageType=S3
-
-          # --- Application Security & Auth Settings ---
           ApplicationSettings__General__SecretKey=${JwtSecretKey}
           ApplicationSettings__General__EncryptionKey=${EncryptionKey}
           ApplicationSettings__OpenIdConnectSettings__Authority=${AppBaseUrl}
           ApplicationSettings__OpenIdConnectSettings__IssuerUri=${AppBaseUrl}
-
-          # --- GitHub Container Registry Credentials ---
           GHCR_USERNAME=${GhcrUsername}
           GHCR_TOKEN=${GhcrToken}
           EOF_ENV
           chmod 600 "$APP_DIR/.env"
 
-          # Write Production Docker Compose File (base64 encoded, uses env_file: - .env)
-          cat <<'EOF_B64_COMPOSE' | base64 -d > "$APP_DIR/docker-compose.prod.yml"
-          c2VydmljZXM6CiAgcG9zdGdyZXM6CiAgICBpbWFnZTogcG9zdGdyZXM6MTYtYWxwaW5lCiAgICBjb250YWluZXJfbmFtZTogdml2aWQtcG9zdGdyZXMKICAgIHJlc3RhcnQ6IGFsd2F5cwogICAgZW52aXJvbm1lbnQ6CiAgICAgIFBPU1RHUkVTX1VTRVI6ICR7UE9TVEdSRVNfVVNFUjotdml2aWRfdXNlcn0KICAgICAgUE9TVEdSRVNfUEFTU1dPUkQ6ICR7UE9TVEdSRVNfUEFTU1dPUkQ6P0RhdGFiYXNlIHBhc3N3b3JkIHJlcXVpcmVkfQogICAgICBQT1NUR1JFU19EQjogJHtQT1NUR1JFU19EQjotdml2aWRfaW1hZ2luYXRpb259CiAgICBwb3J0czoKICAgICAgLSAiMTI3LjAuMC4xOjU0MzI6NTQzMiIKICAgIHZvbHVtZXM6CiAgICAgIC0gcG9zdGdyZXNfZGF0YTovdmFyL2xpYi9wb3N0Z3Jlc3FsL2RhdGEKICAgICAgLSAuL3NjcmlwdHMvcG9zdGdyZXMvaW5pdC1zY2hlbWFzLnNxbDovZG9ja2VyLWVudHJ5cG9pbnQtaW5pdGRiLmQvMDEtaW5pdC1zY2hlbWFzLnNxbDpybwogICAgaGVhbHRoY2hlY2s6CiAgICAgIHRlc3Q6IFsiQ01ELVNIRUxMIiwgInBnX2lzcmVhZHkgLVUgJHtQT1NUR1JFU19VU0VSOi12aXZpZF91c2VyfSAtZCAke1BPU1RHUkVTX0RCOi12aXZpZF9pbWFnaW5hdGlvbn0iXQogICAgICBpbnRlcnZhbDogMTBzCiAgICAgIHRpbWVvdXQ6IDVzCiAgICAgIHJldHJpZXM6IDUKCiAgbW9uZ29kYjoKICAgIGltYWdlOiBtb25nbzo3LjAKICAgIGNvbnRhaW5lcl9uYW1lOiB2aXZpZC1tb25nb2RiCiAgICByZXN0YXJ0OiBhbHdheXMKICAgIHBvcnRzOgogICAgICAtICIxMjcuMC4wLjE6MjcwMTc6MjcwMTciCiAgICB2b2x1bWVzOgogICAgICAtIG1vbmdvX2RhdGE6L2RhdGEvZGIKICAgIGhlYWx0aGNoZWNrOgogICAgICB0ZXN0OiBbIkNNRCIsICJtb25nb3NoIiwgIi0tZXZhbCIsICJkYi5hZG1pbkNvbW1hbmQoJ3BpbmcnKSJdCiAgICAgIGludGVydmFsOiAxMHMKICAgICAgdGltZW91dDogNXMKICAgICAgcmV0cmllczogNQoKICByZWRpczoKICAgIGltYWdlOiByZWRpczo3LWFscGluZQogICAgY29udGFpbmVyX25hbWU6IHZpdmlkLXJlZGlzCiAgICByZXN0YXJ0OiBhbHdheXMKICAgIGNvbW1hbmQ6IHJlZGlzLXNlcnZlciAtLWFwcGVuZG9ubHkgeWVzCiAgICBwb3J0czoKICAgICAgLSAiMTI3LjAuMC4xOjYzNzk6NjM3OSIKICAgIHZvbHVtZXM6CiAgICAgIC0gcmVkaXNfZGF0YTovZGF0YQogICAgaGVhbHRoY2hlY2s6CiAgICAgIHRlc3Q6IFsiQ01EIiwgInJlZGlzLWNsaSIsICJwaW5nIl0KICAgICAgaW50ZXJ2YWw6IDEwcwogICAgICB0aW1lb3V0OiA1cwogICAgICByZXRyaWVzOiA1CgogIHJhYmJpdG1xOgogICAgaW1hZ2U6IHJhYmJpdG1xOjMuMTMtbWFuYWdlbWVudC1hbHBpbmUKICAgIGNvbnRhaW5lcl9uYW1lOiB2aXZpZC1yYWJiaXRtcQogICAgcmVzdGFydDogYWx3YXlzCiAgICBlbnZpcm9ubWVudDoKICAgICAgUkFCQklUTVFfREVGQVVMVF9VU0VSOiAke1JBQkJJVE1RX1VTRVI6LWd1ZXN0fQogICAgICBSQUJCSVRNUV9ERUZBVUxUX1BBU1M6ICR7UkFCQklUTVFfUEFTU1dPUkQ6LWd1ZXN0fQogICAgcG9ydHM6CiAgICAgIC0gIjEyNy4wLjAuMTo1NjcyOjU2NzIiCiAgICAgIC0gIjEyNy4wLjAuMToxNTY3MjoxNTY3MiIKICAgIHZvbHVtZXM6CiAgICAgIC0gcmFiYml0bXFfZGF0YTovdmFyL2xpYi9yYWJiaXRtcQogICAgaGVhbHRoY2hlY2s6CiAgICAgIHRlc3Q6IFsiQ01EIiwgInJhYmJpdG1xLWRpYWdub3N0aWNzIiwgIi1xIiwgInBpbmciXQogICAgICBpbnRlcnZhbDogMTBzCiAgICAgIHRpbWVvdXQ6IDVzCiAgICAgIHJldHJpZXM6IDUKCiAgdml2aWRpbWFnaW5hdGlvbi5iYWNrZW5kLmFwaToKICAgIGltYWdlOiAke0FQSV9JTUFHRTotZ2hjci5pby95b3VyLXVzZXJuYW1lL3ZpdmlkaW1hZ2luYXRpb24uYmFja2VuZC5hcGl9OiR7QVBQX1RBRzotbGF0ZXN0fQogICAgY29udGFpbmVyX25hbWU6IHZpdmlkLWFwaQogICAgcmVzdGFydDogYWx3YXlzCiAgICBlbnZfZmlsZToKICAgICAgLSAuZW52CiAgICBwb3J0czoKICAgICAgLSAiMTI3LjAuMC4xOjgwODA6ODA4MCIKICAgIGRlcGVuZHNfb246CiAgICAgIHBvc3RncmVzOgogICAgICAgIGNvbmRpdGlvbjogc2VydmljZV9oZWFsdGh5CiAgICAgIG1vbmdvZGI6CiAgICAgICAgY29uZGl0aW9uOiBzZXJ2aWNlX2hlYWx0aHkKICAgICAgcmVkaXM6CiAgICAgICAgY29uZGl0aW9uOiBzZXJ2aWNlX2hlYWx0aHkKICAgICAgcmFiYml0bXE6CiAgICAgICAgY29uZGl0aW9uOiBzZXJ2aWNlX2hlYWx0aHkKICAgIHZvbHVtZXM6CiAgICAgIC0gYXBpX2RhdGFwcm90ZWN0aW9uOi9hcHAvQXBwX0RhdGEvRGF0YVByb3RlY3Rpb24KICAgIGhlYWx0aGNoZWNrOgogICAgICB0ZXN0OiBbIkNNRC1TSEVMTCIsICJjdXJsIC1mIGh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9kb2NzIHx8IGV4aXQgMSJdCiAgICAgIGludGVydmFsOiAxNXMKICAgICAgdGltZW91dDogNXMKICAgICAgcmV0cmllczogNQogICAgICBzdGFydF9wZXJpb2Q6IDIwcwoKdm9sdW1lczoKICBwb3N0Z3Jlc19kYXRhOgogIG1vbmdvX2RhdGE6CiAgcmVkaXNfZGF0YToKICByYWJiaXRtcV9kYXRhOgogIGFwaV9kYXRhcHJvdGVjdGlvbjoKCm5ldHdvcmtzOgogIGRlZmF1bHQ6CiAgICBuYW1lOiB2aXZpZC1uZXR3b3JrCg==
-          EOF_B64_COMPOSE
+          # Write Production Docker Compose File (gzipped base64)
+          cat <<'EOF_GZ_COMPOSE' | base64 -d | gzip -d > "$APP_DIR/docker-compose.prod.yml"
+          H4sIAAAAAAAC/61WXU/bMBR976+wKiQ2aU6aslKWl6msHUMC0VHQHqYpcmPTWiR2sN2yCvjvu3Y+SICWIqZKbnK/cnPu8Yk1U0seMx22EMqkNjOVXyPEUzJj4aMx2MckybhgzhtLYQjcqEiQFMKWfMkpLoNdCPwbokyISHJLVrmNiSVXUqRMmPwpCI3PJhdH56NJdDkZnYdo565pwK5ytNBMPTzNGA8mk19n58NGVmX8OiSGTIlmKCNa30pFoaWbBVeMPqs0PGzUgNviuRYFLojhUuRJmVRGl71j1A66fa8DvyDsfd7ruqXtvEuZLFJWCy3BiSj0FfpLovyET/3SfJP41lGFe76OFc+MriJ8LrjBOp6zlGgPEkKfyviaKQxwqlUmuTDYxtCpR/1OgJ/FK+nKzxlJzBzs8XXZnoFhheh3+9vpEE9+jE5O2p9QO5tFXCtG6Arhy42TQZi+jl/7T/Ew6BNoR5IQBR1dNsBTJhfQQ6+0KGYUBwBRrwWWVIqZpNMGN50tBPw3ULLIW8vI9fPs9jtBP1/XTNTVLsZpV794zmZ8LbIuU8/tJcYMoLBXMDZCUy6+yTQlgn7Yhd022/34LtiA7Ly5oXNL//XN7ALX4hbnTRb1MJBgyRTCmGQZE1SKZIVW7DWI9/f6X9yyBmBXuwbwlujmLcUJdyQGEN8HIZlOuUlvmiiWxj0v2MOABFitqm0Ba5H5Fo08HxweHl+c/oyGo++Dy5OLSisrR74jZwuo97AuySpjI6mSynriBoHb73fd0n7JGzh38Oh/Ps3izZ8IYAOQLYZbhGPKyUyANPJYu31081+m7YZUUy1vSkBiBfVIxhsM2LkbjI+j49PB0Qjwm8fK49JfyYXCVhHtxP1NtR5CW2AcXQyOQpwQU+H/MmsgYxNhoiuesEekPTC9MsyDzkHHLfmwKLPbVkdSlNHN00DRGeX2PUKk82NDlI9rVYQ0NHqrjJo8bRff2ItbpDwjIQDp+JcpaVjsEn3QLH+QZZE9MPh2GVfON30v44VKEL5Cc2Oy0PcTGZNkDjA6nO23WqP7e8T+coOCl0ja24qkucHRIMqY4hJEuAv8btXetXnWKD+f1V1NV2sCVxlewKjVEszAGeralafsiiySQp7qNC2CWv8ADA3MJFcKAAA=
+          EOF_GZ_COMPOSE
 
           echo "=== 4. Install deploy-app Helper Script ==="
-          cat <<'EOF_B64_DEPLOY' | base64 -d > /usr/local/bin/deploy-app
-          IyEvdXNyL2Jpbi9lbnYgYmFzaAojID09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQojIGRlcGxveS1hcHAg4oCUIFplcm8tRG93bnRpbWUgQXBwbGljYXRpb24gRGVwbG95bWVudCBTY3JpcHQgZm9yIFZpdmlkIEltYWdpbmF0aW9uCiMgQ29tcGF0aWJsZSB3aXRoIEdpdEh1YiBBY3Rpb25zIENJL0NEIHBpcGVsaW5lCiMgPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09CgpzZXQgLWVvIHBpcGVmYWlsCgpESVI9Ii9vcHQvdml2aWQtaW1hZ2luYXRpb24iClBST0pFQ1Q9InZpdmlkLWltYWdpbmF0aW9uIgpUQUc9ImxhdGVzdCIKU0VSVklDRVM9KCkKCndoaWxlIFtbICQjIC1ndCAwIF1dOyBkbwogIGNhc2UgIiQxIiBpbgogICAgLS1kaXIpCiAgICAgIERJUj0iJDIiCiAgICAgIHNoaWZ0IDIKICAgICAgOzsKICAgIC0tcHJvamVjdCkKICAgICAgUFJPSkVDVD0iJDIiCiAgICAgIHNoaWZ0IDIKICAgICAgOzsKICAgIC0tdGFnKQogICAgICBUQUc9IiQyIgogICAgICBzaGlmdCAyCiAgICAgIDs7CiAgICAtaHwtLWhlbHApCiAgICAgIGVjaG8gIlVzYWdlOiBkZXBsb3ktYXBwIFstLWRpciA8ZGVwbG95X2Rpcj5dIFstLXByb2plY3QgPHByb2plY3RfbmFtZT5dIFstLXRhZyA8aW1hZ2VfdGFnPl0gW3NlcnZpY2UxIHNlcnZpY2UyIC4uLl0iCiAgICAgIGV4aXQgMAogICAgICA7OwogICAgKikKICAgICAgU0VSVklDRVMrPSgiJDEiKQogICAgICBzaGlmdAogICAgICA7OwogIGVzYWMKZG9uZQoKaWYgW1sgJHsjU0VSVklDRVNbQF19IC1lcSAwIF1dOyB0aGVuCiAgU0VSVklDRVM9KCJ2aXZpZGltYWdpbmF0aW9uLmJhY2tlbmQuYXBpIikKZmkKCmVjaG8gIj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0iCmVjaG8gIiBTdGFydGluZyBEZXBsb3ltZW50OiAke1BST0pFQ1R9IChUYWc6ICR7VEFHfSkiCmVjaG8gIiBUYXJnZXQgRGlyZWN0b3J5OiAgICR7RElSfSIKZWNobyAiIFNlcnZpY2VzIHRvIERlcGxveTogJHtTRVJWSUNFU1sqXX0iCmVjaG8gIiBUaW1lOiAgICAgICAgICAgICAgICQoZGF0ZSAtdSAnKyVZLSVtLSVkICVIOiVNOiVTWicpIgplY2hvICI9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09IgoKaWYgW1sgISAtZCAiJERJUiIgXV07IHRoZW4KICBlY2hvICJbLV0gRXJyb3I6IERpcmVjdG9yeSAkRElSIGRvZXMgbm90IGV4aXN0LiIgPiYyCiAgZXhpdCAxCmZpCgpjZCAiJERJUiIKCiMgRG9ja2VyIGxvZ2luIHRvIEdIQ1IgaWYgdG9rZW4gaXMgc3VwcGxpZWQKR0hfVE9LRU49IiR7R0lUSFVCX1RPS0VOOi0ke0dIQ1JfVE9LRU46LX19IgpHSF9VU0VSPSIke0dIQ1JfVVNFUk5BTUU6LX0iCgppZiBbWyAtbiAiJEdIX1RPS0VOIiBdXTsgdGhlbgogIGVjaG8gIlsrXSBBdXRoZW50aWNhdGluZyB3aXRoIEdpdEh1YiBDb250YWluZXIgUmVnaXN0cnkgKGdoY3IuaW8pLi4uIgogIGlmIFtbIC1uICIkR0hfVVNFUiIgXV07IHRoZW4KICAgIGVjaG8gIiRHSF9UT0tFTiIgfCBkb2NrZXIgbG9naW4gZ2hjci5pbyAtdSAiJEdIX1VTRVIiIC0tcGFzc3dvcmQtc3RkaW4KICBlbHNlCiAgICBlY2hvICIkR0hfVE9LRU4iIHwgZG9ja2VyIGxvZ2luIGdoY3IuaW8gLXUgdG9rZW4gLS1wYXNzd29yZC1zdGRpbgogIGZpCmZpCgojIFVwZGF0ZSBBUFBfVEFHIGluIC5lbnYgaWYgcHJlc2VudAppZiBbWyAtZiAuZW52IF1dOyB0aGVuCiAgZWNobyAiWytdIFVwZGF0aW5nIEFQUF9UQUcgaW4gLmVudi4uLiIKICBpZiBncmVwIC1xICJeQVBQX1RBRz0iIC5lbnY7IHRoZW4KICAgIHNlZCAtaSAicy9eQVBQX1RBRz0uKi9BUFBfVEFHPSR7VEFHfS8iIC5lbnYKICBlbHNlCiAgICBlY2hvICJBUFBfVEFHPSR7VEFHfSIgPj4gLmVudgogIGZpCmZpCgpleHBvcnQgQVBQX1RBRz0iJHtUQUd9IgoKIyBQdWxsIHVwZGF0ZWQgaW1hZ2VzCmZvciBzdmMgaW4gIiR7U0VSVklDRVNbQF19IjsgZG8KICBlY2hvICJbK10gUHVsbGluZyBsYXRlc3QgaW1hZ2UgZm9yIHNlcnZpY2U6ICR7c3ZjfS4uLiIKICBkb2NrZXIgY29tcG9zZSAtcCAiJHtQUk9KRUNUfSIgLWYgZG9ja2VyLWNvbXBvc2UucHJvZC55bWwgcHVsbCAiJHtzdmN9IiB8fCB0cnVlCmRvbmUKCiMgUm9sbGluZyB1cGRhdGUgb2YgdGFyZ2V0IHNlcnZpY2VzCmVjaG8gIlsrXSBEZXBsb3lpbmcgdXBkYXRlZCBzZXJ2aWNlKHMpOiAke1NFUlZJQ0VTWypdfS4uLiIKZG9ja2VyIGNvbXBvc2UgLXAgIiR7UFJPSkVDVH0iIC1mIGRvY2tlci1jb21wb3NlLnByb2QueW1sIHVwIC1kIC0tbm8tZGVwcyAiJHtTRVJWSUNFU1tAXX0iCgojIFZlcmlmaWNhdGlvbiAmIEhlYWx0aGNoZWNrIHdhaXQKZWNobyAiWytdIFdhaXRpbmcgZm9yIGNvbnRhaW5lciBoZWFsdGggc3RhdHVzLi4uIgpmb3Igc3ZjIGluICIke1NFUlZJQ0VTW0BdfSI7IGRvCiAgQ09OVEFJTkVSX0lEPSQoZG9ja2VyIGNvbXBvc2UgLXAgIiR7UFJPSkVDVH0iIC1mIGRvY2tlci1jb21wb3NlLnByb2QueW1sIHBzIC1xICIke3N2Y30iKQogIGlmIFtbIC1uICIkQ09OVEFJTkVSX0lEIiBdXTsgdGhlbgogICAgZWNobyAiWytdIENoZWNraW5nIGhlYWx0aCBvZiBjb250YWluZXIgJHtDT05UQUlORVJfSUR9ICgke3N2Y30pLi4uIgogICAgQVRURU1QVFM9MAogICAgTUFYX0FUVEVNUFRTPTIwCiAgICBIRUFMVEhZPWZhbHNlCiAgICB3aGlsZSBbWyAkQVRURU1QVFMgLWx0ICRNQVhfQVRURU1QVFMgXV07IGRvCiAgICAgIFNUQVRVUz0kKGRvY2tlciBpbnNwZWN0IC0tZm9ybWF0PSd7e2pzb24gLlN0YXRlLkhlYWx0aC5TdGF0dXN9fScgIiRDT05UQUlORVJfSUQiIDI+L2Rldi9udWxsIHx8IGVjaG8gJyJ1bmtub3duIicpCiAgICAgIFNUQVRVUz0iJHtTVEFUVVMlXCJ9IgogICAgICBTVEFUVVM9IiR7U1RBVFVTI1wifSIKICAgICAgaWYgW1sgIiRTVEFUVVMiID09ICJoZWFsdGh5IiBdXTsgdGhlbgogICAgICAgIGVjaG8gIlsrXSBTZXJ2aWNlICR7c3ZjfSBpcyBIRUFMVEhZISIKICAgICAgICBIRUFMVEhZPXRydWUKICAgICAgICBicmVhawogICAgICBlbGlmIFtbICIkU1RBVFVTIiA9PSAidW5oZWFsdGh5IiBdXTsgdGhlbgogICAgICAgIGVjaG8gIlstXSBTZXJ2aWNlICR7c3ZjfSByZXBvcnRlZCBVTkhFQUxUSFkhIgogICAgICAgIGRvY2tlciBsb2dzIC0tdGFpbCA1MCAiJENPTlRBSU5FUl9JRCIKICAgICAgICBleGl0IDEKICAgICAgZmkKICAgICAgZWNobyAiICAgIEN1cnJlbnQgc3RhdHVzOiAnJHtTVEFUVVN9Jy4uLiB3YWl0aW5nIDNzIChhdHRlbXB0ICQoKEFUVEVNUFRTKzEpKS8kTUFYX0FUVEVNUFRTKSIKICAgICAgc2xlZXAgMwogICAgICBBVFRFTVBUUz0kKChBVFRFTVBUUysxKSkKICAgIGRvbmUKCiAgICBpZiBbWyAiJEhFQUxUSFkiICE9ICJ0cnVlIiAmJiAiJFNUQVRVUyIgIT0gInVua25vd24iIF1dOyB0aGVuCiAgICAgIGVjaG8gIlstXSBXYXJuaW5nOiBIZWFsdGhjaGVjayB0aW1lZCBvdXQgZm9yIHNlcnZpY2UgJHtzdmN9LiIKICAgIGZpCiAgZmkKZG9uZQoKIyBQcnVuZSBkYW5nbGluZy9vbGQgaW1hZ2VzCmVjaG8gIlsrXSBQcnVuaW5nIHVudXNlZCBkYW5nbGluZyBpbWFnZXMuLi4iCmRvY2tlciBpbWFnZSBwcnVuZSAtZiA+L2Rldi9udWxsIDI+JjEgfHwgdHJ1ZQoKZWNobyAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIKZWNobyAiIERlcGxveW1lbnQgU3VjY2Vzc2Z1bGx5IEZpbmlzaGVkISIKZWNobyAiPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSIK
-          EOF_B64_DEPLOY
+          cat <<'EOF_GZ_DEPLOY' | base64 -d | gzip -d > /usr/local/bin/deploy-app
+          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
+          EOF_GZ_DEPLOY
           chmod +x /usr/local/bin/deploy-app
 
           echo "=== 5. Authenticate GHCR and Launch Stack ==="
@@ -497,10 +467,8 @@ Resources:
             echo "${GhcrToken}" | docker login ghcr.io -u "${GhcrUsername}" --password-stdin
           fi
 
-          # Pull API image
           docker compose -f docker-compose.prod.yml pull || true
 
-          # Create systemd service for vivid-imagination
           cat <<EOF_SERVICE > /etc/systemd/system/vivid-imagination.service
           [Unit]
           Description=Vivid Imagination Docker Compose Stack
