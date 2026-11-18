@@ -471,6 +471,10 @@ Resources:
           cat <<'EOF_GZ_COMPOSE' | base64 -d | gzip -d > "$APP_DIR/docker-compose.prod.yml"
           H4sIAAAAAAAC/61WXU/bMBR976+wKiQ2aU6aslKWl6msHUMC0VHQHqYpcmPTWiR2sN2yCvjvu3Y+SICWIqZKbnK/cnPu8Yk1U0seMx22EMqkNjOVXyPEUzJj4aMx2MckybhgzhtLYQjcqEiQFMKWfMkpLoNdCPwbokyISHJLVrmNiSVXUqRMmPwpCI3PJhdH56NJdDkZnYdo565pwK5ytNBMPTzNGA8mk19n58NGVmX8OiSGTIlmKCNa30pFoaWbBVeMPqs0PGzUgNviuRYFLojhUuRJmVRGl71j1A66fa8DvyDsfd7ruqXtvEuZLFJWCy3BiSj0FfpLovyET/3SfJP41lGFe76OFc+MriJ8LrjBOp6zlGgPEkKfyviaKQxwqlUmuTDYxtCpR/1OgJ/FK+nKzxlJzBzs8XXZnoFhheh3+9vpEE9+jE5O2p9QO5tFXCtG6Arhy42TQZi+jl/7T/Ew6BNoR5IQBR1dNsBTJhfQQ6+0KGYUBwBRrwWWVIqZpNMGN50tBPw3ULLIW8vI9fPs9jtBP1/XTNTVLsZpV794zmZ8LbIuU8/tJcYMoLBXMDZCUy6+yTQlgn7Yhd022/34LtiA7Ly5oXNL//XN7ALX4hbnTRb1MJBgyRTCmGQZE1SKZIVW7DWI9/f6X9yyBmBXuwbwlujmLcUJdyQGEN8HIZlOuUlvmiiWxj0v2MOABFitqm0Ba5H5Fo08HxweHl+c/oyGo++Dy5OLSisrR74jZwuo97AuySpjI6mSynriBoHb73fd0n7JGzh38Oh/Ps3izZ8IYAOQLYZbhGPKyUyANPJYu31081+m7YZUUy1vSkBiBfVIxhsM2LkbjI+j49PB0Qjwm8fK49JfyYXCVhHtxP1NtR5CW2AcXQyOQpwQU+H/MmsgYxNhoiuesEekPTC9MsyDzkHHLfmwKLPbVkdSlNHN00DRGeX2PUKk82NDlI9rVYQ0NHqrjJo8bRff2ItbpDwjIQDp+JcpaVjsEn3QLH+QZZE9MPh2GVfON30v44VKEL5Cc2Oy0PcTGZNkDjA6nO23WqP7e8T+coOCl0ja24qkucHRIMqY4hJEuAv8btXetXnWKD+f1V1NV2sCVxlewKjVEszAGeralafsiiySQp7qNC2CWv8ADA3MJFcKAAA=
           EOF_GZ_COMPOSE
+          chmod 644 "$APP_DIR/docker-compose.prod.yml"
+          chown -R ec2-user:ec2-user "$APP_DIR"
+          chmod 755 "$APP_DIR"
+          chmod 600 "$APP_DIR/.env"
 
           echo "=== 4. Install deploy-app Helper Script ==="
           cat <<'EOF_GZ_DEPLOY' | base64 -d | gzip -d > /usr/local/bin/deploy-app
