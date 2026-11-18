@@ -217,17 +217,38 @@ jobs:
           echo "=== Expected Public Key in authorized_keys ==="
           cat ~/.ssh/deploy_key.pub
 
-      - name: Test service token auth
-        env:
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      - name: Verify Cloudflare Access Service Token
         run: |
-          curl -v https://${{ secrets.SANDBOX_SSH_HOST }} \
-            -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
-            -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}"
+          CF_ID=$(echo "${{ secrets.CF_ACCESS_CLIENT_ID }}" | tr -d '\r\n ')
+          CF_SECRET=$(echo "${{ secrets.CF_ACCESS_CLIENT_SECRET }}" | tr -d '\r\n ')
+
+          if [[ -z "$CF_ID" || -z "$CF_SECRET" ]]; then
+            echo "ERROR: CF_ACCESS_CLIENT_ID or CF_ACCESS_CLIENT_SECRET secret is empty!"
+            exit 1
+          fi
+
+          echo "Testing Cloudflare Access SSH WebSocket handshake..."
+          timeout 5 cloudflared access ssh \
+            --hostname "${{ secrets.SANDBOX_SSH_HOST }}" \
+            --id "$CF_ID" \
+            --secret "$CF_SECRET" \
+            --loglevel debug \
+            --logfile ~/.ssh/cf_access_test.log </dev/null || true
+
+          if [ -f ~/.ssh/cf_access_test.log ]; then
+            cat ~/.ssh/cf_access_test.log
+            if grep -q "websocket: bad handshake" ~/.ssh/cf_access_test.log; then
+              echo "ERROR: Cloudflare Access rejected the Service Token!"
+              echo "Check that the Service Token is active and added to the Access Policy with Action 'Service Auth'."
+              exit 1
+            fi
+          fi
 
       - name: Configure SSH via Cloudflare Access ProxyCommand
         run: |
+          CF_ID=$(echo "${{ secrets.CF_ACCESS_CLIENT_ID }}" | tr -d '\r\n ')
+          CF_SECRET=$(echo "${{ secrets.CF_ACCESS_CLIENT_SECRET }}" | tr -d '\r\n ')
+
           cat >> ~/.ssh/config <<EOF
           Host sandbox-tunnel
             HostName ${{ secrets.SANDBOX_SSH_HOST }}
@@ -239,7 +260,7 @@ jobs:
             ConnectTimeout 30
             ServerAliveInterval 15
             ServerAliveCountMax 3
-            ProxyCommand cloudflared access ssh --hostname %h --id ${{ secrets.CF_ACCESS_CLIENT_ID }} --secret ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+            ProxyCommand cloudflared access ssh --hostname %h --id ${CF_ID} --secret ${CF_SECRET}
           EOF
 
       - name: Deploy to sandbox
