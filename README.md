@@ -166,7 +166,7 @@ The solution provides a native cross-platform mobile client in `src/mobile/Vivid
 
 ### 8. Enterprise GitHub Actions CI/CD Pipeline
 The workflow in `.github/workflows/ci-cd.yml` automates quality gates across the full stack:
-- **`test-backend`**: Builds backend projects, runs 74 unit tests and 7 NetArchTest architecture boundary tests.
+- **`test-backend`**: Builds backend projects, runs 101 unit tests and 7 NetArchTest architecture boundary tests.
 - **`build-mobile-android`**: Runs in parallel on mobile changes, provisioning Java 17 Temurin and .NET MAUI Android workloads to compile signed Android APK and AAB packages, automatically publishing release artifacts.
 - **`build`**: Packages `vividimagination.backend.api` into a minimal production container and pushes to GitHub Container Registry (`ghcr.io`).
 - **`deploy`**: Deploys the container stack to an Amazon EC2 instance behind Cloudflare Tunnel via AWS Systems Manager.
@@ -217,7 +217,7 @@ vivid-imagination/
 │           ├── Pages/                             # FeedPage, PhotoUploadPage, Controls/BlurShieldView
 │           └── ViewModels/                        # MVVM ViewModels & API client integration
 └── tests/
-    ├── VividImagination.UnitTests/                # 74 Unit Tests (Feature slices, policies, consumers, WebP, Seeding)
+    ├── VividImagination.UnitTests/                # 101 Unit Tests (Feature slices, policies, consumers, WebP, Seeding)
     └── VividImagination.ArchitectureTests/        # 7 NetArchTest Boundary Enforcement Tests
 ```
 
@@ -236,7 +236,7 @@ docker compose up -d
 
 ### 3. Run Test Suites
 ```bash
-# Run all Unit Tests (74 passed)
+# Run all Unit Tests (101 passed)
 dotnet test tests/VividImagination.UnitTests/VividImagination.UnitTests.csproj
 
 # Run all Architecture Boundary Tests (7 passed)

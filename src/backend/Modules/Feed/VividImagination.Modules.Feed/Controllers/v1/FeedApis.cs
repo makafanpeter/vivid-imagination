@@ -1,8 +1,10 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using OpenIddict.Validation.AspNetCore;
 using VividImagination.Modules.Feed.Features.Feeds.Dtos;
 using VividImagination.Modules.Feed.Features.Feeds.Queries;
 using VividImagination.Shared.Contract.Identity.Enums;
@@ -12,6 +14,9 @@ namespace VividImagination.Modules.Feed.Controllers.v1;
 
 public static class FeedApis
 {
+    private static readonly AuthorizeAttribute AuthorizeAttribute = new() { AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme };
+
+
     public static IEndpointRouteBuilder MapFeedApiV1(this IEndpointRouteBuilder app)
     {
         MapFeedRoutes(app);
@@ -35,6 +40,7 @@ public static class FeedApis
         api.MapGet("/personalized", GetPersonalizedFeedAsync)
             .WithName(nameof(GetPersonalizedFeedAsync))
             .WithDescription("Retrieve personalized feed with safe-browsing filters and excluded downvotes")
+            .RequireAuthorization(AuthorizeAttribute)
             .Produces<IReadOnlyList<FeedItemDto>>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status500InternalServerError);

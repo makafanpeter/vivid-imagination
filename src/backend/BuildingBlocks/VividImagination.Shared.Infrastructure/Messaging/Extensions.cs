@@ -113,11 +113,36 @@ public static class Extensions
         IRegistrationConfigurator cfg,
         IServiceCollection services)
     {
-        var sp = services.BuildServiceProvider();
-        var modules = AppModuleExtensions.InitializedModules
-            .Select(type => sp.GetService(type) as IAppModule)
+        // 1. Retrieve initialized module instances directly (zero BuildServiceProvider allocation)
+        var modules = AppModuleExtensions.GetInitializedModuleInstances()
             .OfType<IMessagingModule>()
             .ToList();
+
+        // 2. Fallback: inspect IServiceCollection descriptors for singleton module instances
+        if (modules.Count == 0)
+        {
+            var serviceInstances = services
+                .Where(d => d.ImplementationInstance is IMessagingModule)
+                .Select(d => (IMessagingModule)d.ImplementationInstance!)
+                .Distinct()
+                .ToList();
+
+            if (serviceInstances.Count > 0)
+            {
+                modules = serviceInstances;
+            }
+            else
+            {
+                // 3. Fallback: instantiate parameterless module types from InitializedModules
+                modules = AppModuleExtensions.InitializedModules
+                    .Where(t => typeof(IMessagingModule).IsAssignableFrom(t))
+                    .Select(t => Activator.CreateInstance(t) as IMessagingModule)
+                    .Where(m => m != null)
+                    .Select(m => m!)
+                    .Distinct()
+                    .ToList();
+            }
+        }
 
         Console.WriteLine($"📨 Registering consumers from {modules.Count} messaging modules...");
 

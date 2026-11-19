@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using VividImagination.Modules.Feed.Ranking;
+using VividImagination.Modules.Media.Contracts.Queries;
 using VividImagination.Modules.Moderation.Contracts.Events;
 using VividImagination.Modules.Moderation.Features.Reviews.Commands;
 using VividImagination.Modules.Moderation.Features.Reviews.Consumers;
@@ -116,7 +117,16 @@ public class PolicyAndRankingTests
     {
         var repositoryMock = new Mock<IMongoRepository<Review, Guid>>();
         var publishEndpointMock = new Mock<IPublishEndpoint>();
+        var photoClientMock = new Mock<IRequestClient<ValidatePhotoRequest>>();
+        var responseMock = new Mock<Response<PhotoValidationResponse>>();
         var photoId = Guid.NewGuid();
+
+        responseMock.Setup(r => r.Message).Returns(new PhotoValidationResponse(photoId, Exists: true, IsDeleted: false));
+        photoClientMock.Setup(c => c.GetResponse<PhotoValidationResponse>(
+                It.IsAny<ValidatePhotoRequest>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<RequestTimeout>()))
+            .ReturnsAsync(responseMock.Object);
 
         var existingReview = new Review
         {
@@ -135,6 +145,7 @@ public class PolicyAndRankingTests
         var handler = new UpdateModerationVerdictCommandHandler(
             repositoryMock.Object,
             publishEndpointMock.Object,
+            photoClientMock.Object,
             NullLogger<UpdateModerationVerdictCommandHandler>.Instance);
 
         var result = await handler.Handle(
@@ -149,5 +160,34 @@ public class PolicyAndRankingTests
         publishEndpointMock.Verify(p => p.Publish(
             It.Is<PhotoModeratedIntegrationEvent>(e => e.PhotoId == photoId && e.Verdict == "Approved" && !e.IsUnsafe),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateModerationVerdict_Should_Throw_NotFoundException_When_Photo_DoesNotExist_In_MediaLibrary()
+    {
+        var repositoryMock = new Mock<IMongoRepository<Review, Guid>>();
+        var publishEndpointMock = new Mock<IPublishEndpoint>();
+        var photoClientMock = new Mock<IRequestClient<ValidatePhotoRequest>>();
+        var responseMock = new Mock<Response<PhotoValidationResponse>>();
+        var photoId = Guid.NewGuid();
+
+        responseMock.Setup(r => r.Message).Returns(new PhotoValidationResponse(photoId, Exists: false));
+        photoClientMock.Setup(c => c.GetResponse<PhotoValidationResponse>(
+                It.IsAny<ValidatePhotoRequest>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<RequestTimeout>()))
+            .ReturnsAsync(responseMock.Object);
+
+        var handler = new UpdateModerationVerdictCommandHandler(
+            repositoryMock.Object,
+            publishEndpointMock.Object,
+            photoClientMock.Object,
+            NullLogger<UpdateModerationVerdictCommandHandler>.Instance);
+
+        var act = () => handler.Handle(
+            new UpdateModerationVerdictCommand(photoId, "Approved", "Approve", false),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<Shared.Infrastructure.Exceptions.NotFoundException>();
     }
 }

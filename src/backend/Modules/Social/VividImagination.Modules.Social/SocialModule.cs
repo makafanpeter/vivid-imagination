@@ -1,10 +1,13 @@
 using System.Reflection;
 using FluentValidation;
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using VividImagination.Modules.Media.Contracts.Queries;
 using VividImagination.Modules.Social.Controllers.v1;
 using VividImagination.Modules.Social.Persistence;
 using VividImagination.Shared.Contract.Identity;
@@ -35,6 +38,7 @@ public class SocialModule : IAppModule
             Constants.StandardScopes.SocialApi,
             []);
 
+        services.TryAddScoped(sp => sp.GetRequiredService<IBus>().CreateRequestClient<ValidatePhotoRequest>());
 
         return services;
     }
