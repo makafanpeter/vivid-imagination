@@ -2,12 +2,16 @@ using System.Security.Claims;
 using AutoMapper;
 using FluentAssertions;
 using MassTransit;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Moq;
 using MongoDB.Driver;
+using VividImagination.Modules.Media;
 using VividImagination.Modules.Media.Contracts.Events;
+using VividImagination.Modules.Media.Controllers.v1;
 using VividImagination.Modules.Media.Features.Photos.Commands;
 using VividImagination.Modules.Media.Features.Photos.Validations;
 using VividImagination.Modules.Media.Features.Photos.ViewModels;
@@ -16,6 +20,7 @@ using VividImagination.Modules.Media.Services.FileService;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure.Exceptions;
 using VividImagination.Shared.Infrastructure.Mongo;
+using VividImagination.Shared.Infrastructure.Web;
 using VividImagination.Shared.Infrastructure.Web.Helpers;
 using Xunit;
 using UserProfile = VividImagination.Shared.Contract.Identity.Profile;
@@ -333,5 +338,32 @@ public class MediaFeatureTests
             It.Is<VividImagination.Modules.Media.Contracts.Queries.PhotoValidationResponse>(r =>
                 r.PhotoId == photoId &&
                 r.Exists == false)), Times.Once);
+    }
+
+    [Fact]
+    public void MapMediaApiV1_UploadAndUpdateEndpoints_ShouldHaveAntiforgeryDisabled()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddCustomVersioning();
+        var app = builder.Build();
+        var versioned = app.NewVersionedApi(MediaModule.ModuleConstants.FormattedModuleName);
+        versioned.MapMediaApiV1();
+
+        var endpoints = ((IEndpointRouteBuilder)app).DataSources
+            .SelectMany(ds => ds.Endpoints)
+            .OfType<RouteEndpoint>()
+            .ToList();
+
+        var uploadEndpoint = endpoints.FirstOrDefault(e => e.DisplayName?.Contains("UploadAsync") == true);
+        uploadEndpoint.Should().NotBeNull();
+        var uploadAntiforgery = uploadEndpoint!.Metadata.GetMetadata<IAntiforgeryMetadata>();
+        uploadAntiforgery.Should().NotBeNull();
+        uploadAntiforgery!.RequiresValidation.Should().BeFalse();
+
+        var updateEndpoint = endpoints.FirstOrDefault(e => e.DisplayName?.Contains("UpdateAsync") == true);
+        updateEndpoint.Should().NotBeNull();
+        var updateAntiforgery = updateEndpoint!.Metadata.GetMetadata<IAntiforgeryMetadata>();
+        updateAntiforgery.Should().NotBeNull();
+        updateAntiforgery!.RequiresValidation.Should().BeFalse();
     }
 }

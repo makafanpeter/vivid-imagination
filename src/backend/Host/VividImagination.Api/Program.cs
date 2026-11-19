@@ -78,6 +78,7 @@ try
 
 
     builder.Services.AddProblemDetails();
+    builder.Services.AddAntiforgery();
 
     builder.Services.AddCustomVersioning();
 
@@ -177,6 +178,7 @@ try
     app.UseOpenApi(configuration);
 
     app.UseCustomAuthentication();
+    app.UseAntiforgery();
 
     app.MapControllers();
 
