@@ -131,6 +131,37 @@ public partial class FeedItemViewModel : ObservableObject
         IsRevealed = true;
     }
 
+    public Func<FeedItemViewModel, Task>? UpvoteHandler { get; set; }
+    public Func<FeedItemViewModel, Task>? DownvoteHandler { get; set; }
+    public Func<FeedItemViewModel, Task>? ReportHandler { get; set; }
+
+    [RelayCommand]
+    public async Task UpvoteAsync()
+    {
+        if (UpvoteHandler != null)
+        {
+            await UpvoteHandler(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DownvoteAsync()
+    {
+        if (DownvoteHandler != null)
+        {
+            await DownvoteHandler(this);
+        }
+    }
+
+    [RelayCommand]
+    public async Task ReportAsync()
+    {
+        if (ReportHandler != null)
+        {
+            await ReportHandler(this);
+        }
+    }
+
     public void ApplyVote(int upvotes, int downvotes)
     {
         Upvotes = upvotes;

@@ -5,14 +5,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:pages="clr-namespace:VividImagination.Mobile.Pages"
     Title="Vivid Imagination"
-    Shell.BackgroundColor="{StaticResource AppBackground}"
-    Shell.ForegroundColor="{StaticResource AccentVermilion}"
-    Shell.TitleColor="{StaticResource TextPrimary}"
-    Shell.UnselectedColor="{StaticResource TextMuted}"
+    Shell.BackgroundColor="{DynamicResource AppBackground}"
+    Shell.ForegroundColor="{DynamicResource AccentVermilion}"
+    Shell.TitleColor="{DynamicResource TextPrimary}"
+    Shell.UnselectedColor="{DynamicResource TextMuted}"
     Shell.TabBarBackgroundColor="#E60D0B0A"
-    Shell.TabBarForegroundColor="{StaticResource AccentVermilion}"
-    Shell.TabBarTitleColor="{StaticResource AccentVermilion}"
-    Shell.TabBarUnselectedColor="{StaticResource TextMuted}">
+    Shell.TabBarForegroundColor="{DynamicResource AccentVermilion}"
+    Shell.TabBarTitleColor="{DynamicResource AccentVermilion}"
+    Shell.TabBarUnselectedColor="{DynamicResource TextMuted}">
 
     <TabBar x:Name="AppTabBar">
         <!-- Feed on the left -->

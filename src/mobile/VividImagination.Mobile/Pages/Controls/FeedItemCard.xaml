@@ -36,8 +36,7 @@
                            VerticalOptions="Center"
                            Padding="4,6">
                         <Label.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeedViewModel}}, Path=UpvoteCommand}"
-                                                  CommandParameter="{Binding .}" />
+                            <TapGestureRecognizer Command="{Binding UpvoteCommand}" />
                         </Label.GestureRecognizers>
                     </Label>
 
@@ -56,8 +55,7 @@
                            VerticalOptions="Center"
                            Padding="4,6">
                         <Label.GestureRecognizers>
-                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeedViewModel}}, Path=DownvoteCommand}"
-                                                  CommandParameter="{Binding .}" />
+                            <TapGestureRecognizer Command="{Binding DownvoteCommand}" />
                         </Label.GestureRecognizers>
                     </Label>
                 </HorizontalStackLayout>
@@ -91,8 +89,7 @@
                     VerticalOptions="Start"
                     Padding="6,8">
                 <Border.GestureRecognizers>
-                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeedViewModel}}, Path=ReportCommand}"
-                                          CommandParameter="{Binding .}" />
+                    <TapGestureRecognizer Command="{Binding ReportCommand}" />
                 </Border.GestureRecognizers>
                 <Label Text="🚩"
                        FontSize="16"

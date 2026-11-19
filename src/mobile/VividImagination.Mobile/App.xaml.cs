@@ -2,16 +2,16 @@
 
 public partial class App : Application
 {
-    private readonly AppShell _shell;
+    private readonly IServiceProvider _serviceProvider;
 
-    public App(AppShell shell)
+    public App(IServiceProvider serviceProvider)
     {
         InitializeComponent();
-        _shell = shell;
+        _serviceProvider = serviceProvider;
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(_shell);
+        return new Window(_serviceProvider.GetRequiredService<AppShell>());
     }
 }

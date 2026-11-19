@@ -171,8 +171,7 @@
                                     StrokeThickness="1"
                                     BackgroundColor="{StaticResource AppSurface}"
                                     HeightRequest="130"
-                                    Padding="0"
-                                    IsClippedToBounds="True">
+                                    Padding="0">
 
                                 <Grid>
                                     <!-- Photo Image filling the square -->

@@ -24,7 +24,6 @@ public partial class ProfileViewModel : ObservableObject
         MyUploads = [];
         UpdateFromAuth();
         UpdateFromConfig();
-        LoadSampleUploads();
     }
 
     public ObservableCollection<UserUploadItemViewModel> MyUploads { get; }
@@ -72,54 +71,6 @@ public partial class ProfileViewModel : ObservableObject
         ActiveBaseUrl = _configurationService.ActiveBaseUrl;
     }
 
-    private void LoadSampleUploads()
-    {
-        if (MyUploads.Count > 0) return;
-
-        MyUploads.Add(new UserUploadItemViewModel
-        {
-            Caption = "Alpine dawn over misty pine ridges #dawn",
-            Status = "Live",
-            ImageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500"
-        });
-
-        MyUploads.Add(new UserUploadItemViewModel
-        {
-            Caption = "Night lights reflections in city central #lights",
-            Status = "Live",
-            ImageUrl = "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=500"
-        });
-
-        MyUploads.Add(new UserUploadItemViewModel
-        {
-            Caption = "Action stunt arena session #sports",
-            Status = "Sensitive",
-            ImageUrl = "https://images.unsplash.com/photo-1517649763962-0c623266ddc0?w=500"
-        });
-
-        MyUploads.Add(new UserUploadItemViewModel
-        {
-            Caption = "Golden hour ocean waves crash #coast",
-            Status = "Live",
-            ImageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500"
-        });
-
-        MyUploads.Add(new UserUploadItemViewModel
-        {
-            Caption = "Pending moderation scan sample #scan",
-            Status = "Checking",
-            ImageUrl = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=500"
-        });
-
-        MyUploads.Add(new UserUploadItemViewModel
-        {
-            Caption = "Disallowed content test upload #flagged",
-            Status = "Removed",
-            ImageUrl = "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500"
-        });
-
-        OnPropertyChanged(nameof(PhotoCountText));
-    }
 
     [RelayCommand]
     public async Task RefreshProfileAsync()
