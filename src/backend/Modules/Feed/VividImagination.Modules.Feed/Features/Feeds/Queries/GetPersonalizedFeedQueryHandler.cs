@@ -2,6 +2,7 @@ using MediatR;
 using MongoDB.Driver;
 using VividImagination.Modules.Feed.Features.Feeds.Dtos;
 using VividImagination.Modules.Feed.Persistence.Entities;
+using VividImagination.Shared.Contract.Identity.Enums;
 using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Feed.Features.Feeds.Queries;
@@ -20,7 +21,8 @@ public class GetPersonalizedFeedQueryHandler : IRequestHandler<GetPersonalizedFe
         var pageIndex = Math.Max(0, request.Page - 1);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        var hideSensitive = string.Equals(request.SafeBrowsingMode, "HideSensitive", StringComparison.OrdinalIgnoreCase);
+        var hideSensitive = request.safeBrowsingMode == SafeBrowsingMode.HideSensitive;
+
 
         var sort = Builders<FeedItem>.Sort
             .Descending(x => x.Score)

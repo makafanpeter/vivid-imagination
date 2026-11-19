@@ -54,7 +54,7 @@ public static class FeedApis
     private static async Task<IResult> GetPersonalizedFeedAsync(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
-        [FromQuery] string? safeBrowsingMode = null,
+        [FromQuery] SafeBrowsingMode? safeBrowsingMode = null,
         [FromServices] IMediator mediator = default!,
         CancellationToken ct = default)
     {
