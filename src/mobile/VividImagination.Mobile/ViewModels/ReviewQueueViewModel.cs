@@ -24,50 +24,20 @@ public partial class ReviewQueueViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WaitingCountText))]
+    [NotifyPropertyChangedFor(nameof(IsEmpty))]
     private int _waitingCount;
 
     public string WaitingCountText => $"Review queue ({QueueItems.Count})";
+
+    public bool IsEmpty => QueueItems.Count == 0;
 
     public bool IsModerator => _authService.CurrentUser?.IsModerator == true;
 
     private void LoadQueue()
     {
-        if (QueueItems.Count > 0) return;
-
-        QueueItems.Add(new ReviewItemViewModel
-        {
-            PhotoId = Guid.NewGuid(),
-            Caption = "Flagged nightlife snapshot with intense crowd motion #club #night",
-            ImageUrl = "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600",
-            ReportCount = 3,
-            AdultScore = 0.88,
-            ViolenceScore = 0.12,
-            HateScore = 0.04
-        });
-
-        QueueItems.Add(new ReviewItemViewModel
-        {
-            PhotoId = Guid.NewGuid(),
-            Caption = "Graffiti wall with controversial symbols #streetart #urban",
-            ImageUrl = "https://images.unsplash.com/photo-1517524008697-84bbe3c3fd98?w=600",
-            ReportCount = 2,
-            AdultScore = 0.05,
-            ViolenceScore = 0.22,
-            HateScore = 0.74
-        });
-
-        QueueItems.Add(new ReviewItemViewModel
-        {
-            PhotoId = Guid.NewGuid(),
-            Caption = "High-speed rally collision impact test #motorsport #crash",
-            ImageUrl = "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600",
-            ReportCount = 4,
-            AdultScore = 0.02,
-            ViolenceScore = 0.91,
-            HateScore = 0.01
-        });
-
+        // No sample data - queue starts empty until populated from API
         WaitingCount = QueueItems.Count;
+        OnPropertyChanged(nameof(IsEmpty));
     }
 
     [RelayCommand]
@@ -77,6 +47,7 @@ public partial class ReviewQueueViewModel : ObservableObject
 
         QueueItems.Remove(item);
         WaitingCount = QueueItems.Count;
+        OnPropertyChanged(nameof(IsEmpty));
         ToastService.Current.Show("Photo approved for feed", ToastType.Success);
         await Task.CompletedTask;
     }
@@ -88,6 +59,7 @@ public partial class ReviewQueueViewModel : ObservableObject
 
         QueueItems.Remove(item);
         WaitingCount = QueueItems.Count;
+        OnPropertyChanged(nameof(IsEmpty));
         ToastService.Current.Show("Marked as Sensitive with blur cover", ToastType.Warning);
         await Task.CompletedTask;
     }
@@ -99,6 +71,7 @@ public partial class ReviewQueueViewModel : ObservableObject
 
         QueueItems.Remove(item);
         WaitingCount = QueueItems.Count;
+        OnPropertyChanged(nameof(IsEmpty));
         ToastService.Current.Show("Photo rejected and removed from community", ToastType.Error);
         await Task.CompletedTask;
     }

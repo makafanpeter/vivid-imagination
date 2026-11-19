@@ -14,7 +14,10 @@ public partial class UserUploadItemViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusColor))]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
     private string _status = "Live"; // Checking, Live, Sensitive, Removed
+
+    public string StatusText => Status;
 
     public Color StatusColor => Status switch
     {

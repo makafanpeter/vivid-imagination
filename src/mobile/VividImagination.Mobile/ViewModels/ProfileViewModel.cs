@@ -27,6 +27,10 @@ public partial class ProfileViewModel : ObservableObject
     }
 
     public ObservableCollection<UserUploadItemViewModel> MyUploads { get; }
+    public ObservableCollection<UserUploadItemViewModel> UserUploads => MyUploads;
+
+    public bool HasUploads => MyUploads.Count > 0;
+    public bool HasUserUploads => HasUploads;
 
     [ObservableProperty]
     private UserProfile? _profile;
@@ -63,6 +67,9 @@ public partial class ProfileViewModel : ObservableObject
         }
         OnPropertyChanged(nameof(DisplayName));
         OnPropertyChanged(nameof(PhotoCountText));
+        OnPropertyChanged(nameof(HasUploads));
+        OnPropertyChanged(nameof(HasUserUploads));
+        OnPropertyChanged(nameof(UserUploads));
     }
 
     private void UpdateFromConfig()
@@ -127,6 +134,8 @@ public partial class ProfileViewModel : ObservableObject
         {
             MyUploads.Remove(item);
             OnPropertyChanged(nameof(PhotoCountText));
+            OnPropertyChanged(nameof(HasUploads));
+            OnPropertyChanged(nameof(HasUserUploads));
             ToastService.Current.Show("Photo deleted", ToastType.Info);
         }
     }

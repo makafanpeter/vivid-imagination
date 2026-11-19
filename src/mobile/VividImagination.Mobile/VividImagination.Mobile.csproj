@@ -15,7 +15,7 @@
 		<OutputType>Exe</OutputType>
 		<RootNamespace>VividImagination.Mobile</RootNamespace>
 		<UseMaui>true</UseMaui>
-		<SkipValidateMauiImplicitPackageReferences>true</SkipValidateMauiImplicitPackageReferences>
+		<SkipValidateMauiImplicitPackageReferences>false</SkipValidateMauiImplicitPackageReferences>
 		<SkipValidateMauiWorkloads>true</SkipValidateMauiWorkloads>
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -23,10 +23,10 @@
 
 
 		<!-- Display name -->
-		<ApplicationTitle>VividImagination.Mobile</ApplicationTitle>
+		<ApplicationTitle>Vivid Imagination</ApplicationTitle>
 
 		<!-- App Identifier -->
-		<ApplicationId>com.companyname.vividimagination.mobile</ApplicationId>
+		<ApplicationId>co.lumenarc.vividimagination.mobile</ApplicationId>
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -43,6 +43,7 @@
 		<DefaultLanguage>en-US</DefaultLanguage>
 		<MauiEnableXamlCBindingWithSourceCompilation>true</MauiEnableXamlCBindingWithSourceCompilation>
 		<NoWarn>$(NoWarn);MVVMTK0045;PRI257</NoWarn>
+		<EmbedAssembliesIntoApk Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">true</EmbedAssembliesIntoApk>
 	</PropertyGroup>
 
 	<ItemGroup>

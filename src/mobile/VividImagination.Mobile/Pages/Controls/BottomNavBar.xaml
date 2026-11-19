@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:VividImagination.Mobile.Pages.Controls"
+             x:Class="VividImagination.Mobile.Pages.Controls.BottomNavBar">
+
+    <Grid HeightRequest="68"
+          BackgroundColor="#E60D0B0A"
+          Padding="8,0">
+
+        <!-- Top border glow stroke -->
+        <BoxView HeightRequest="1"
+                 Color="{StaticResource BorderGlow}"
+                 VerticalOptions="Start"
+                 HorizontalOptions="Fill" />
+
+        <Grid ColumnDefinitions="*, Auto, *"
+              VerticalOptions="Fill">
+
+            <!-- Left Side: Feed -->
+            <HorizontalStackLayout Grid.Column="0"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   Spacing="16">
+                <VerticalStackLayout x:Name="FeedTabButton"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     Padding="12,6">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnFeedTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
+
+                    <Label Text="📰"
+                           FontSize="18"
+                           HorizontalOptions="Center" />
+
+                    <Label Text="Feed"
+                           FontFamily="ManropeSemiBold"
+                           FontSize="11"
+                           TextColor="{Binding FeedTextColor, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}"
+                           HorizontalOptions="Center" />
+
+                    <BoxView WidthRequest="4"
+                             HeightRequest="4"
+                             CornerRadius="2"
+                             Color="{StaticResource AccentVermilion}"
+                             HorizontalOptions="Center"
+                             IsVisible="{Binding IsFeedActive, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+
+            <!-- Center: Raised Round Orange ＋ Button -->
+            <Border Grid.Column="1"
+                    WidthRequest="54"
+                    HeightRequest="54"
+                    StrokeShape="RoundRectangle 27"
+                    BackgroundColor="{StaticResource AccentVermilion}"
+                    Stroke="#33FFFFFF"
+                    StrokeThickness="1"
+                    Margin="0,-16,0,0"
+                    VerticalOptions="Center"
+                    HorizontalOptions="Center">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnUploadTapped" />
+                </Border.GestureRecognizers>
+
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource AccentVermilion}"
+                            Offset="0,4"
+                            Radius="12"
+                            Opacity="0.45" />
+                </Border.Shadow>
+
+                <Label Text="＋"
+                       FontSize="26"
+                       FontFamily="SyneBold"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center" />
+            </Border>
+
+            <!-- Right Side: Review (if moderator) and Me -->
+            <HorizontalStackLayout Grid.Column="2"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center"
+                                   Spacing="12">
+
+                <!-- Review Tab (Moderators only) -->
+                <VerticalStackLayout x:Name="ReviewTabButton"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     Padding="10,6"
+                                     IsVisible="{Binding IsModerator, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnReviewTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
+
+                    <Label Text="🛡️"
+                           FontSize="18"
+                           HorizontalOptions="Center" />
+
+                    <Label Text="Review"
+                           FontFamily="ManropeSemiBold"
+                           FontSize="11"
+                           TextColor="{Binding ReviewTextColor, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}"
+                           HorizontalOptions="Center" />
+
+                    <BoxView WidthRequest="4"
+                             HeightRequest="4"
+                             CornerRadius="2"
+                             Color="{StaticResource AccentVermilion}"
+                             HorizontalOptions="Center"
+                             IsVisible="{Binding IsReviewActive, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}" />
+                </VerticalStackLayout>
+
+                <!-- Me Tab -->
+                <VerticalStackLayout x:Name="MeTabButton"
+                                     Spacing="2"
+                                     VerticalOptions="Center"
+                                     Padding="12,6">
+                    <VerticalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnProfileTapped" />
+                    </VerticalStackLayout.GestureRecognizers>
+
+                    <Label Text="👤"
+                           FontSize="18"
+                           HorizontalOptions="Center" />
+
+                    <Label Text="Me"
+                           FontFamily="ManropeSemiBold"
+                           FontSize="11"
+                           TextColor="{Binding MeTextColor, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}"
+                           HorizontalOptions="Center" />
+
+                    <BoxView WidthRequest="4"
+                             HeightRequest="4"
+                             CornerRadius="2"
+                             Color="{StaticResource AccentVermilion}"
+                             HorizontalOptions="Center"
+                             IsVisible="{Binding IsMeActive, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}" />
+                </VerticalStackLayout>
+            </HorizontalStackLayout>
+
+        </Grid>
+    </Grid>
+
+</ContentView>

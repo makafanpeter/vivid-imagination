@@ -75,9 +75,7 @@ public partial class FeedViewModel : ObservableObject
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to load feed: {ex.Message}";
-            if (Items.Count == 0)
-            {
-            }
+            IsEmpty = Items.Count == 0;
         }
         finally
         {

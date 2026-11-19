@@ -7,143 +7,142 @@
              x:Class="VividImagination.Mobile.Pages.LoginPage"
              x:DataType="vm:LoginViewModel"
              Title="Sign In"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
              BackgroundColor="{StaticResource AppBackground}">
 
-    <!-- Phone-first geometry: Centered column with maximum width -->
-    <Grid MaximumWidthRequest="450"
-          HorizontalOptions="Center">
+    <controls:ResponsiveContainer ShowBottomNav="False">
+        <Grid HorizontalOptions="Fill" VerticalOptions="Fill">
 
-        <!-- Top Toast Overlay -->
-        <controls:TopToastView ZIndex="100" />
+            <!-- Radial glow background -->
+            <Grid.Background>
+                <RadialGradientBrush Center="0.5,0.08" Radius="0.85">
+                    <GradientStop Color="#33FF551C" Offset="0.0" />
+                    <GradientStop Color="#000D0B0A" Offset="0.75" />
+                </RadialGradientBrush>
+            </Grid.Background>
 
-        <!-- Radial glow background -->
-        <Grid.Background>
-            <RadialGradientBrush Center="0.5,0.08" Radius="0.85">
-                <GradientStop Color="#33FF551C" Offset="0.0" />
-                <GradientStop Color="#000D0B0A" Offset="0.75" />
-            </RadialGradientBrush>
-        </Grid.Background>
+            <ScrollView>
+                <VerticalStackLayout Spacing="24"
+                                     Padding="24,40"
+                                     VerticalOptions="Center">
 
-        <ScrollView>
-            <VerticalStackLayout Spacing="24"
-                                 Padding="24,40"
-                                 VerticalOptions="Center">
+                    <!-- Header Wordmark with Hot Orange Dot -->
+                    <Label HorizontalOptions="Center">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Vivid"
+                                      FontFamily="SyneBold"
+                                      FontSize="30"
+                                      FontAttributes="Bold"
+                                      TextColor="{StaticResource TextPrimary}" />
+                                <Span Text="."
+                                      FontFamily="SyneBold"
+                                      FontSize="30"
+                                      FontAttributes="Bold"
+                                      TextColor="{StaticResource AccentVermilion}" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
 
-                <!-- Header Wordmark with Hot Orange Dot -->
-                <Label HorizontalOptions="Center">
-                    <Label.FormattedText>
-                        <FormattedString>
-                            <Span Text="Vivid"
-                                  FontFamily="SyneBold"
-                                  FontSize="30"
-                                  FontAttributes="Bold"
-                                  TextColor="{StaticResource TextPrimary}" />
-                            <Span Text="."
-                                  FontFamily="SyneBold"
-                                  FontSize="30"
-                                  FontAttributes="Bold"
-                                  TextColor="{StaticResource AccentVermilion}" />
-                        </FormattedString>
-                    </Label.FormattedText>
-                </Label>
+                    <!-- 1. Large Headline: 'See the world more vividly.' -->
+                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                        <Label Text="See the world more vividly."
+                               FontFamily="SyneBold"
+                               FontSize="22"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{StaticResource TextPrimary}" />
 
-                <!-- 1. Large Headline: 'See the world more vividly.' -->
-                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                    <Label Text="See the world more vividly."
-                           FontFamily="SyneBold"
-                           FontSize="22"
-                           FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           TextColor="{StaticResource TextPrimary}" />
+                        <!-- Short line -->
+                        <Label Text="Join a community sharing authentic, freshly moderated photos."
+                               FontFamily="ManropeRegular"
+                               FontSize="13"
+                               TextColor="{StaticResource TextMuted}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
 
-                    <!-- Short line -->
-                    <Label Text="Join a community sharing authentic, freshly moderated photos."
-                           FontFamily="ManropeRegular"
-                           FontSize="13"
-                           TextColor="{StaticResource TextMuted}"
-                           HorizontalTextAlignment="Center" />
-                </VerticalStackLayout>
+                    <!-- Error Banner if any -->
+                    <Border IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"
+                            BackgroundColor="#2A1616"
+                            Stroke="{StaticResource DestructiveRed}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 16"
+                            Padding="14,10">
+                        <Label Text="{Binding ErrorMessage}"
+                               FontFamily="ManropeRegular"
+                               TextColor="{StaticResource DestructiveRed}"
+                               FontSize="13"
+                               HorizontalTextAlignment="Center" />
+                    </Border>
 
-                <!-- Error Banner if any -->
-                <Border IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"
-                        BackgroundColor="#2A1616"
-                        Stroke="{StaticResource DestructiveRed}"
-                        StrokeThickness="1"
-                        StrokeShape="RoundRectangle 16"
-                        Padding="14,10">
-                    <Label Text="{Binding ErrorMessage}"
-                           FontFamily="ManropeRegular"
-                           TextColor="{StaticResource DestructiveRed}"
-                           FontSize="13"
-                           HorizontalTextAlignment="Center" />
-                </Border>
+                    <!-- 2. Two Full-Width White Pill Buttons: Google and Apple -->
+                    <VerticalStackLayout Spacing="12" Margin="0,8,0,0">
+                        <!-- White Google Button -->
+                        <Button Text="G  Sign in with Google"
+                                Command="{Binding GoogleLoginCommand}"
+                                BackgroundColor="#FFFFFF"
+                                TextColor="#1F1F1F"
+                                FontFamily="ManropeSemiBold"
+                                FontSize="15"
+                                CornerRadius="28"
+                                HeightRequest="56"
+                                Padding="0">
+                            <Button.Shadow>
+                                <Shadow Brush="#000000" Offset="0,4" Radius="10" Opacity="0.3" />
+                            </Button.Shadow>
+                        </Button>
 
-                <!-- 2. Two Full-Width White Pill Buttons: Google and Apple -->
-                <VerticalStackLayout Spacing="12" Margin="0,8,0,0">
-                    <!-- White Google Button -->
-                    <Button Text="G  Sign in with Google"
-                            Command="{Binding GoogleLoginCommand}"
-                            BackgroundColor="#FFFFFF"
-                            TextColor="#1F1F1F"
+                        <!-- White Apple Button -->
+                        <Button Text="  Sign in with Apple"
+                                Command="{Binding AppleLoginCommand}"
+                                BackgroundColor="#FFFFFF"
+                                TextColor="#1F1F1F"
+                                FontFamily="ManropeSemiBold"
+                                FontSize="15"
+                                CornerRadius="28"
+                                HeightRequest="56"
+                                Padding="0">
+                            <Button.Shadow>
+                                <Shadow Brush="#000000" Offset="0,4" Radius="10" Opacity="0.3" />
+                            </Button.Shadow>
+                        </Button>
+                    </VerticalStackLayout>
+
+                    <!-- Quick Moderator Sign-in Button (to test the Review Queue!) -->
+                    <Button Text="🛡️ Sign in as Moderator (Demo Access)"
+                            Command="{Binding ModeratorLoginCommand}"
+                            BackgroundColor="{StaticResource AppSurfaceElevated}"
+                            TextColor="{StaticResource WarningAmber}"
+                            BorderColor="{StaticResource WarningAmber}"
+                            BorderWidth="1"
                             FontFamily="ManropeSemiBold"
-                            FontSize="15"
-                            CornerRadius="28"
-                            HeightRequest="56"
-                            Padding="0">
-                        <Button.Shadow>
-                            <Shadow Brush="#000000" Offset="0,4" Radius="10" Opacity="0.3" />
-                        </Button.Shadow>
-                    </Button>
+                            FontSize="13"
+                            CornerRadius="24"
+                            HeightRequest="48"
+                            Margin="0,4,0,0" />
 
-                    <!-- White Apple Button -->
-                    <Button Text="  Sign in with Apple"
-                            Command="{Binding AppleLoginCommand}"
-                            BackgroundColor="#FFFFFF"
-                            TextColor="#1F1F1F"
-                            FontFamily="ManropeSemiBold"
-                            FontSize="15"
-                            CornerRadius="28"
-                            HeightRequest="56"
-                            Padding="0">
-                        <Button.Shadow>
-                            <Shadow Brush="#000000" Offset="0,4" Radius="10" Opacity="0.3" />
-                        </Button.Shadow>
-                    </Button>
+                    <!-- 3. Note that browsing is free without an account -->
+                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center" Margin="0,12,0,0">
+                        <Label Text="Browsing is free without an account."
+                               FontFamily="ManropeRegular"
+                               FontSize="13"
+                               TextColor="{StaticResource TextMuted}"
+                               HorizontalTextAlignment="Center" />
+
+                        <!-- Continue as Guest Pill Link -->
+                        <Button Text="Continue Browsing Feed →"
+                                Command="{Binding BrowseAsGuestCommand}"
+                                BackgroundColor="Transparent"
+                                TextColor="{StaticResource AccentVermilion}"
+                                FontFamily="ManropeSemiBold"
+                                FontSize="14"
+                                HeightRequest="36" />
+                    </VerticalStackLayout>
+
                 </VerticalStackLayout>
-
-                <!-- Quick Moderator Sign-in Button (to test the Review Queue!) -->
-                <Button Text="🛡️ Sign in as Moderator (Demo Access)"
-                        Command="{Binding ModeratorLoginCommand}"
-                        BackgroundColor="{StaticResource AppSurfaceElevated}"
-                        TextColor="{StaticResource WarningAmber}"
-                        BorderColor="{StaticResource WarningAmber}"
-                        BorderWidth="1"
-                        FontFamily="ManropeSemiBold"
-                        FontSize="13"
-                        CornerRadius="24"
-                        HeightRequest="48"
-                        Margin="0,4,0,0" />
-
-                <!-- 3. Note that browsing is free without an account -->
-                <VerticalStackLayout Spacing="6" HorizontalOptions="Center" Margin="0,12,0,0">
-                    <Label Text="Browsing is free without an account."
-                           FontFamily="ManropeRegular"
-                           FontSize="13"
-                           TextColor="{StaticResource TextMuted}"
-                           HorizontalTextAlignment="Center" />
-
-                    <!-- Continue as Guest Pill Link -->
-                    <Button Text="Continue Browsing Feed →"
-                            Command="{Binding BrowseAsGuestCommand}"
-                            BackgroundColor="Transparent"
-                            TextColor="{StaticResource AccentVermilion}"
-                            FontFamily="ManropeSemiBold"
-                            FontSize="14"
-                            HeightRequest="36" />
-                </VerticalStackLayout>
-
-            </VerticalStackLayout>
-        </ScrollView>
-    </Grid>
+            </ScrollView>
+        </Grid>
+    </controls:ResponsiveContainer>
 
 </ContentPage>

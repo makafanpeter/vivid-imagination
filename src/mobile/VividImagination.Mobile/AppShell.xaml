@@ -5,43 +5,27 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:pages="clr-namespace:VividImagination.Mobile.Pages"
     Title="Vivid Imagination"
-    Shell.BackgroundColor="{DynamicResource AppBackground}"
-    Shell.ForegroundColor="{DynamicResource AccentVermilion}"
-    Shell.TitleColor="{DynamicResource TextPrimary}"
-    Shell.UnselectedColor="{DynamicResource TextMuted}"
-    Shell.TabBarBackgroundColor="#E60D0B0A"
-    Shell.TabBarForegroundColor="{DynamicResource AccentVermilion}"
-    Shell.TabBarTitleColor="{DynamicResource AccentVermilion}"
-    Shell.TabBarUnselectedColor="{DynamicResource TextMuted}">
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False"
+    Shell.FlyoutBehavior="Disabled"
+    BackgroundColor="{DynamicResource AppBackground}">
 
-    <TabBar x:Name="AppTabBar">
-        <!-- Feed on the left -->
-        <Tab Title="Feed" Route="feed">
-            <ShellContent Title="Feed"
-                          ContentTemplate="{DataTemplate pages:FeedPage}"
-                          Route="feedpage" />
-        </Tab>
+    <FlyoutItem FlyoutDisplayOptions="AsMultipleItems">
+        <ShellContent Title="Feed"
+                      ContentTemplate="{DataTemplate pages:FeedPage}"
+                      Route="feedpage" />
 
-        <!-- Raised round orange + button in the middle for uploading -->
-        <Tab Title="＋" Route="upload">
-            <ShellContent Title="Upload"
-                          ContentTemplate="{DataTemplate pages:PhotoUploadPage}"
-                          Route="uploadpage" />
-        </Tab>
+        <ShellContent Title="Upload"
+                      ContentTemplate="{DataTemplate pages:PhotoUploadPage}"
+                      Route="uploadpage" />
 
-        <!-- Review (only visible to moderators) -->
-        <Tab x:Name="ReviewTab" Title="Review" Route="review">
-            <ShellContent Title="Review"
-                          ContentTemplate="{DataTemplate pages:ReviewQueuePage}"
-                          Route="reviewpage" />
-        </Tab>
+        <ShellContent Title="Review"
+                      ContentTemplate="{DataTemplate pages:ReviewQueuePage}"
+                      Route="reviewpage" />
 
-        <!-- Me on the right -->
-        <Tab Title="Me" Route="profile">
-            <ShellContent Title="Me"
-                          ContentTemplate="{DataTemplate pages:ProfilePage}"
-                          Route="profilepage" />
-        </Tab>
-    </TabBar>
+        <ShellContent Title="Me"
+                      ContentTemplate="{DataTemplate pages:ProfilePage}"
+                      Route="profilepage" />
+    </FlyoutItem>
 
 </Shell>

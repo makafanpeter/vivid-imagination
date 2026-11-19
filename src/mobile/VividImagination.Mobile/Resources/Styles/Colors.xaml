@@ -29,6 +29,7 @@
     <!-- Semantic Reserved Colors -->
     <Color x:Key="DestructiveRed">#EF4444</Color>
     <Color x:Key="WarningAmber">#F59E0B</Color>
+    <Color x:Key="SuccessGreen">#22C55E</Color>
 
     <!-- Legacy / Framework Mappings Aligned to Single Palette -->
     <Color x:Key="Primary">#FF551C</Color>
@@ -71,6 +72,7 @@
     <SolidColorBrush x:Key="AccentVermilionBrush" Color="{StaticResource AccentVermilion}" />
     <SolidColorBrush x:Key="DestructiveRedBrush" Color="{StaticResource DestructiveRed}" />
     <SolidColorBrush x:Key="WarningAmberBrush" Color="{StaticResource WarningAmber}" />
+    <SolidColorBrush x:Key="SuccessGreenBrush" Color="{StaticResource SuccessGreen}" />
 
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>

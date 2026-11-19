@@ -7,242 +7,299 @@
              x:Class="VividImagination.Mobile.Pages.ProfilePage"
              x:DataType="vm:ProfileViewModel"
              Title="Me"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
              BackgroundColor="{StaticResource AppBackground}">
 
-    <!-- Phone-first geometry: Centered column with maximum width -->
-    <Grid MaximumWidthRequest="450"
-          HorizontalOptions="Center"
-          RowDefinitions="Auto,*">
+    <controls:ResponsiveContainer ActiveTab="Me">
+        <Grid RowDefinitions="Auto,*"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
 
-        <!-- Top Toast Overlay -->
-        <controls:TopToastView Grid.RowSpan="2" ZIndex="100" />
+            <!-- 1. Header: Avatar, Name, Photo Count across the top with a Sign-out Icon -->
+            <Grid Grid.Row="0"
+                  BackgroundColor="#E60D0B0A"
+                  Padding="18,14,18,14"
+                  ColumnDefinitions="Auto,*,Auto"
+                  VerticalOptions="Center"
+                  ZIndex="10">
 
-        <!-- 1. Header: Avatar, Name, Photo Count across the top with a Sign-out Icon -->
-        <Grid Grid.Row="0"
-              BackgroundColor="#E60D0B0A"
-              Padding="18,14,18,14"
-              ColumnDefinitions="Auto,*,Auto"
-              VerticalOptions="Center">
-
-            <!-- Circular Avatar -->
-            <Border Grid.Column="0"
-                    StrokeShape="RoundRectangle 24"
-                    WidthRequest="48"
-                    HeightRequest="48"
-                    BackgroundColor="{StaticResource AppSurfaceElevated}"
-                    Stroke="{StaticResource BorderGlow}"
-                    StrokeThickness="1"
-                    VerticalOptions="Center">
-                <Label Text="👤"
-                       FontSize="22"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center" />
-            </Border>
-
-            <!-- Name & Photo Count -->
-            <VerticalStackLayout Grid.Column="1"
-                                 Margin="12,0,0,0"
-                                 Spacing="2"
-                                 VerticalOptions="Center">
-                <Label Text="{Binding DisplayName}"
-                       FontFamily="SyneBold"
-                       FontSize="17"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}" />
-
-                <Label Text="{Binding PhotoCountText}"
-                       FontFamily="ManropeRegular"
-                       FontSize="12"
-                       TextColor="{StaticResource TextMuted}" />
-            </VerticalStackLayout>
-
-            <!-- Sign-Out Icon Button -->
-            <Button Grid.Column="2"
-                    Text="🚪"
-                    FontSize="18"
-                    BackgroundColor="Transparent"
-                    TextColor="{StaticResource TextMuted}"
-                    HeightRequest="40"
-                    WidthRequest="40"
-                    Padding="0"
-                    Command="{Binding LogoutCommand}"
-                    ToolTipProperties.Text="Sign out"
-                    VerticalOptions="Center" />
-
-            <BoxView HeightRequest="1"
-                     Color="{StaticResource BorderGlow}"
-                     VerticalOptions="End"
-                     Grid.ColumnSpan="3" />
-        </Grid>
-
-        <!-- Body: Sensitive Content Card & 3-Column Square Grid -->
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Spacing="18" Padding="14,16,14,24">
-
-                <!-- 2. 'Sensitive content' Card with a Three-Option Control (Blur / Hide / Always show) -->
-                <Border StrokeShape="RoundRectangle 20"
+                <!-- Circular Avatar -->
+                <Border Grid.Column="0"
+                        StrokeShape="RoundRectangle 24"
+                        WidthRequest="48"
+                        HeightRequest="48"
+                        BackgroundColor="{StaticResource AppSurfaceElevated}"
                         Stroke="{StaticResource BorderGlow}"
                         StrokeThickness="1"
-                        BackgroundColor="{StaticResource AppSurface}"
-                        Padding="16,14">
+                        VerticalOptions="Center">
+                    <Label Text="👤"
+                           FontSize="22"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
 
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Sensitive content"
+                <!-- Name & Photo Count -->
+                <VerticalStackLayout Grid.Column="1"
+                                     Margin="12,0,0,0"
+                                     Spacing="2"
+                                     VerticalOptions="Center">
+                    <Label Text="{Binding DisplayName}"
+                           FontFamily="SyneBold"
+                           FontSize="17"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+
+                    <Label Text="{Binding PhotoCountText}"
+                           FontFamily="ManropeRegular"
+                           FontSize="12"
+                           TextColor="{StaticResource TextMuted}" />
+                </VerticalStackLayout>
+
+                <!-- Sign-Out Icon Button -->
+                <Button Grid.Column="2"
+                        Text="🚪"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource TextMuted}"
+                        HeightRequest="40"
+                        WidthRequest="40"
+                        Padding="0"
+                        Command="{Binding LogoutCommand}"
+                        ToolTipProperties.Text="Sign out"
+                        VerticalOptions="Center" />
+
+                <BoxView HeightRequest="1"
+                         Color="{StaticResource BorderGlow}"
+                         VerticalOptions="End"
+                         Grid.ColumnSpan="3" />
+            </Grid>
+
+            <!-- Body: Sensitive Content Card & 3-Column Square Grid -->
+            <ScrollView Grid.Row="1" Margin="0,0,0,72">
+                <VerticalStackLayout Spacing="18" Padding="14,16,14,24">
+
+                    <!-- 2. 'Sensitive content' Card with a Three-Option Control (Blur / Hide / Always show) -->
+                    <Border StrokeShape="RoundRectangle 20"
+                            Stroke="{StaticResource BorderGlow}"
+                            StrokeThickness="1"
+                            BackgroundColor="{StaticResource AppSurface}"
+                            Padding="16,14">
+
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Sensitive content"
+                                   FontFamily="SyneBold"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                            <Label Text="Choose how AI-moderated sensitive photos appear in your feed:"
+                                   FontFamily="ManropeRegular"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextMuted}" />
+
+                            <!-- Three-Way Capsule Segmented Control -->
+                            <Grid ColumnDefinitions="*,*,*"
+                                  BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                  HeightRequest="38"
+                                  Padding="3">
+
+                                <!-- Option 1: Blur -->
+                                <Button Grid.Column="0"
+                                        Text="Blur"
+                                        Command="{Binding SetSafeBrowsingModeCommand}"
+                                        CommandParameter="0"
+                                        CornerRadius="16"
+                                        FontFamily="ManropeSemiBold"
+                                        FontSize="12"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
+                                        TextColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+
+                                <!-- Option 2: Hide -->
+                                <Button Grid.Column="1"
+                                        Text="Hide"
+                                        Command="{Binding SetSafeBrowsingModeCommand}"
+                                        CommandParameter="1"
+                                        CornerRadius="16"
+                                        FontFamily="ManropeSemiBold"
+                                        FontSize="12"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        BackgroundColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
+                                        TextColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+
+                                <!-- Option 3: Always Show -->
+                                <Button Grid.Column="2"
+                                        Text="Always show"
+                                        Command="{Binding SetSafeBrowsingModeCommand}"
+                                        CommandParameter="2"
+                                        CornerRadius="16"
+                                        FontFamily="ManropeSemiBold"
+                                        FontSize="12"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
+                                        TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Unauthenticated Prompt -->
+                    <Border StrokeShape="RoundRectangle 20"
+                            Stroke="{StaticResource BorderGlow}"
+                            StrokeThickness="1"
+                            BackgroundColor="{StaticResource AppSurface}"
+                            Padding="20"
+                            IsVisible="{Binding IsAuthenticated, Converter={toolkit:InvertedBoolConverter}}">
+                        <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                            <Label Text="Join Vivid Imagination"
+                                   FontFamily="SyneBold"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource TextPrimary}" />
+                            <Label Text="Sign in to post your photos, vote on community uploads, and customize safe browsing."
+                                   FontFamily="ManropeRegular"
+                                   FontSize="13"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource TextMuted}" />
+                            <Button Text="Sign In to Your Account"
+                                    Command="{Binding OpenLoginCommand}"
+                                    BackgroundColor="{StaticResource AccentVermilion}"
+                                    TextColor="White"
+                                    FontFamily="ManropeBold"
+                                    CornerRadius="24"
+                                    HeightRequest="46"
+                                    Padding="24,0" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- 3. Uploads Grid Section -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="4,4,4,0">
+                        <Label Grid.Column="0"
+                               Text="Your uploads"
                                FontFamily="SyneBold"
-                               FontSize="15"
+                               FontSize="16"
                                FontAttributes="Bold"
                                TextColor="{StaticResource TextPrimary}" />
 
-                        <Label Text="Choose how AI-moderated sensitive photos appear in your feed:"
+                        <Label Grid.Column="1"
+                               Text="{Binding PhotoCountText}"
                                FontFamily="ManropeRegular"
                                FontSize="12"
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center" />
+                    </Grid>
+
+                    <!-- Empty Uploads State -->
+                    <VerticalStackLayout HorizontalOptions="Center"
+                                         Spacing="10"
+                                         Padding="24"
+                                         IsVisible="{Binding HasUploads, Converter={toolkit:InvertedBoolConverter}}">
+                        <Label Text="📷" FontSize="32" HorizontalOptions="Center" />
+                        <Label Text="No photos uploaded yet"
+                               FontFamily="SyneBold"
+                               FontSize="15"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="Share your first photograph by tapping the ＋ button."
+                               FontFamily="ManropeRegular"
+                               FontSize="12"
+                               HorizontalTextAlignment="Center"
                                TextColor="{StaticResource TextMuted}" />
-
-                        <!-- Three-Way Capsule Segmented Control -->
-                        <Grid ColumnDefinitions="*,*,*"
-                              BackgroundColor="{StaticResource AppSurfaceElevated}"
-                              HeightRequest="38"
-                              Padding="3">
-
-                            <!-- Option 1: Blur -->
-                            <Button Grid.Column="0"
-                                    Text="Blur"
-                                    Command="{Binding SetSafeBrowsingModeCommand}"
-                                    CommandParameter="0"
-                                    CornerRadius="16"
-                                    FontFamily="ManropeSemiBold"
-                                    FontSize="12"
-                                    HeightRequest="32"
-                                    Padding="0"
-                                    BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
-                                    TextColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
-
-                            <!-- Option 2: Hide -->
-                            <Button Grid.Column="1"
-                                    Text="Hide"
-                                    Command="{Binding SetSafeBrowsingModeCommand}"
-                                    CommandParameter="1"
-                                    CornerRadius="16"
-                                    FontFamily="ManropeSemiBold"
-                                    FontSize="12"
-                                    HeightRequest="32"
-                                    Padding="0"
-                                    BackgroundColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
-                                    TextColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
-
-                            <!-- Option 3: Always show -->
-                            <Button Grid.Column="2"
-                                    Text="Always show"
-                                    Command="{Binding SetSafeBrowsingModeCommand}"
-                                    CommandParameter="2"
-                                    CornerRadius="16"
-                                    FontFamily="ManropeSemiBold"
-                                    FontSize="11"
-                                    HeightRequest="32"
-                                    Padding="0"
-                                    BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
-                                    TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
-                        </Grid>
                     </VerticalStackLayout>
-                </Border>
 
-                <!-- Section Title: My Uploads -->
-                <Label Text="Your Uploads"
-                       FontFamily="SyneBold"
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       TextColor="{StaticResource TextPrimary}"
-                       Margin="4,6,0,0" />
+                    <!-- 3-Column Square Photo Grid -->
+                    <CollectionView ItemsSource="{Binding UserUploads}">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical"
+                                             Span="3"
+                                             HorizontalItemSpacing="6"
+                                             VerticalItemSpacing="6" />
+                        </CollectionView.ItemsLayout>
 
-                <!-- 3. Uploads as a 3-Column Photo Grid of Squares -->
-                <CollectionView ItemsSource="{Binding MyUploads}">
-                    <CollectionView.ItemsLayout>
-                        <GridItemsLayout Orientation="Vertical"
-                                         Span="3"
-                                         HorizontalItemSpacing="4"
-                                         VerticalItemSpacing="4" />
-                    </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:UserUploadItemViewModel">
+                                <!-- Square Photo Container with Aspect Ratio 1:1 -->
+                                <Border StrokeShape="RoundRectangle 12"
+                                        Stroke="{StaticResource BorderGlow}"
+                                        StrokeThickness="1"
+                                        BackgroundColor="{StaticResource AppSurface}"
+                                        HeightRequest="130"
+                                        Padding="0">
 
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate x:DataType="vm:UserUploadItemViewModel">
-                            <!-- Square Photo Container with Aspect Ratio 1:1 -->
-                            <Border StrokeShape="RoundRectangle 12"
-                                    Stroke="{StaticResource BorderGlow}"
-                                    StrokeThickness="1"
-                                    BackgroundColor="{StaticResource AppSurface}"
-                                    HeightRequest="130"
-                                    Padding="0">
+                                    <Grid>
+                                        <!-- Photo Image filling the square -->
+                                        <Image Source="{Binding ImageUrl}"
+                                               Aspect="AspectFill"
+                                               HorizontalOptions="Fill"
+                                               VerticalOptions="Fill" />
 
-                                <Grid>
-                                    <!-- Photo Image filling the square -->
-                                    <Image Source="{Binding ImageUrl}"
-                                           Aspect="AspectFill"
-                                           HorizontalOptions="Fill"
-                                           VerticalOptions="Fill" />
+                                        <!-- Top-Left Status Badge: Checking, Live, Sensitive (amber) or Removed (red) -->
+                                        <Border HorizontalOptions="Start"
+                                                VerticalOptions="Start"
+                                                Margin="4"
+                                                Padding="6,2"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="#D90D0B0A"
+                                                StrokeThickness="0">
+                                            <Label Text="{Binding StatusText}"
+                                                   FontFamily="ManropeBold"
+                                                   FontSize="9"
+                                                   TextColor="{Binding StatusColor}" />
+                                        </Border>
 
-                                    <!-- Top-Left Status Badge: Checking, Live, Sensitive (amber) or Removed (red) -->
-                                    <Border HorizontalOptions="Start"
-                                            VerticalOptions="Start"
-                                            Margin="4"
-                                            Padding="6,2"
-                                            StrokeShape="RoundRectangle 6"
-                                            BackgroundColor="#D90D0B0A"
-                                            Stroke="{Binding StatusColor}"
-                                            StrokeThickness="1">
-                                        <Label Text="{Binding Status}"
-                                               FontFamily="ManropeSemiBold"
-                                               FontSize="9"
-                                               TextColor="{Binding StatusColor}" />
-                                    </Border>
+                                        <!-- Action Overlay Bar over image with pencil and bin buttons -->
+                                        <Grid VerticalOptions="End"
+                                              BackgroundColor="#B30D0B0A"
+                                              Padding="4,2"
+                                              ColumnDefinitions="*,Auto,Auto">
 
-                                    <!-- Bottom Overlay Controls: Pencil (rewrite caption) and Bin (delete) -->
-                                    <Grid VerticalOptions="End"
-                                          BackgroundColor="#B30D0B0A"
-                                          Padding="4,2"
-                                          ColumnDefinitions="*,Auto,Auto">
+                                            <!-- Caption Preview snippet -->
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Caption}"
+                                                   FontFamily="ManropeRegular"
+                                                   FontSize="9"
+                                                   TextColor="{StaticResource TextPrimary}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   VerticalOptions="Center" />
 
-                                        <!-- Caption Preview snippet -->
-                                        <Label Grid.Column="0"
-                                               Text="{Binding Caption}"
-                                               FontFamily="ManropeRegular"
-                                               FontSize="9"
-                                               TextColor="{StaticResource TextPrimary}"
-                                               LineBreakMode="TailTruncation"
-                                               MaxLines="1"
-                                               VerticalOptions="Center" />
+                                            <!-- Pencil Button: opens prompt to rewrite caption -->
+                                            <Label Grid.Column="1"
+                                                   Text="✏️"
+                                                   FontSize="12"
+                                                   Padding="4,2"
+                                                   VerticalOptions="Center">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=EditCaptionCommand, x:DataType={x:Type vm:ProfileViewModel}}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
 
-                                        <!-- Pencil Button: opens prompt to rewrite caption -->
-                                        <Label Grid.Column="1"
-                                               Text="✏️"
-                                               FontSize="12"
-                                               Padding="4,2"
-                                               VerticalOptions="Center">
-                                            <Label.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=EditCaptionCommand}"
-                                                                      CommandParameter="{Binding .}" />
-                                            </Label.GestureRecognizers>
-                                        </Label>
-
-                                        <!-- Bin Button: confirms and deletes upload -->
-                                        <Label Grid.Column="2"
-                                               Text="🗑️"
-                                               FontSize="12"
-                                               Padding="4,2"
-                                               VerticalOptions="Center">
-                                            <Label.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=DeleteUploadCommand}"
-                                                                      CommandParameter="{Binding .}" />
-                                            </Label.GestureRecognizers>
-                                        </Label>
+                                            <!-- Bin Button: confirms and deletes upload -->
+                                            <Label Grid.Column="2"
+                                                   Text="🗑️"
+                                                   FontSize="12"
+                                                   Padding="4,2"
+                                                   VerticalOptions="Center">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=DeleteUploadCommand, x:DataType={x:Type vm:ProfileViewModel}}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
+                                        </Grid>
                                     </Grid>
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
 
-            </VerticalStackLayout>
-        </ScrollView>
-    </Grid>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+    </controls:ResponsiveContainer>
 
 </ContentPage>
