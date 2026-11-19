@@ -38,13 +38,22 @@ public sealed class AuthService(
     {
         try
         {
-            var content = new FormUrlEncodedContent(new[]
+            var authConfig = configurationService.Options.Auth;
+            var parameters = new List<KeyValuePair<string, string>>
             {
-                new KeyValuePair<string, string>("grant_type", "password"),
-                new KeyValuePair<string, string>("username", username),
-                new KeyValuePair<string, string>("password", password),
-                new KeyValuePair<string, string>("scope", "offline_access openid profile")
-            });
+                new("grant_type", "password"),
+                new("username", username),
+                new("password", password),
+                new("scope", authConfig.Scope),
+                new("client_id", authConfig.ClientId)
+            };
+
+            if (!string.IsNullOrWhiteSpace(authConfig.ClientSecret))
+            {
+                parameters.Add(new("client_secret", authConfig.ClientSecret));
+            }
+
+            var content = new FormUrlEncodedContent(parameters);
 
             var tokenUrl = configurationService.GetTokenUrl();
             var response = await httpClient.PostAsync(tokenUrl, content, ct);

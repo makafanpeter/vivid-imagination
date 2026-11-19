@@ -220,6 +220,57 @@ public class MobileFeatureTests
     }
 
     [Fact]
+    public void ConfigurationBuilder_WithAuthSection_BuildsAndReadsCorrectly()
+    {
+        var json = """
+        {
+            "AppConfig": {
+                "Environment": "Development",
+                "Auth": {
+                    "ClientId": "Custom-Client-Id",
+                    "ClientSecret": "custom-secret-key-123",
+                    "Scope": "offline_access openid profile custom_scope"
+                }
+            }
+        }
+        """;
+
+        var configBuilder = new Microsoft.Extensions.Configuration.ConfigurationBuilder();
+        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+        configBuilder.AddJsonStream(stream);
+        var config = configBuilder.Build();
+
+        config["AppConfig:Auth:ClientId"].Should().Be("Custom-Client-Id");
+        config["AppConfig:Auth:ClientSecret"].Should().Be("custom-secret-key-123");
+        config["AppConfig:Auth:Scope"].Should().Be("offline_access openid profile custom_scope");
+    }
+
+    [Fact]
+    public void AppSettingsRaw_JsonFiles_ContainValidAuthSection()
+    {
+        var currentDir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (currentDir != null &&
+               !File.Exists(Path.Combine(currentDir.FullName, "VividImagination.slnx")) &&
+               !File.Exists(Path.Combine(currentDir.FullName, "Directory.Build.props")))
+        {
+            currentDir = currentDir.Parent;
+        }
+
+        currentDir.Should().NotBeNull();
+        var rawDir = Path.Combine(currentDir!.FullName, "src", "mobile", "VividImagination.Mobile", "Resources", "Raw");
+        var appsettingsPath = Path.Combine(rawDir, "appsettings.json");
+
+        File.Exists(appsettingsPath).Should().BeTrue();
+        var json = File.ReadAllText(appsettingsPath);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement.GetProperty("AppConfig").GetProperty("Auth");
+
+        root.GetProperty("ClientId").GetString().Should().Be("VividImagination-client");
+        root.GetProperty("ClientSecret").GetString().Should().Be("vivid-dev-secret");
+        root.GetProperty("Scope").GetString().Should().Contain("openid");
+    }
+
+    [Fact]
     public void DynamicBaseAddressHandler_RewritesHostCorrectly()
     {
         var originalRequestUri = new Uri("http://placeholder/api/v1/feed");

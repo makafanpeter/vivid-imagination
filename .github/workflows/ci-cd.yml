@@ -104,17 +104,18 @@ jobs:
       - name: Install .NET MAUI Android Workload
         run: dotnet workload install maui-android
 
-      - name: Substitute API Base URL from Secret
+      - name: Substitute API and Auth Configuration from Secrets
         env:
           BASE_API_URL: ${{ secrets.BASE_API_URL }}
+          AUTH_CLIENT_ID: ${{ secrets.AUTH_CLIENT_ID }}
+          AUTH_CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}
         run: |
           python3 -c "
           import json, os
 
           url = os.environ.get('BASE_API_URL', '').strip().rstrip('/')
-          if not url:
-              print('[!] BASE_API_URL secret is not set. Using default configuration.')
-              exit(0)
+          client_id = os.environ.get('AUTH_CLIENT_ID', '').strip()
+          client_secret = os.environ.get('AUTH_CLIENT_SECRET', '').strip()
 
           raw_dir = 'src/mobile/VividImagination.Mobile/Resources/Raw'
           target_files = ['appsettings.json', 'appsettings.Production.json', 'appsettings.Staging.json']
@@ -125,14 +126,26 @@ jobs:
                   with open(path, 'r', encoding='utf-8') as f:
                       data = json.load(f)
 
-                  api = data.setdefault('AppConfig', {}).setdefault('Api', {})
-                  api['DesktopBaseUrl'] = url
-                  api['AndroidEmulatorBaseUrl'] = url
+                  app_config = data.setdefault('AppConfig', {})
+
+                  if url:
+                      api = app_config.setdefault('Api', {})
+                      api['DesktopBaseUrl'] = url
+                      api['AndroidEmulatorBaseUrl'] = url
+                      print(f'[+] Injected BASE_API_URL into {name}')
+
+                  if client_id:
+                      auth = app_config.setdefault('Auth', {})
+                      auth['ClientId'] = client_id
+                      print(f'[+] Injected AUTH_CLIENT_ID into {name}')
+
+                  if client_secret:
+                      auth = app_config.setdefault('Auth', {})
+                      auth['ClientSecret'] = client_secret
+                      print(f'[+] Injected AUTH_CLIENT_SECRET into {name}')
 
                   with open(path, 'w', encoding='utf-8') as f:
                       json.dump(data, f, indent=2)
-
-                  print(f'[+] Injected BASE_API_URL into {name}')
           "
 
       - name: Restore Mobile Dependencies
