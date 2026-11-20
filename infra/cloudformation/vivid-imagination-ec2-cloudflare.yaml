@@ -114,6 +114,7 @@ Parameters:
 
 Conditions:
   HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
+  HasArtifactBucket: !Not [!Equals [!Ref ArtifactBucket, ""]]
 
 Resources:
   # ============================================================================
@@ -249,8 +250,8 @@ Resources:
                   - s3:GetObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub "arn:aws:s3:::vivid-artifacts-${AWS::AccountId}-${AWS::Region}"
-                  - !Sub "arn:aws:s3:::vivid-artifacts-${AWS::AccountId}-${AWS::Region}/*"
+                  - !If [HasArtifactBucket, !Sub "arn:aws:s3:::${ArtifactBucket}", !Sub "arn:aws:s3:::vivid-artifacts-${AWS::AccountId}-${AWS::Region}"]
+                  - !If [HasArtifactBucket, !Sub "arn:aws:s3:::${ArtifactBucket}/*", !Sub "arn:aws:s3:::vivid-artifacts-${AWS::AccountId}-${AWS::Region}/*"]
         - PolicyName: VividSSMSecretsAccess
           PolicyDocument:
             Version: '2012-10-17'
@@ -547,3 +548,7 @@ Outputs:
   CloudflareTunnelVerification:
     Description: Expected local ingress target for Cloudflare Tunnel
     Value: "http://localhost:8080"
+
+  ArtifactBucketName:
+    Description: S3 bucket used for deployment assets
+    Value: !If [HasArtifactBucket, !Ref ArtifactBucket, !Sub "vivid-artifacts-${AWS::AccountId}-${AWS::Region}"]
