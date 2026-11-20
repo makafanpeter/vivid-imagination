@@ -22,27 +22,18 @@ public interface IAmazonRekognitionService
     Task<ModerationEvaluationResult> InspectPhotoAsync(string bucket, string storageKey, CancellationToken ct = default);
 }
 
-public class AmazonRekognitionService : IAmazonRekognitionService
+public class AmazonRekognitionService(
+    IAmazonRekognition rekognitionClient,
+    ILogger<AmazonRekognitionService> logger
+    )
+    : IAmazonRekognitionService
 {
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<AmazonRekognitionService> _logger;
-    private readonly IAmazonRekognition? _rekognitionClient;
-
-    public AmazonRekognitionService(
-        IConfiguration configuration,
-        ILogger<AmazonRekognitionService> logger,
-        IAmazonRekognition? rekognitionClient = null)
-    {
-        _configuration = configuration;
-        _logger = logger;
-        _rekognitionClient = rekognitionClient;
-    }
+   
 
     public async Task<ModerationEvaluationResult> InspectPhotoAsync(string bucket, string storageKey, CancellationToken ct = default)
     {
         try
         {
-            if (_rekognitionClient != null)
             {
                 // Zero-copy S3 vision inspection using Amazon Rekognition
                 var request = new DetectModerationLabelsRequest
@@ -58,16 +49,13 @@ public class AmazonRekognitionService : IAmazonRekognitionService
                     MinConfidence = 50f
                 };
 
-                var response = await _rekognitionClient.DetectModerationLabelsAsync(request, ct);
+                var response = await rekognitionClient.DetectModerationLabelsAsync(request, ct);
                 return EvaluateLabels(response.ModerationLabels);
             }
-
-            // Fallback / simulated detection for local development without live AWS S3 credentials
-            return SimulateInspection(storageKey);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Amazon Rekognition inspection failed or timed out for {StorageKey}. Applying fail-safe blur shield policy.", storageKey);
+            logger.LogError(ex, "Amazon Rekognition inspection failed or timed out for {StorageKey}. Applying fail-safe blur shield policy.", storageKey);
             // NFR-04: Fail-Safe Moderation Resilience -> defaults to TaggedUnsafe (BlurRequired = true)
             return new ModerationEvaluationResult(
                 MaxRiskScore: 0.50,

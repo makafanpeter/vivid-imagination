@@ -1,6 +1,7 @@
+using Amazon.Rekognition;
+using Amazon.Rekognition.Model;
 using FluentAssertions;
 using MassTransit;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using VividImagination.Modules.Feed.Ranking;
@@ -8,7 +9,6 @@ using VividImagination.Modules.Media.Contracts.Queries;
 using VividImagination.Modules.Moderation.Contracts.Events;
 using VividImagination.Modules.Moderation.Features.Reviews.Commands;
 using VividImagination.Modules.Moderation.Features.Reviews.Consumers;
-using VividImagination.Modules.Moderation.Persistence;
 using VividImagination.Modules.Moderation.Persistence.Documents;
 using VividImagination.Modules.Moderation.Services;
 using VividImagination.Modules.Social.Contracts.Events;
@@ -19,24 +19,73 @@ namespace VividImagination.UnitTests;
 
 public class PolicyAndRankingTests
 {
+    
+    private readonly Mock<IAmazonRekognition> _rekognitionClientMock = new();
+    private readonly AmazonRekognitionService _service;
+
+    public PolicyAndRankingTests()
+    {
+        _service = new AmazonRekognitionService(
+            _rekognitionClientMock.Object,
+            NullLogger<AmazonRekognitionService>.Instance);
+    }
     [Theory]
-    [InlineData("normal_landscape.jpg", "Approved", false, false)]
-    [InlineData("beach_swimwear_suggestive.jpg", "TaggedUnsafe", true, true)]
-    [InlineData("explicit_nsfw_content.jpg", "Rejected", true, true)]
+    [InlineData("normal_landscape.jpg", "Approved", false, false, 10f)]
+    [InlineData("beach_swimwear_suggestive.jpg", "TaggedUnsafe", true, true, 65f)]
+    [InlineData("explicit_nsfw_content.jpg", "Rejected", true, true, 92f)]
     public async Task AmazonRekognitionService_Should_Apply_Three_Tier_Policy(
         string storageKey,
         string expectedVerdict,
         bool expectedIsUnsafe,
-        bool expectedBlurRequired)
+        bool expectedBlurRequired,
+        float labelConfidence)
     {
-        var configuration = new ConfigurationBuilder().Build();
-        var service = new AmazonRekognitionService(configuration, NullLogger<AmazonRekognitionService>.Instance);
+        // Arrange
+        var response = new DetectModerationLabelsResponse
+        {
+            ModerationLabels =
+            [
+                new ModerationLabel
+                {
+                    Name = storageKey.Contains("nsfw")
+                        ? "Explicit Nudity"
+                        : storageKey.Contains("swimwear")
+                            ? "Suggestive Attire"
+                            : "Safe Content",
+                    ParentName = storageKey.Contains("nsfw")
+                        ? "Adult"
+                        : storageKey.Contains("swimwear")
+                            ? "Suggestive"
+                            : "Neutral",
+                    Confidence = labelConfidence
+                }
+            ]
+        };
 
-        var result = await service.InspectPhotoAsync("vivid-imagination-photos", storageKey);
-
+        _rekognitionClientMock
+            .Setup(client => client.DetectModerationLabelsAsync(
+                It.IsAny<DetectModerationLabelsRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(response);
+        
+        
+        
+        //Act
+        var result = await _service.InspectPhotoAsync("vivid-imagination-photos", storageKey);
+        
+        // Assert
         result.Verdict.Should().Be(expectedVerdict);
         result.IsUnsafe.Should().Be(expectedIsUnsafe);
         result.BlurRequired.Should().Be(expectedBlurRequired);
+        
+        
+        _rekognitionClientMock.Verify(
+            client => client.DetectModerationLabelsAsync(
+                It.Is<DetectModerationLabelsRequest>(request =>
+                    request.Image.S3Object.Bucket == "vivid-imagination-photos" &&
+                    request.Image.S3Object.Name == storageKey),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]
