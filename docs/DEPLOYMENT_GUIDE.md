@@ -385,7 +385,7 @@ Automated zero-downtime deployments and quality checks are orchestrated via `.gi
 1. **`test-backend`**:
    - Triggers on changes to `src/backend/**`, `tests/**`, or workflow files.
    - Restores and compiles `VividImagination.Api` and all test projects on .NET 10.
-   - Executes all 101 Unit Tests and 7 NetArchTest architecture boundary tests.
+   - Executes all 104 Unit Tests and 7 NetArchTest architecture boundary tests.
 2. **`build-mobile-android`**:
    - Triggers on changes to `src/mobile/**` or workflow files.
    - Configures Java 17 Temurin and installs the `maui-android` workload.
