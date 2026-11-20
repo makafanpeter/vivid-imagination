@@ -106,14 +106,49 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
 
 ## Step 2: Deploy CloudFormation Stack
 
-### 0. Upload Deployment Artifacts to S3 (One-Time / When Assets Change)
+### 0. Upload Deployment Artifacts to S3 (Prerequisite Step)
 
 Deployment assets (`docker-compose.prod.yml`, `deploy-app.sh`, `.env.template`, and `bootstrap-secrets.py`) are retrieved directly from S3 by EC2 at boot rather than being bloated into CloudFormation UserData.
 
-Run the provided asset uploader to create/sync your artifacts bucket (`s3://vivid-artifacts-<account>-<region>`):
+Before deploying or updating the CloudFormation stack, ensure the deployment artifacts bucket (`s3://vivid-artifacts-<account>-<region>`) is created and updated with the latest configuration assets:
 
+#### Bash (Linux / macOS / WSL)
 ```bash
-python infra/scripts/upload-artifacts.py
+# 1. Resolve AWS Region, Account ID, and Target Bucket Name
+export AWS_REGION="eu-west-1"
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ARTIFACT_BUCKET="vivid-artifacts-${ACCOUNT_ID}-${AWS_REGION}"
+
+# 2. Create the S3 Bucket (if not already created) and Enable Public Access Block
+aws s3 mb "s3://${ARTIFACT_BUCKET}" --region "${AWS_REGION}"
+aws s3api put-public-access-block \
+  --bucket "${ARTIFACT_BUCKET}" \
+  --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true" \
+  --region "${AWS_REGION}"
+
+# 3. Upload Deployment Assets
+aws s3 cp infra/docker-compose.prod.yml "s3://${ARTIFACT_BUCKET}/docker-compose.prod.yml" --region "${AWS_REGION}"
+aws s3 cp infra/scripts/deploy-app.sh "s3://${ARTIFACT_BUCKET}/deploy-app.sh" --region "${AWS_REGION}"
+aws s3 cp infra/.env.example "s3://${ARTIFACT_BUCKET}/.env.template" --region "${AWS_REGION}"
+aws s3 cp infra/scripts/bootstrap-secrets.py "s3://${ARTIFACT_BUCKET}/bootstrap-secrets.py" --region "${AWS_REGION}"
+```
+
+#### PowerShell (Windows)
+```powershell
+# 1. Resolve AWS Region, Account ID, and Target Bucket Name
+$AWS_REGION = "eu-west-1"
+$ACCOUNT_ID = (aws sts get-caller-identity --query Account --output text).Trim()
+$ARTIFACT_BUCKET = "vivid-artifacts-$ACCOUNT_ID-$AWS_REGION"
+
+# 2. Create the S3 Bucket (if not already created) and Enable Public Access Block
+aws s3 mb "s3://$ARTIFACT_BUCKET" --region $AWS_REGION
+aws s3api put-public-access-block --bucket $ARTIFACT_BUCKET --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true" --region $AWS_REGION
+
+# 3. Upload Deployment Assets
+aws s3 cp infra/docker-compose.prod.yml "s3://$ARTIFACT_BUCKET/docker-compose.prod.yml" --region $AWS_REGION
+aws s3 cp infra/scripts/deploy-app.sh "s3://$ARTIFACT_BUCKET/deploy-app.sh" --region $AWS_REGION
+aws s3 cp infra/.env.example "s3://$ARTIFACT_BUCKET/.env.template" --region $AWS_REGION
+aws s3 cp infra/scripts/bootstrap-secrets.py "s3://$ARTIFACT_BUCKET/bootstrap-secrets.py" --region $AWS_REGION
 ```
 
 ### Option A: Using AWS CLI (Recommended)
