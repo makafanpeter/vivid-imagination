@@ -17,5 +17,6 @@
         public string FileExtension { get; set; }
 
         public string Url { get; set; }
+        string BucketName { get; set; }
     }
 }

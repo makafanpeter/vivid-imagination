@@ -23,6 +23,7 @@ namespace VividImagination.Modules.Media.Features.Photos.ViewModels
         public string? OwnerId { get; set; }
         public string FileExtension { get; set; }=string.Empty;
         public string Url { get; set; } =string.Empty;
+        public string BucketName { get; set; } =string.Empty;
         public string SourceIp { get; set; } =string.Empty;
     }
 }
