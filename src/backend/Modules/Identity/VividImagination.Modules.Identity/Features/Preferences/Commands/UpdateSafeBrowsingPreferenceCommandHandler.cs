@@ -20,6 +20,10 @@ public class UpdateSafeBrowsingPreferenceCommandHandler(UserManager<User> userMa
         }
 
         user.SafeBrowsingMode = request.Mode;
+        if (request.IsPersonalisationEnabled.HasValue)
+        {
+            user.IsPersonalisationEnabled = request.IsPersonalisationEnabled.Value;
+        }
         user.UpdatedOn = DateTimeOffset.UtcNow;
 
         var result = await userManager.UpdateAsync(user);
@@ -29,6 +33,6 @@ public class UpdateSafeBrowsingPreferenceCommandHandler(UserManager<User> userMa
             throw new BadRequestException($"Failed to update user preferences: {errors}");
         }
 
-        return new SafeBrowsingPreferenceDto(user.Id, user.SafeBrowsingMode);
+        return new SafeBrowsingPreferenceDto(user.Id, user.SafeBrowsingMode, user.IsPersonalisationEnabled);
     }
 }

@@ -162,8 +162,46 @@ public class IdentityFeatureTests
         result.Should().NotBeNull();
         result.UserId.Should().Be(555L);
         result.SafeBrowsingMode.Should().Be(SafeBrowsingMode.AlwaysShowSensitive);
+        result.IsPersonalisationEnabled.Should().BeTrue();
         user.SafeBrowsingMode.Should().Be(SafeBrowsingMode.AlwaysShowSensitive);
         user.UpdatedOn.Should().NotBeNull();
+        userManagerMock.Verify(m => m.UpdateAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateSafeBrowsingPreferenceCommandHandler_ShouldUpdatePersonalisationPreference()
+    {
+        // Arrange
+        var user = new User
+        {
+            Id = 555L,
+            UserName = "testuser",
+            Email = "test@vivid.local",
+            SafeBrowsingMode = SafeBrowsingMode.BlurSensitive,
+            IsPersonalisationEnabled = true
+        };
+
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        userManagerMock.Setup(m => m.FindByIdAsync("555"))
+            .ReturnsAsync(user);
+
+        userManagerMock.Setup(m => m.UpdateAsync(user))
+            .ReturnsAsync(IdentityResult.Success);
+
+        var handler = new UpdateSafeBrowsingPreferenceCommandHandler(userManagerMock.Object);
+
+        // Act: Disable personalisation
+        var result = await handler.Handle(
+            new UpdateSafeBrowsingPreferenceCommand(555L, SafeBrowsingMode.BlurSensitive, IsPersonalisationEnabled: false),
+            CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.IsPersonalisationEnabled.Should().BeFalse();
+        user.IsPersonalisationEnabled.Should().BeFalse();
         userManagerMock.Verify(m => m.UpdateAsync(user), Times.Once);
     }
 

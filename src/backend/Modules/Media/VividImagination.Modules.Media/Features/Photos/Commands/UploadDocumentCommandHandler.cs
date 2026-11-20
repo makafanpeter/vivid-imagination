@@ -86,13 +86,7 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
 
             // Generate blur hash and publish PhotoUploadedIntegrationEvent for Moderation and Feed
             var blurHash = BlurHashGenerator.Generate(model.FileName);
-            var userId = Guid.Empty;
-            if (appReference.HasValue)
-            {
-                var bytes = new byte[16];
-                BitConverter.GetBytes(appReference.Value).CopyTo(bytes, 0);
-                userId = new Guid(bytes);
-            }
+            var userId = appReference?.ToGuid() ?? Guid.Empty;
 
             await publishEndpoint.Publish(new PhotoUploadedIntegrationEvent(
                 entry.Id,

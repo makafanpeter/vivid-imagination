@@ -19,6 +19,6 @@ public class GetSafeBrowsingPreferenceQueryHandler(UserManager<User> userManager
             throw new NotFoundException("User", request.UserId);
         }
 
-        return new SafeBrowsingPreferenceDto(user.Id, user.SafeBrowsingMode);
+        return new SafeBrowsingPreferenceDto(user.Id, user.SafeBrowsingMode, user.IsPersonalisationEnabled);
     }
 }

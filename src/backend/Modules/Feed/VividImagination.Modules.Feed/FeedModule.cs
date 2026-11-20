@@ -10,6 +10,7 @@ using VividImagination.Modules.Feed.Controllers.v1;
 using VividImagination.Modules.Feed.Features.Feeds.Consumers;
 using VividImagination.Modules.Feed.Persistence;
 using VividImagination.Modules.Feed.Persistence.Entities;
+using VividImagination.Modules.Feed.Ranking;
 using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure;
 using VividImagination.Shared.Infrastructure.Messaging;
@@ -29,6 +30,7 @@ public class FeedModule : IAppModule, IMessagingModule
         cfg.AddConsumer<PhotoOptimizedFeedConsumer>();
         cfg.AddConsumer<PhotoVotedFeedConsumer>();
         cfg.AddConsumer<PhotoDeletedFeedConsumer>();
+        cfg.AddConsumer<FeedInteractionConsumer>();
     }
 
     public IServiceCollection AddModule(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
@@ -36,7 +38,11 @@ public class FeedModule : IAppModule, IMessagingModule
         var mongoSection = configuration.GetSection(ModuleName);
         
         services.AddMongoDbContext<FeedDbContext>(mongoSection)
-            .AddRepository<FeedItem, Guid, FeedDbContext>(ctx => ctx.FeedItems);
+            .AddRepository<FeedItem, Guid, FeedDbContext>(ctx => ctx.FeedItems)
+            .AddRepository<UserInterestProfile, Guid, FeedDbContext>(ctx => ctx.UserInterestProfiles)
+            .AddRepository<UserInteraction, Guid, FeedDbContext>(ctx => ctx.UserInteractions);
+
+        services.AddScoped<ICandidateGenerator, CandidateGenerator>();
 
         services.AddCustomMediatR(Assembly.GetExecutingAssembly());
         services.AddValidatorsFromAssembly(typeof(FeedModule).Assembly);
