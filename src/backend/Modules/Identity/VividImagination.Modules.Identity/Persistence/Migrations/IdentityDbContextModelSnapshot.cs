@@ -400,6 +400,9 @@ namespace VividImagination.Modules.Identity.Persistence.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
 
+                    b.Property<bool>("IsPersonalisationEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LastName")
                         .HasMaxLength(150)
                         .HasColumnType("character varying(150)");
