@@ -217,7 +217,7 @@ flowchart TD
         Bootstrap["bootstrap-secrets.py"] -->|Fetch with Decryption| SSM
         Bootstrap -->|Writes Ephemeral Cert| RAM["/dev/shm/cert.pem (RAM)"]
         RAM -->|Provision Tunnel| Cloudflared
-        Bootstrap -->|shred -u (Immediate Wipe)| RAM
+        Bootstrap -->|"shred -u (Immediate Wipe)"| RAM
         Bootstrap -->|Populate with 0600| EnvFile["/opt/vivid-imagination/.env"]
     end
 ```

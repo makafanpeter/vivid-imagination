@@ -8,7 +8,7 @@ This guide provides step-by-step instructions for deploying the **Vivid Imaginat
 
 ```mermaid
 flowchart TD
-    Client["Client Mobile / Web"] -->|HTTPS (443)| CFEdge["Cloudflare Edge (WAF, CDN, DDoS Protection, SSL)"]
+    Client["Client Mobile / Web"] -->|"HTTPS (443)"| CFEdge["Cloudflare Edge (WAF, CDN, DDoS Protection, SSL)"]
     Admin["CI/CD / Admin"] -->|SSH over Cloudflare Access| CFEdge
 
     subgraph AWS ["AWS Cloud (VPC: 10.0.0.0/16)"]
