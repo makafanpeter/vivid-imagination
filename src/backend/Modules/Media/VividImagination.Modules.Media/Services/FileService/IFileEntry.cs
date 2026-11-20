@@ -15,8 +15,10 @@
         public string Description { get; set; }
         public string OwnerId { get; set; }
         public string FileExtension { get; set; }
-
+        
         public string Url { get; set; }
+
+        public string LinkUrl { get; set; }
         string BucketName { get; set; }
     }
 }

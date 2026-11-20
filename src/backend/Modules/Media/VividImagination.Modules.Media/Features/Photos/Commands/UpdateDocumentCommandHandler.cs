@@ -17,7 +17,7 @@ using VividImagination.Shared.Infrastructure.Web.Authorization.Requirements;
 
 namespace VividImagination.Modules.Media.Features.Photos.Commands;
 
-public class UpdateDocumentCommandHandler (IMongoRepository<FileEntry, Guid> dynamoDbContext,
+public class UpdateDocumentCommandHandler (IMongoRepository<FileEntry, Guid> dbContext,
     IMapper mapper,
     ICurrentUser identityService,
     IAuthorizationService authorizationService,
@@ -30,7 +30,7 @@ public class UpdateDocumentCommandHandler (IMongoRepository<FileEntry, Guid> dyn
 {
     public async Task<UploadDocumentViewModel> Handle(UpdateDocumentCommand request, CancellationToken cancellationToken)
     {
-        var file = await dynamoDbContext.FindByIdAsync(request.Id, cancellationToken);
+        var file = await dbContext.FindByIdAsync(request.Id, cancellationToken);
         if (file == null || file.Deleted)
         {
             throw new NotFoundException(nameof(FileEntry), request.Id);
@@ -95,10 +95,11 @@ public class UpdateDocumentCommandHandler (IMongoRepository<FileEntry, Guid> dyn
         file.SourceIp = webHelper.GetCurrentIpAddress();
         file.Url = url;
         file.FileLocation = model.FileLocation;
+        file.LinkUrl = model.LinkUrl;
         
         
         
-        await  dynamoDbContext.UpdateAsync(file, cancellationToken);
+        await  dbContext.UpdateAsync(file, cancellationToken);
         return mapper.Map<UploadDocumentViewModel>(file);
     }
 }

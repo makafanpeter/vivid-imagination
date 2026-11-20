@@ -34,6 +34,7 @@ public class FileEntry : BaseEntity<Guid>, IAggregate<Guid>, IFileEntry
     public required string FileExtension { get; set; }
 
     public string? Url { get; set; }
+    public string LinkUrl { get; set; } = string.Empty;
     public string BucketName { get; set; } = string.Empty;
     public string? SourceIp { get; set; }
     public bool Deleted { get; set; }

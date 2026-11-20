@@ -79,6 +79,7 @@ namespace VividImagination.Modules.Media.Features.Photos.Commands
                 Url = url,
                 SourceIp = model.SourceIp,
                 CreatedOn = DateTime.UtcNow,
+                LinkUrl =  model.LinkUrl,
             };
 
             await fileRepository.AddAsync(entry, cancellationToken);
