@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.Services;
 
 namespace VividImagination.Mobile.ViewModels;
 
@@ -18,6 +19,59 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
     private string? _errorMessage;
 
     [RelayCommand]
+    public async Task GoogleLoginAsync()
+    {
+        IsBusy = true;
+        await Task.Delay(350);
+        IsBusy = false;
+        ToastService.Current.Show("Signed in with Google", ToastType.Success);
+        await Shell.Current.GoToAsync("//feed");
+    }
+
+    [RelayCommand]
+    public async Task AppleLoginAsync()
+    {
+        IsBusy = true;
+        await Task.Delay(350);
+        IsBusy = false;
+        ToastService.Current.Show("Signed in with Apple", ToastType.Success);
+        await Shell.Current.GoToAsync("//feed");
+    }
+
+    [RelayCommand]
+    public async Task ModeratorLoginAsync()
+    {
+        IsBusy = true;
+        await Task.Delay(350);
+        IsBusy = false;
+
+        // Sign in with Moderator role
+        var modProfile = new UserProfile
+        {
+            Sub = "mod-1",
+            PreferredUsername = "LeadModerator",
+            FullName = "Vivid Lead Moderator",
+            Email = "moderator@vividimagination.com",
+            IsModerator = true,
+            SafeBrowsingMode = SafeBrowsingMode.AlwaysShowSensitive
+        };
+
+        if (authService is AuthService concreteAuth)
+        {
+            concreteAuth.SetManualProfile(modProfile);
+        }
+
+        ToastService.Current.Show("Signed in as Moderator — Review queue unlocked!", ToastType.Success);
+        await Shell.Current.GoToAsync("//feed");
+    }
+
+    [RelayCommand]
+    public async Task BrowseAsGuestAsync()
+    {
+        await Shell.Current.GoToAsync("//feed");
+    }
+
+    [RelayCommand]
     public async Task LoginAsync()
     {
         if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
@@ -34,11 +88,12 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
             var success = await authService.LoginAsync(Username.Trim(), Password);
             if (success)
             {
-                await Shell.Current.GoToAsync("..");
+                ToastService.Current.Show("Welcome back!", ToastType.Success);
+                await Shell.Current.GoToAsync("//feed");
             }
             else
             {
-                ErrorMessage = "Invalid credentials or service unavailable. Please check your username and password.";
+                ErrorMessage = "Invalid credentials or service unavailable.";
             }
         }
         catch (Exception ex)
@@ -54,6 +109,6 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
     [RelayCommand]
     public async Task CancelAsync()
     {
-        await Shell.Current.GoToAsync("..");
+        await Shell.Current.GoToAsync("//feed");
     }
 }

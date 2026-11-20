@@ -38,6 +38,7 @@ public static class MediaApis
             .WithDescription("Upload a document")
             .RequireAuthorization(AuthorizeAttribute)
             .Accepts<UploadFile>("multipart/form-data")
+            .DisableAntiforgery()
             .Produces<UploadDocumentViewModel>(StatusCodes.Status201Created)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
@@ -83,6 +84,7 @@ public static class MediaApis
             .WithDescription("Update a document")
             .RequireAuthorization(AuthorizeAttribute)
             .Accepts<UploadFile>("multipart/form-data")
+            .DisableAntiforgery()
             .Produces<UploadDocumentViewModel>(StatusCodes.Status200OK)
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status404NotFound)
@@ -95,8 +97,8 @@ public static class MediaApis
 
     private static async Task<IResult> UploadAsync(
         [FromForm] UploadFile? model,
-        IMediator mediator,
-        ILogger<MediaModule> logger,
+        [FromServices] IMediator mediator,
+        [FromServices] ILogger<MediaModule> logger,
         CancellationToken ct)
     {
         if (model?.FormFile is null)
@@ -130,7 +132,7 @@ public static class MediaApis
 
     private static async Task<IResult> DownloadAsync(
         Guid id,
-        IMediator mediator,
+        [FromServices] IMediator mediator,
         CancellationToken ct)
     {
         var response = await mediator.Send(new DownloadDocumentQuery { Id = id }, ct);
@@ -143,7 +145,7 @@ public static class MediaApis
 
     private static async Task<IResult> GetAsync(
         Guid id,
-        IMediator mediator,
+        [FromServices] IMediator mediator,
         CancellationToken ct)
     {
         var response = await mediator.Send(new GetDocumentQuery { Id = id }, ct);
@@ -152,7 +154,7 @@ public static class MediaApis
 
     private static async Task<IResult> DeleteAsync(
         Guid id,
-        IMediator mediator,
+        [FromServices] IMediator mediator,
         CancellationToken ct)
     {
         await mediator.Send(new DeleteDocumentCommand { Id = id }, ct);
@@ -162,8 +164,8 @@ public static class MediaApis
     private static async Task<IResult> UpdateAsync(
         Guid id,
         [FromForm] UploadFile? model,
-        IMediator mediator,
-        ILogger<MediaModule> logger,
+        [FromServices] IMediator mediator,
+        [FromServices] ILogger<MediaModule> logger,
         CancellationToken ct)
     {
         if (model?.FormFile is null)

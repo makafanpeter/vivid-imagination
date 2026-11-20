@@ -2,157 +2,172 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:VividImagination.Mobile.ViewModels"
+             xmlns:controls="clr-namespace:VividImagination.Mobile.Pages.Controls"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="VividImagination.Mobile.Pages.PhotoUploadPage"
              x:DataType="vm:PhotoUploadViewModel"
-             Title="Share a Photo"
-             BackgroundColor="{AppThemeBinding Light=#F7F7FA, Dark=#141418}">
+             Title="New photo"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource AppBackground}">
 
-    <ScrollView>
-        <VerticalStackLayout Spacing="16" Padding="20">
+    <controls:ResponsiveContainer ActiveTab="Upload">
+        <Grid RowDefinitions="Auto,*"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
 
-            <Label Text="Upload &amp; AI Safety Scan"
-                   FontSize="22"
-                   FontAttributes="Bold"
-                   TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+            <!-- Header: 'New photo' -->
+            <Grid Grid.Row="0"
+                  BackgroundColor="#E60D0B0A"
+                  Padding="20,16,20,12"
+                  ZIndex="10">
+                <Label Text="New photo"
+                       FontFamily="SyneBold"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="{StaticResource TextPrimary}" />
+                <BoxView HeightRequest="1"
+                         Color="{StaticResource BorderGlow}"
+                         VerticalOptions="End" />
+            </Grid>
 
-            <Label Text="Uploaded photos are automatically inspected by Amazon Rekognition to classify safety tags and compute BlurHash placeholders."
-                   FontSize="13"
-                   TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
+            <!-- Form Body -->
+            <ScrollView Grid.Row="1" Margin="0,0,0,72">
+                <VerticalStackLayout Spacing="20" Padding="20">
 
-            <!-- Photo Selection / Preview Area -->
-            <Border StrokeShape="RoundRectangle 16"
-                    Stroke="#33808080"
-                    StrokeThickness="1"
-                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
-                    HeightRequest="260"
-                    Padding="0">
+                    <!-- Big Dashed Square: 'Tap to choose a photo' with format & size limits -->
+                    <Border StrokeShape="RoundRectangle 24"
+                            Stroke="{StaticResource BorderGlow}"
+                            StrokeThickness="2"
+                            StrokeDashArray="4,4"
+                            BackgroundColor="{StaticResource AppSurface}"
+                            HeightRequest="280"
+                            WidthRequest="280"
+                            HorizontalOptions="Center"
+                            Padding="0">
 
-                <Grid>
-                    <!-- Placeholder when no photo is selected -->
-                    <VerticalStackLayout VerticalOptions="Center"
-                                         HorizontalOptions="Center"
-                                         Spacing="12"
-                                         IsVisible="{Binding HasSelectedPhoto, Converter={toolkit:InvertedBoolConverter}}">
-                        <Label Text="🖼️" FontSize="44" HorizontalOptions="Center" />
-                        <Label Text="No photo selected yet"
-                               FontSize="14"
-                               TextColor="{AppThemeBinding Light=#757575, Dark=#9E9E9E}"
-                               HorizontalOptions="Center" />
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding PickPhotoCommand}" />
+                        </Border.GestureRecognizers>
 
-                        <HorizontalStackLayout Spacing="12" HorizontalOptions="Center" Margin="0,8,0,0">
-                            <Button Text="📁 Gallery"
-                                    Command="{Binding PickPhotoCommand}"
-                                    BackgroundColor="#512BD4"
-                                    TextColor="White"
-                                    CornerRadius="18"
-                                    HeightRequest="38"
-                                    Padding="16,0" />
+                        <Grid>
+                            <!-- Unselected Prompt -->
+                            <VerticalStackLayout VerticalOptions="Center"
+                                                 HorizontalOptions="Center"
+                                                 Spacing="12"
+                                                 Padding="20"
+                                                 IsVisible="{Binding HasSelectedPhoto, Converter={toolkit:InvertedBoolConverter}}">
+                                <Label Text="🖼️"
+                                       FontSize="40"
+                                       HorizontalOptions="Center" />
 
-                            <Button Text="📷 Camera"
-                                    Command="{Binding TakePhotoCommand}"
-                                    BackgroundColor="{AppThemeBinding Light=#E0E0E0, Dark=#2E2E36}"
-                                    TextColor="{AppThemeBinding Light=#212121, Dark=White}"
-                                    CornerRadius="18"
-                                    HeightRequest="38"
-                                    Padding="16,0" />
-                        </HorizontalStackLayout>
+                                <Label Text="Tap to choose a photo"
+                                       FontFamily="SyneBold"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       HorizontalTextAlignment="Center" />
+
+                                <Label Text="JPEG, PNG and WebP up to 15 MB"
+                                       FontFamily="ManropeRegular"
+                                       FontSize="12"
+                                       TextColor="{StaticResource TextMuted}"
+                                       HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+
+                            <!-- Preview filling the square -->
+                            <Grid IsVisible="{Binding HasSelectedPhoto}">
+                                <Image Source="{Binding PreviewImage}"
+                                       Aspect="AspectFill"
+                                       HorizontalOptions="Fill"
+                                       VerticalOptions="Fill" />
+
+                                <!-- Overlay Tap Hint -->
+                                <Border BackgroundColor="#990D0B0A"
+                                        StrokeShape="RoundRectangle 9999"
+                                        HorizontalOptions="End"
+                                        VerticalOptions="Start"
+                                        Margin="12"
+                                        Padding="12,6">
+                                    <Label Text="Tap to change"
+                                           FontFamily="ManropeSemiBold"
+                                           FontSize="11"
+                                           TextColor="{StaticResource TextPrimary}" />
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+
+                    <!-- Caption Box with Live 0/500 Counter -->
+                    <VerticalStackLayout Spacing="6">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="Caption"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextMuted}" />
+
+                            <!-- Live Character Counter -->
+                            <Label Grid.Column="1"
+                                   Text="{Binding CaptionLength, StringFormat='{0}/500'}"
+                                   FontFamily="ManropeRegular"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextMuted}" />
+                        </Grid>
+
+                        <Border StrokeShape="RoundRectangle 16"
+                                Stroke="{StaticResource BorderGlow}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource AppSurface}"
+                                Padding="14,10">
+                            <Editor Text="{Binding Caption}"
+                                    FontFamily="ManropeRegular"
+                                    Placeholder="Write a story or description about this photo..."
+                                    PlaceholderColor="{StaticResource TextMuted}"
+                                    TextColor="{StaticResource TextPrimary}"
+                                    HeightRequest="90"
+                                    MaxLength="500" />
+                        </Border>
                     </VerticalStackLayout>
 
-                    <!-- Preview when photo is selected -->
-                    <Grid IsVisible="{Binding HasSelectedPhoto}">
-                        <Image Source="{Binding PreviewImage}"
-                               Aspect="AspectFill"
-                               HorizontalOptions="Fill"
-                               VerticalOptions="Fill" />
+                    <!-- Tags Field -->
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Tags"
+                               FontFamily="ManropeSemiBold"
+                               FontSize="13"
+                               TextColor="{StaticResource TextMuted}" />
+                        <Border StrokeShape="RoundRectangle 16"
+                                Stroke="{StaticResource BorderGlow}"
+                                StrokeThickness="1"
+                                BackgroundColor="{StaticResource AppSurface}"
+                                Padding="14,0">
+                            <Entry Text="{Binding Tags}"
+                                   FontFamily="ManropeRegular"
+                                   Placeholder="e.g. #nature #sunset #serenity"
+                                   PlaceholderColor="{StaticResource TextMuted}"
+                                   TextColor="{StaticResource TextPrimary}" />
+                        </Border>
+                    </VerticalStackLayout>
 
-                        <!-- Change / Clear Buttons overlay -->
-                        <HorizontalStackLayout HorizontalOptions="End"
-                                               VerticalOptions="Start"
-                                               Margin="12"
-                                               Spacing="8">
-                            <Button Text="Change"
-                                    Command="{Binding PickPhotoCommand}"
-                                    BackgroundColor="#CC000000"
-                                    TextColor="White"
-                                    CornerRadius="14"
-                                    HeightRequest="32"
-                                    FontSize="12"
-                                    Padding="12,0" />
+                    <!-- Full-Height Orange Post Button (56px) with dynamic state transitions -->
+                    <Button Text="{Binding PostButtonText}"
+                            Command="{Binding UploadCommand}"
+                            IsEnabled="{Binding IsUploading, Converter={toolkit:InvertedBoolConverter}}"
+                            BackgroundColor="{StaticResource AccentVermilion}"
+                            TextColor="White"
+                            FontFamily="SyneBold"
+                            FontSize="16"
+                            CornerRadius="28"
+                            HeightRequest="56"
+                            Margin="0,8,0,24">
+                        <Button.Shadow>
+                            <Shadow Brush="{StaticResource AccentVermilion}" Offset="0,4" Radius="16" Opacity="0.4" />
+                        </Button.Shadow>
+                    </Button>
 
-                            <Button Text="✕"
-                                    Command="{Binding ClearCommand}"
-                                    BackgroundColor="#CCB71C1C"
-                                    TextColor="White"
-                                    CornerRadius="14"
-                                    HeightRequest="32"
-                                    WidthRequest="32"
-                                    FontSize="14"
-                                    Padding="0" />
-                        </HorizontalStackLayout>
-                    </Grid>
-                </Grid>
-            </Border>
-
-            <!-- Form Fields -->
-            <VerticalStackLayout Spacing="6">
-                <Label Text="Title (Optional)"
-                       FontSize="13"
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light=#424242, Dark=#BDBDBD}" />
-                <Border StrokeShape="RoundRectangle 10"
-                        Stroke="#33808080"
-                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
-                        Padding="12,0">
-                    <Entry Text="{Binding Title}"
-                           Placeholder="e.g. Mountain Sunset"
-                           PlaceholderColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}"
-                           TextColor="{AppThemeBinding Light=Black, Dark=White}" />
-                </Border>
-            </VerticalStackLayout>
-
-            <VerticalStackLayout Spacing="6">
-                <Label Text="Caption"
-                       FontSize="13"
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light=#424242, Dark=#BDBDBD}" />
-                <Border StrokeShape="RoundRectangle 10"
-                        Stroke="#33808080"
-                        BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
-                        Padding="12,8">
-                    <Editor Text="{Binding Caption}"
-                            Placeholder="Write a story or description about this photo..."
-                            PlaceholderColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}"
-                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                            HeightRequest="90"
-                            MaxLength="500" />
-                </Border>
-            </VerticalStackLayout>
-
-            <!-- Status / Feedback Message -->
-            <Label Text="{Binding StatusMessage}"
-                   FontSize="13"
-                   TextColor="#512BD4"
-                   HorizontalTextAlignment="Center"
-                   IsVisible="{Binding StatusMessage, Converter={toolkit:IsNotNullConverter}}" />
-
-            <!-- Upload Button & Activity Indicator -->
-            <Button Text="Publish Photo"
-                    Command="{Binding UploadCommand}"
-                    IsEnabled="{Binding IsUploading, Converter={toolkit:InvertedBoolConverter}}"
-                    BackgroundColor="#512BD4"
-                    TextColor="White"
-                    FontAttributes="Bold"
-                    FontSize="16"
-                    CornerRadius="24"
-                    HeightRequest="48"
-                    Margin="0,8,0,24" />
-
-            <ActivityIndicator IsRunning="{Binding IsUploading}"
-                               IsVisible="{Binding IsUploading}"
-                               Color="#512BD4"
-                               HorizontalOptions="Center" />
-        </VerticalStackLayout>
-    </ScrollView>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+    </controls:ResponsiveContainer>
 
 </ContentPage>

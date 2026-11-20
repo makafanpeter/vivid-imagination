@@ -1,6 +1,7 @@
-using System.Reflection;
 using AutoMapper;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
+using System.Reflection;
 using VividImagination.Shared.Application.Mapping;
 
 namespace VividImagination.Shared.Application;
@@ -16,7 +17,7 @@ public static class DependencyInjection
             .ToArray();
 
         var profileConfiguration = CreateMapperProfileConfiguration(allAssemblies);
-        var mapperConfiguration = new MapperConfiguration(profileConfiguration);
+        var mapperConfiguration = new MapperConfiguration(profileConfiguration, NullLoggerFactory.Instance);
     
         AutoMapperConfiguration.Init(mapperConfiguration);
         services.AddAutoMapper(profileConfiguration, allAssemblies);

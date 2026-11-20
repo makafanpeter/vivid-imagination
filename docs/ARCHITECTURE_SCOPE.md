@@ -118,4 +118,4 @@ graph TD
 9.  **Cross-Platform Client Experience (.NET MAUI 10):**
     *   Show how a client application directly honors backend moderation directives. The `BlurShieldView` control demonstrates that safety is not just a database boolean, but an end-to-end user experience that balances safety with user agency.
 10. **Modern Multi-Job CI/CD & Automated Boundary Enforcement:**
-    *   Showcase how 74 unit tests, 7 NetArchTest architectural boundary rules, and a containerized build-and-deploy pipeline ensure production stability on every commit, while a dedicated Android job builds release APK/AAB packages without polluting backend CI environments.
+    *   Showcase how 104 unit tests, 7 NetArchTest architectural boundary rules, and a containerized build-and-deploy pipeline ensure production stability on every commit, while a dedicated Android job builds release APK/AAB packages without polluting backend CI environments.

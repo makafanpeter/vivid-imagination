@@ -28,6 +28,7 @@ public class MediaModule : IAppModule, IMessagingModule
     public void RegisterConsumers(IRegistrationConfigurator cfg)
     {
         cfg.AddConsumer<PhotoOptimizationConsumer>();
+        cfg.AddConsumer<ValidatePhotoConsumer>();
     }
 
     public IServiceCollection AddModule(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)

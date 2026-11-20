@@ -15,6 +15,18 @@ namespace VividImagination.Shared.Infrastructure.Modules;
 public static class AppModuleExtensions
 {
     public static readonly HashSet<Type> InitializedModules = [];
+    private static readonly List<IAppModule> _initializedInstances = [];
+
+    /// <summary>
+    /// Gets all instantiated and initialized application module instances.
+    /// </summary>
+    public static IReadOnlyList<IAppModule> GetInitializedModuleInstances()
+    {
+        lock (_initializedInstances)
+        {
+            return _initializedInstances.ToList();
+        }
+    }
 
     /// <summary>
     /// Discovers and registers all application modules from the specified assembly.
@@ -193,6 +205,13 @@ public static class AppModuleExtensions
         module.AddModule(services, configuration, environment);
 
         InitializedModules.Add(moduleType);
+        lock (_initializedInstances)
+        {
+            if (!_initializedInstances.Any(i => i.GetType() == moduleType))
+            {
+                _initializedInstances.Add(module);
+            }
+        }
         services.AddSingleton(moduleType, module);
 
         Console.WriteLine($"🚀 {module.ModuleName} initialized.");
@@ -223,6 +242,10 @@ public static class AppModuleExtensions
     public static void Reset()
     {
         InitializedModules.Clear();
+        lock (_initializedInstances)
+        {
+            _initializedInstances.Clear();
+        }
         ModuleRegistry.Clear();
     }
 }

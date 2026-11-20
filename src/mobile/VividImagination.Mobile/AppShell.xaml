@@ -4,26 +4,28 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:pages="clr-namespace:VividImagination.Mobile.Pages"
-    Title="Vivid Imagination">
+    Title="Vivid Imagination"
+    Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False"
+    Shell.FlyoutBehavior="Disabled"
+    BackgroundColor="{DynamicResource AppBackground}">
 
-    <TabBar>
-        <Tab Title="Explore" Route="feed">
-            <ShellContent Title="Feed"
-                          ContentTemplate="{DataTemplate pages:FeedPage}"
-                          Route="feedpage" />
-        </Tab>
+    <FlyoutItem FlyoutDisplayOptions="AsMultipleItems">
+        <ShellContent Title="Feed"
+                      ContentTemplate="{DataTemplate pages:FeedPage}"
+                      Route="feedpage" />
 
-        <Tab Title="Share" Route="upload">
-            <ShellContent Title="Upload"
-                          ContentTemplate="{DataTemplate pages:PhotoUploadPage}"
-                          Route="uploadpage" />
-        </Tab>
+        <ShellContent Title="Upload"
+                      ContentTemplate="{DataTemplate pages:PhotoUploadPage}"
+                      Route="uploadpage" />
 
-        <Tab Title="Profile" Route="profile">
-            <ShellContent Title="Profile"
-                          ContentTemplate="{DataTemplate pages:ProfilePage}"
-                          Route="profilepage" />
-        </Tab>
-    </TabBar>
+        <ShellContent Title="Review"
+                      ContentTemplate="{DataTemplate pages:ReviewQueuePage}"
+                      Route="reviewpage" />
+
+        <ShellContent Title="Me"
+                      ContentTemplate="{DataTemplate pages:ProfilePage}"
+                      Route="profilepage" />
+    </FlyoutItem>
 
 </Shell>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="VividImagination.Mobile.Pages.Controls.OfflineFallbackView">
+
+    <!-- Exception 2: Standalone 'page didn't load' view uses plain hex values -->
+    <Grid BackgroundColor="#0D0B0A"
+          MaximumWidthRequest="450"
+          HorizontalOptions="Center"
+          Padding="24">
+
+        <Grid.Background>
+            <RadialGradientBrush Center="0.5,0.0" Radius="0.85">
+                <GradientStop Color="#2EFF551C" Offset="0.0" />
+                <GradientStop Color="#000D0B0A" Offset="0.75" />
+            </RadialGradientBrush>
+        </Grid.Background>
+
+        <Border StrokeShape="RoundRectangle 24"
+                BackgroundColor="#161311"
+                Stroke="#17FFFFFF"
+                StrokeThickness="1"
+                VerticalOptions="Center"
+                Padding="28,36">
+
+            <VerticalStackLayout Spacing="16" HorizontalOptions="Center">
+                <Border StrokeShape="RoundRectangle 20"
+                        WidthRequest="68"
+                        HeightRequest="68"
+                        BackgroundColor="#221D1A"
+                        Stroke="#17FFFFFF"
+                        StrokeThickness="1"
+                        HorizontalOptions="Center">
+                    <Label Text="📡"
+                           FontSize="32"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
+
+                <!-- Wordmark with vermilion dot -->
+                <Label HorizontalOptions="Center">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="Vivid Imagination"
+                                  FontFamily="SyneBold"
+                                  FontSize="22"
+                                  FontAttributes="Bold"
+                                  TextColor="#F5F0EB" />
+                            <Span Text=" •"
+                                  FontFamily="SyneBold"
+                                  FontSize="22"
+                                  FontAttributes="Bold"
+                                  TextColor="#FF551C" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+
+                <Label Text="Page Didn't Load"
+                       FontFamily="SyneBold"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#F5F0EB"
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="We couldn't connect to the Vivid servers. Please check your internet connection or verify the active OpenAPI endpoint."
+                       FontFamily="ManropeRegular"
+                       FontSize="14"
+                       TextColor="#A89F95"
+                       HorizontalTextAlignment="Center" />
+
+                <!-- 56px Tall Vermilion Pill Button with Glow -->
+                <Button x:Name="RetryButton"
+                        Text="Retry Connection"
+                        BackgroundColor="#FF551C"
+                        TextColor="#FFFFFF"
+                        FontFamily="SyneBold"
+                        FontSize="16"
+                        CornerRadius="28"
+                        HeightRequest="56"
+                        Margin="0,12,0,0"
+                        Clicked="OnRetryClicked">
+                    <Button.Shadow>
+                        <Shadow Brush="#FF551C" Offset="0,4" Radius="16" Opacity="0.4" />
+                    </Button.Shadow>
+                </Button>
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+
+</ContentView>

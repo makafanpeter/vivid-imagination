@@ -26,12 +26,11 @@ namespace VividImagination.Shared.Infrastructure.Caching
 
 
 
-
-        public async Task Execute(IJobExecutionContext context)
+        public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken = default)
         {
-            logger.LogInformation("{Type}  is starting",GetType().Name);
-             await ClearCache();
-            logger.LogInformation("{Type}  is completed",GetType().Name);
+            logger.LogInformation("{Type}  is starting", GetType().Name);
+            await ClearCache();
+            logger.LogInformation("{Type}  is completed", GetType().Name);
         }
     }
 }

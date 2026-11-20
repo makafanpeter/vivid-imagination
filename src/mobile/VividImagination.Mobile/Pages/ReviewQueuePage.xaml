@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VividImagination.Mobile.ViewModels"
+             xmlns:controls="clr-namespace:VividImagination.Mobile.Pages.Controls"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="VividImagination.Mobile.Pages.ReviewQueuePage"
+             x:DataType="vm:ReviewQueueViewModel"
+             Title="Review"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource AppBackground}">
+
+    <controls:ResponsiveContainer ActiveTab="Review">
+        <Grid RowDefinitions="Auto,*"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
+
+            <!-- 1. Header: 'Review queue' with waiting count -->
+            <Grid Grid.Row="0"
+                  BackgroundColor="#E60D0B0A"
+                  Padding="20,16,20,14"
+                  ColumnDefinitions="*,Auto"
+                  ZIndex="10">
+
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="{Binding WaitingCountText}"
+                           FontFamily="SyneBold"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="{StaticResource TextPrimary}" />
+
+                    <Label Text="Moderator actions for community safety"
+                           FontFamily="ManropeRegular"
+                           FontSize="12"
+                           TextColor="{StaticResource TextMuted}" />
+                </VerticalStackLayout>
+
+                <Border Grid.Column="1"
+                        StrokeShape="RoundRectangle 9999"
+                        BackgroundColor="#26F59E0B"
+                        Stroke="{StaticResource WarningAmber}"
+                        StrokeThickness="1"
+                        Padding="10,4"
+                        VerticalOptions="Center">
+                    <Label Text="🛡️ Moderator"
+                           FontFamily="ManropeSemiBold"
+                           FontSize="11"
+                           TextColor="{StaticResource WarningAmber}" />
+                </Border>
+
+                <BoxView HeightRequest="1"
+                         Color="{StaticResource BorderGlow}"
+                         VerticalOptions="End"
+                         Grid.ColumnSpan="2" />
+            </Grid>
+
+            <!-- 2. Vertical list of photos awaiting review -->
+            <ScrollView Grid.Row="1" Margin="0,0,0,72">
+                <VerticalStackLayout Spacing="20" Padding="14,16,14,24">
+
+                    <!-- Empty Queue State -->
+                    <VerticalStackLayout HorizontalOptions="Center"
+                                         Spacing="12"
+                                         Padding="40"
+                                         IsVisible="{Binding IsEmpty}">
+                        <Border StrokeShape="RoundRectangle 32"
+                                WidthRequest="64"
+                                HeightRequest="64"
+                                BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                Stroke="{StaticResource BorderGlow}"
+                                StrokeThickness="1"
+                                HorizontalOptions="Center">
+                            <Label Text="✨" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
+                        </Border>
+
+                        <Label Text="Review queue is clear"
+                               FontFamily="SyneBold"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}"
+                               HorizontalTextAlignment="Center" />
+
+                        <Label Text="All community photos comply with current safety guidelines."
+                               FontFamily="ManropeRegular"
+                               FontSize="13"
+                               TextColor="{StaticResource TextMuted}"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+
+                    <!-- Cards Stream -->
+                    <CollectionView ItemsSource="{Binding QueueItems}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ReviewItemViewModel">
+                                <!-- Card Container -->
+                                <Border StrokeShape="RoundRectangle 20"
+                                        Stroke="{StaticResource BorderGlow}"
+                                        StrokeThickness="1"
+                                        BackgroundColor="{StaticResource AppSurface}"
+                                        Margin="0,0,0,18"
+                                        Padding="0">
+
+                                    <VerticalStackLayout Spacing="0">
+                                        <!-- Photo Image -->
+                                        <Image Source="{Binding ImageUrl}"
+                                               Aspect="AspectFill"
+                                               HeightRequest="240"
+                                               HorizontalOptions="Fill" />
+
+                                        <VerticalStackLayout Spacing="12" Padding="14">
+                                            <!-- Caption -->
+                                            <Label Text="{Binding Caption}"
+                                                   FontFamily="ManropeRegular"
+                                                   FontSize="13"
+                                                   TextColor="{StaticResource TextPrimary}" />
+
+                                            <!-- Metric Chips: Reports & Safety Percentages -->
+                                            <FlexLayout Wrap="Wrap" AlignItems="Center">
+                                                <!-- Report Count Chip -->
+                                                <Border StrokeShape="RoundRectangle 12"
+                                                        BackgroundColor="#26EF4444"
+                                                        StrokeThickness="0"
+                                                        Padding="8,4"
+                                                        Margin="0,0,6,6">
+                                                    <Label Text="{Binding ReportCountText}"
+                                                           FontFamily="ManropeBold"
+                                                           FontSize="11"
+                                                           TextColor="{StaticResource DestructiveRed}" />
+                                                </Border>
+
+                                                <!-- Adult Score Chip -->
+                                                <Border StrokeShape="RoundRectangle 12"
+                                                        BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                                        StrokeThickness="0"
+                                                        Padding="8,4"
+                                                        Margin="0,0,6,6">
+                                                    <Label Text="{Binding AdultScoreText}"
+                                                           FontFamily="ManropeSemiBold"
+                                                           FontSize="11"
+                                                           TextColor="{StaticResource TextMuted}" />
+                                                </Border>
+
+                                                <!-- Violence Score Chip -->
+                                                <Border StrokeShape="RoundRectangle 12"
+                                                        BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                                        StrokeThickness="0"
+                                                        Padding="8,4"
+                                                        Margin="0,0,6,6">
+                                                    <Label Text="{Binding ViolenceScoreText}"
+                                                           FontFamily="ManropeSemiBold"
+                                                           FontSize="11"
+                                                           TextColor="{StaticResource TextMuted}" />
+                                                </Border>
+
+                                                <!-- Hate Score Chip -->
+                                                <Border StrokeShape="RoundRectangle 12"
+                                                        BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                                        StrokeThickness="0"
+                                                        Padding="8,4"
+                                                        Margin="0,0,6,6">
+                                                    <Label Text="{Binding HateScoreText}"
+                                                           FontFamily="ManropeSemiBold"
+                                                           FontSize="11"
+                                                           TextColor="{StaticResource TextMuted}" />
+                                                </Border>
+                                            </FlexLayout>
+
+                                            <!-- 3 Action Buttons: Approve / Sensitive (Amber) / Reject (Red) -->
+                                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8" Margin="0,4,0,0">
+                                                <!-- Approve Button (Green pill) -->
+                                                <Button Grid.Column="0"
+                                                        Text="Approve"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ReviewQueueViewModel}}, Path=ApproveCommand, x:DataType={x:Type vm:ReviewQueueViewModel}}"
+                                                        CommandParameter="{Binding .}"
+                                                        BackgroundColor="#2622C55E"
+                                                        TextColor="{StaticResource SuccessGreen}"
+                                                        BorderColor="{StaticResource SuccessGreen}"
+                                                        BorderWidth="1"
+                                                        FontFamily="ManropeSemiBold"
+                                                        FontSize="12"
+                                                        CornerRadius="20"
+                                                        HeightRequest="40"
+                                                        Padding="0" />
+
+                                                <!-- Sensitive Button (Amber pill) -->
+                                                <Button Grid.Column="1"
+                                                        Text="Sensitive"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ReviewQueueViewModel}}, Path=MarkSensitiveCommand, x:DataType={x:Type vm:ReviewQueueViewModel}}"
+                                                        CommandParameter="{Binding .}"
+                                                        BackgroundColor="#26F59E0B"
+                                                        TextColor="{StaticResource WarningAmber}"
+                                                        BorderColor="{StaticResource WarningAmber}"
+                                                        BorderWidth="1"
+                                                        FontFamily="ManropeSemiBold"
+                                                        FontSize="12"
+                                                        CornerRadius="20"
+                                                        HeightRequest="40"
+                                                        Padding="0" />
+
+                                                <!-- Reject Button (Red pill) -->
+                                                <Button Grid.Column="2"
+                                                        Text="Reject"
+                                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ReviewQueueViewModel}}, Path=RejectCommand, x:DataType={x:Type vm:ReviewQueueViewModel}}"
+                                                        CommandParameter="{Binding .}"
+                                                        BackgroundColor="#26EF4444"
+                                                        TextColor="{StaticResource DestructiveRed}"
+                                                        BorderColor="{StaticResource DestructiveRed}"
+                                                        BorderWidth="1"
+                                                        FontFamily="ManropeSemiBold"
+                                                        FontSize="12"
+                                                        CornerRadius="20"
+                                                        HeightRequest="40"
+                                                        Padding="0" />
+                                            </Grid>
+                                        </VerticalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+    </controls:ResponsiveContainer>
+
+</ContentPage>

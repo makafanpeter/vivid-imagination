@@ -1,9 +1,11 @@
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using VividImagination.Modules.Media.Contracts.Events;
 using VividImagination.Modules.Moderation.Contracts.Events;
 using VividImagination.Modules.Moderation.Persistence.Documents;
 using VividImagination.Modules.Moderation.Services;
+using VividImagination.Shared.Infrastructure.Configurations;
 using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Moderation.Features.Reviews.Consumers;
@@ -12,7 +14,7 @@ public class PhotoUploadedConsumer(
     IAmazonRekognitionService rekognitionService,
     IMongoRepository<Review, Guid> repository,
     IPublishEndpoint publishEndpoint,
-    ILogger<PhotoUploadedConsumer> logger)
+    ILogger<PhotoUploadedConsumer> logger , IOptions<ApplicationSettings> options)
     : IConsumer<PhotoUploadedIntegrationEvent>
 {
     public async Task Consume(ConsumeContext<PhotoUploadedIntegrationEvent> context)
@@ -20,7 +22,8 @@ public class PhotoUploadedConsumer(
         var message = context.Message;
         logger.LogInformation("Processing Amazon Rekognition inspection for PhotoId: {PhotoId}, Key: {StorageKey}", message.PhotoId, message.StorageKey);
 
-        var result = await rekognitionService.InspectPhotoAsync("vivid-imagination-photos", message.StorageKey, context.CancellationToken);
+        var bucketName = options.Value.Storage.S3.BucketName;
+        var result = await rekognitionService.InspectPhotoAsync(bucketName , message.StorageKey, context.CancellationToken);
 
         var review = new Review
         {

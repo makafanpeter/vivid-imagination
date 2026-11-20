@@ -28,17 +28,32 @@ public sealed class AuthService(
     public UserProfile? CurrentUser { get; private set; }
     public event EventHandler<UserProfile?>? AuthStateChanged;
 
+    public void SetManualProfile(UserProfile profile)
+    {
+        CurrentUser = profile;
+        AuthStateChanged?.Invoke(this, CurrentUser);
+    }
+
     public async Task<bool> LoginAsync(string username, string password, CancellationToken ct = default)
     {
         try
         {
-            var content = new FormUrlEncodedContent(
-            [
-                new KeyValuePair<string, string>("grant_type", "password"),
-                new KeyValuePair<string, string>("username", username),
-                new KeyValuePair<string, string>("password", password),
-                new KeyValuePair<string, string>("scope", "offline_access openid profile")
-            ]);
+            var authConfig = configurationService.Options.Auth;
+            var parameters = new List<KeyValuePair<string, string>>
+            {
+                new("grant_type", "password"),
+                new("username", username),
+                new("password", password),
+                new("scope", authConfig.Scope),
+                new("client_id", authConfig.ClientId)
+            };
+
+            if (!string.IsNullOrWhiteSpace(authConfig.ClientSecret))
+            {
+                parameters.Add(new("client_secret", authConfig.ClientSecret));
+            }
+
+            var content = new FormUrlEncodedContent(parameters);
 
             var tokenUrl = configurationService.GetTokenUrl();
             var response = await httpClient.PostAsync(tokenUrl, content, ct);

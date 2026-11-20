@@ -6,113 +6,96 @@
              x:Class="VividImagination.Mobile.Pages.Controls.FeedItemCard"
              x:DataType="vm:FeedItemViewModel">
 
-    <Border StrokeThickness="1"
-            Stroke="#22000000"
-            StrokeShape="RoundRectangle 16"
-            BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
-            Margin="12,8"
-            Padding="0">
+    <!-- Edge-to-edge card with no frame or padding around the image -->
+    <VerticalStackLayout Spacing="10" Margin="0,0,0,28">
 
-        <VerticalStackLayout Spacing="0">
-            <!-- Header: Creator & Options -->
-            <Grid ColumnDefinitions="Auto,*,Auto"
-                  Padding="14,12"
-                  VerticalOptions="Center">
+        <!-- 1. The image: Full width, edge-to-edge, with sensitive cover if needed -->
+        <controls:BlurShieldView BindingContext="{Binding .}" />
 
-                <!-- Avatar Circle -->
-                <Border Grid.Column="0"
-                        WidthRequest="38"
-                        HeightRequest="38"
-                        StrokeShape="RoundRectangle 19"
-                        BackgroundColor="#512BD4"
-                        StrokeThickness="0">
-                    <Label Text="👤"
-                           FontSize="18"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center" />
-                </Border>
+        <!-- 3. The action row under the image -->
+        <Grid ColumnDefinitions="Auto,*,Auto"
+              Padding="14,0,14,0"
+              VerticalOptions="Center">
 
-                <!-- Creator Name & Timestamp -->
-                <VerticalStackLayout Grid.Column="1"
-                                     Margin="10,0,0,0"
-                                     VerticalOptions="Center">
-                    <Label Text="Vivid Creator"
-                           FontAttributes="Bold"
+            <!-- Vote Pill: Rounded grey capsule holding up arrow, net score, and down arrow -->
+            <Border Grid.Column="0"
+                    StrokeShape="RoundRectangle 9999"
+                    Stroke="{StaticResource BorderGlow}"
+                    StrokeThickness="1"
+                    BackgroundColor="{StaticResource AppSurfaceElevated}"
+                    HeightRequest="40"
+                    Padding="10,0"
+                    VerticalOptions="Start">
+
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Center">
+                    <!-- Up Arrow -->
+                    <Label Text="{Binding UpvoteGlyph}"
+                           FontFamily="ManropeBold"
                            FontSize="14"
-                           TextColor="{AppThemeBinding Light=#1F1F1F, Dark=White}" />
-                    <Label Text="{Binding FormattedDate}"
-                           FontSize="12"
-                           TextColor="{AppThemeBinding Light=#757575, Dark=#A0A0A0}" />
-                </VerticalStackLayout>
+                           TextColor="{Binding IsUpvoted, Converter={StaticResource AccentVermilionOrMutedConverter}}"
+                           VerticalOptions="Center"
+                           Padding="4,6">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding UpvoteCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
 
-                <!-- Report Button -->
-                <Button Grid.Column="2"
-                        Text="🚩 Report"
-                        FontSize="12"
-                        TextColor="{AppThemeBinding Light=#D32F2F, Dark=#FF8A80}"
-                        BackgroundColor="Transparent"
-                        Padding="8,0"
-                        HeightRequest="32"
-                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeedViewModel}}, Path=ReportCommand}"
-                        CommandParameter="{Binding .}" />
-            </Grid>
+                    <!-- Score (Upvotes - Downvotes) -->
+                    <Label Text="{Binding NetScore}"
+                           FontFamily="ManropeSemiBold"
+                           FontSize="13"
+                           TextColor="{StaticResource TextPrimary}"
+                           VerticalOptions="Center" />
 
-            <!-- Media Section with Blur Shield -->
-            <controls:BlurShieldView BindingContext="{Binding .}" />
+                    <!-- Down Arrow -->
+                    <Label Text="{Binding DownvoteGlyph}"
+                           FontFamily="ManropeBold"
+                           FontSize="14"
+                           TextColor="{Binding IsDownvoted, Converter={StaticResource DestructiveRedOrMutedConverter}}"
+                           VerticalOptions="Center"
+                           Padding="4,6">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding DownvoteCommand}" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
+            </Border>
 
-            <!-- Social Action Bar -->
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto"
-                  Padding="14,10,14,6"
-                  VerticalOptions="Center">
+            <!-- Caption beside it, with tags underneath in orange, each with a # -->
+            <VerticalStackLayout Grid.Column="1"
+                                 Margin="12,0,8,0"
+                                 Spacing="3"
+                                 VerticalOptions="Center">
+                <!-- Caption: Wraps if long -->
+                <Label Text="{Binding Caption}"
+                       FontFamily="ManropeRegular"
+                       FontSize="13"
+                       TextColor="{StaticResource TextPrimary}"
+                       LineBreakMode="WordWrap" />
 
-                <!-- Upvote Button -->
-                <Button Grid.Column="0"
-                        Text="{Binding Upvotes, StringFormat='▲ {0}'}"
-                        FontAttributes="Bold"
-                        FontSize="13"
-                        CornerRadius="18"
-                        HeightRequest="36"
-                        Padding="14,0"
-                        Margin="0,0,8,0"
-                        BackgroundColor="{AppThemeBinding Light=#F0EEFF, Dark=#2B2446}"
-                        TextColor="#512BD4"
-                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeedViewModel}}, Path=UpvoteCommand}"
-                        CommandParameter="{Binding .}" />
+                <!-- Tags: In hot orange vermilion, truncated with ellipsis on overflow -->
+                <Label Text="{Binding TagsLine}"
+                       FontFamily="ManropeSemiBold"
+                       FontSize="12"
+                       TextColor="{StaticResource AccentVermilion}"
+                       LineBreakMode="TailTruncation"
+                       MaxLines="1" />
+            </VerticalStackLayout>
 
-                <!-- Downvote Button -->
-                <Button Grid.Column="1"
-                        Text="{Binding Downvotes, StringFormat='▼ {0}'}"
-                        FontAttributes="Bold"
-                        FontSize="13"
-                        CornerRadius="18"
-                        HeightRequest="36"
-                        Padding="14,0"
-                        BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A2A}"
-                        TextColor="{AppThemeBinding Light=#616161, Dark=#B0B0B0}"
-                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:FeedViewModel}}, Path=DownvoteCommand}"
-                        CommandParameter="{Binding .}" />
-
-                <!-- Dynamic Rank Score -->
-                <Border Grid.Column="3"
-                        StrokeShape="RoundRectangle 12"
-                        BackgroundColor="{AppThemeBinding Light=#F2F2F2, Dark=#2E2E38}"
-                        StrokeThickness="0"
-                        Padding="10,4"
-                        VerticalOptions="Center">
-                    <Label Text="{Binding FormattedScore}"
-                           FontSize="12"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light=#424242, Dark=#E0E0E0}" />
-                </Border>
-            </Grid>
-
-            <!-- Caption Area -->
-            <Label Text="{Binding Caption}"
-                   FontSize="14"
-                   LineBreakMode="WordWrap"
-                   TextColor="{AppThemeBinding Light=#242424, Dark=#E8E8E8}"
-                   Padding="14,4,14,14" />
-        </VerticalStackLayout>
-    </Border>
+            <!-- Small flag on the far right to report -->
+            <Border Grid.Column="2"
+                    StrokeThickness="0"
+                    BackgroundColor="Transparent"
+                    VerticalOptions="Start"
+                    Padding="6,8">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding ReportCommand}" />
+                </Border.GestureRecognizers>
+                <Label Text="🚩"
+                       FontSize="16"
+                       VerticalOptions="Center" />
+            </Border>
+        </Grid>
+    </VerticalStackLayout>
 
 </ContentView>

@@ -12,16 +12,12 @@
     "ParameterValue": "50"
   },
   {
-    "ParameterKey": "CloudflareCertPem",
-    "ParameterValue": "-----BEGIN ARGO TUNNEL TOKEN-----\n<base64 lines>\n-----END ARGO TUNNEL TOKEN-----\n"
+    "ParameterKey": "ArtifactBucket",
+    "ParameterValue": ""
   },
   {
     "ParameterKey": "GhcrUsername",
     "ParameterValue": "your-github-username"
-  },
-  {
-    "ParameterKey": "GhcrToken",
-    "ParameterValue": "ghp_yourPersonalAccessTokenWithReadPackagesScope"
   },
   {
     "ParameterKey": "GhcrImageRepository",
@@ -36,20 +32,8 @@
     "ParameterValue": "vivid_user"
   },
   {
-    "ParameterKey": "PostgresPassword",
-    "ParameterValue": "ReplaceWithStrongPostgresPassword123!"
-  },
-  {
     "ParameterKey": "PostgresDb",
     "ParameterValue": "vivid_imagination"
-  },
-  {
-    "ParameterKey": "JwtSecretKey",
-    "ParameterValue": "vivid-imagination-prod-jwt-secret-key-at-least-32-chars!"
-  },
-  {
-    "ParameterKey": "EncryptionKey",
-    "ParameterValue": "vivid-imagination-prod-encryption-key-32-chars!"
   },
   {
     "ParameterKey": "AppBaseUrl",

@@ -13,15 +13,26 @@ namespace VividImagination.Mobile
 
             // 1. Build Hierarchical Configuration from Embedded/Raw Assets
             var configBuilder = new ConfigurationBuilder();
-            try
+            var memoryStreams = new List<MemoryStream>();
+
+            void AddJsonAsset(string filename)
             {
-                using var baseStream = FileSystem.OpenAppPackageFileAsync("appsettings.json").GetAwaiter().GetResult();
-                configBuilder.AddJsonStream(baseStream);
+                try
+                {
+                    using var stream = FileSystem.OpenAppPackageFileAsync(filename).GetAwaiter().GetResult();
+                    var memoryStream = new MemoryStream();
+                    stream.CopyTo(memoryStream);
+                    memoryStream.Position = 0;
+                    memoryStreams.Add(memoryStream);
+                    configBuilder.AddJsonStream(memoryStream);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Could not load {filename}: {ex.Message}");
+                }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Could not load appsettings.json: {ex.Message}");
-            }
+
+            AddJsonAsset("appsettings.json");
 
 #if DEBUG
             const string environment = "Development";
@@ -29,18 +40,15 @@ namespace VividImagination.Mobile
             const string environment = "Production";
 #endif
 
-            try
-            {
-                using var envStream = FileSystem.OpenAppPackageFileAsync($"appsettings.{environment}.json").GetAwaiter().GetResult();
-                configBuilder.AddJsonStream(envStream);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Could not load appsettings.{environment}.json: {ex.Message}");
-            }
+            AddJsonAsset($"appsettings.{environment}.json");
 
             var configuration = configBuilder.Build();
             builder.Configuration.AddConfiguration(configuration);
+
+            foreach (var stream in memoryStreams)
+            {
+                stream.Dispose();
+            }
 
             builder
                 .UseMauiApp<App>()
@@ -56,6 +64,9 @@ namespace VividImagination.Mobile
                 })
                 .ConfigureFonts(fonts =>
                 {
+                    fonts.AddFont("Syne-Bold.ttf", "SyneBold");
+                    fonts.AddFont("Manrope-Regular.ttf", "ManropeRegular");
+                    fonts.AddFont("Manrope-SemiBold.ttf", "ManropeSemiBold");
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                     fonts.AddFont("SegoeUI-Semibold.ttf", "SegoeSemibold");
@@ -96,16 +107,20 @@ namespace VividImagination.Mobile
             .AddHttpMessageHandler<AuthenticationHeaderHandler>();
 
             // ViewModels
+            builder.Services.AddSingleton<IToastService>(ToastService.Current);
             builder.Services.AddSingleton<FeedViewModel>();
             builder.Services.AddTransient<PhotoUploadViewModel>();
             builder.Services.AddSingleton<ProfileViewModel>();
             builder.Services.AddTransient<LoginViewModel>();
+            builder.Services.AddTransient<ReviewQueueViewModel>();
 
-            // Pages
+            // Pages & Shell
+            builder.Services.AddSingleton<AppShell>();
             builder.Services.AddSingleton<FeedPage>();
             builder.Services.AddTransient<PhotoUploadPage>();
             builder.Services.AddSingleton<ProfilePage>();
             builder.Services.AddTransient<LoginPage>();
+            builder.Services.AddTransient<ReviewQueuePage>();
 
             var app = builder.Build();
             AppConfig.Service = app.Services.GetRequiredService<IConfigurationService>();

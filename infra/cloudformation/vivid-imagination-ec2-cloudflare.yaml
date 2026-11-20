@@ -30,19 +30,14 @@ Parameters:
     MaxValue: 500
     Description: Root EBS GP3 volume storage in GB
 
-  CloudflareCertPem:
+  ArtifactBucket:
     Type: String
-    NoEcho: true
-    Description: Contents of ~/.cloudflared/cert.pem generated via 'cloudflared tunnel login' to automate tunnel creation and DNS routing
+    Default: ""
+    Description: S3 bucket containing deployment assets (docker-compose, deploy-app, env template). Defaults to vivid-artifacts-<account>-<region>
 
   GhcrUsername:
     Type: String
     Description: GitHub username for authenticating to GitHub Container Registry (ghcr.io)
-
-  GhcrToken:
-    Type: String
-    NoEcho: true
-    Description: GitHub Personal Access Token (PAT) with read:packages scope to pull private images
 
   GhcrImageRepository:
     Type: String
@@ -59,28 +54,10 @@ Parameters:
     Default: vivid_user
     Description: PostgreSQL administrative username
 
-  PostgresPassword:
-    Type: String
-    NoEcho: true
-    MinLength: 8
-    Description: PostgreSQL administrative password
-
   PostgresDb:
     Type: String
     Default: vivid_imagination
     Description: PostgreSQL primary database name
-
-  JwtSecretKey:
-    Type: String
-    NoEcho: true
-    MinLength: 32
-    Description: Secret key for JWT and application signing (min 32 characters)
-
-  EncryptionKey:
-    Type: String
-    NoEcho: true
-    MinLength: 32
-    Description: Symmetric encryption key for data protection (min 32 characters)
 
   AppBaseUrl:
     Type: String
@@ -104,6 +81,7 @@ Parameters:
 
 Conditions:
   HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
+  HasArtifactBucket: !Not [!Equals [!Ref ArtifactBucket, ""]]
 
 Resources:
   # ============================================================================
@@ -230,6 +208,32 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       Policies:
+        - PolicyName: VividArtifactS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !If [HasArtifactBucket, !Sub "arn:aws:s3:::${ArtifactBucket}", !Sub "arn:aws:s3:::vivid-artifacts-${AWS::AccountId}-${AWS::Region}"]
+                  - !If [HasArtifactBucket, !Sub "arn:aws:s3:::${ArtifactBucket}/*", !Sub "arn:aws:s3:::vivid-artifacts-${AWS::AccountId}-${AWS::Region}/*"]
+        - PolicyName: VividSSMSecretsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                  - ssm:GetParametersByPath
+                Resource:
+                  - !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/vivid-imagination/${EnvironmentName}/*"
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: "*"
         - PolicyName: VividPhotoS3Access
           PolicyDocument:
             Version: '2012-10-17'
@@ -292,6 +296,11 @@ Resources:
             #Throughput: 125
             Encrypted: true
             DeleteOnTermination: true
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        HttpPutResponseHopLimit: 2
+        InstanceMetadataTags: enabled
       Tags:
         - Key: Name
           Value: !Sub "${EnvironmentName}-vivid-app"
@@ -336,59 +345,66 @@ Resources:
             chown -R ec2-user:ec2-user /home/ec2-user/.ssh
           fi
 
-          echo "=== 2. Install and Configure Cloudflare Tunnel (Host Native + Config File) ==="
+          echo "=== 2. Install Cloudflare Tunnel Client (cloudflared) ==="
           curl -fsSL -o /tmp/cloudflared.rpm "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-x86_64.rpm"
           dnf install -y --allowerasing /tmp/cloudflared.rpm
           rm -f /tmp/cloudflared.rpm
-
-          APP_HOST=$(echo "${AppBaseUrl}" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
-
           mkdir -p /etc/cloudflared
-          cat <<'EOF_CERT' > /etc/cloudflared/cert.pem
-          ${CloudflareCertPem}
-          EOF_CERT
-          python3 -c "p='/etc/cloudflared/cert.pem'; d=open(p).read().replace(r'\n','\n').replace('\r','').strip()+'\n'; open(p,'w').write(d)"
-          chmod 600 /etc/cloudflared/cert.pem
 
-          TUNNEL_NAME="${EnvironmentName}-vivid-tunnel"
+          echo "=== 3. Setup Vivid Imagination Directory & Download Assets from S3 ==="
+          APP_DIR="/opt/vivid-imagination"
+          mkdir -p "$APP_DIR/scripts/postgres"
 
-          CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME" 2>&1 || true)
-          TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1 || true)
+          cat <<'EOF_SQL' > "$APP_DIR/scripts/postgres/init-schemas.sql"
+          -- Vivid Imagination Multi-Schema Initializer
+          CREATE SCHEMA IF NOT EXISTS identity;
+          CREATE SCHEMA IF NOT EXISTS media;
+          CREATE SCHEMA IF NOT EXISTS social;
+          EOF_SQL
 
-          if [ -z "$TUNNEL_ID" ]; then
-            echo "Tunnel $TUNNEL_NAME may already exist. Cleaning up and recreating..."
-            cloudflared tunnel --origincert /etc/cloudflared/cert.pem delete -f "$TUNNEL_NAME" 2>/dev/null || true
-            CREATE_OUT=$(cloudflared tunnel --origincert /etc/cloudflared/cert.pem create "$TUNNEL_NAME" 2>&1 || true)
-            TUNNEL_ID=$(echo "$CREATE_OUT" | grep -oE '[a-f0-9-]{36}' | head -1 || true)
+          ARTIFACT_BUCKET="${ArtifactBucket}"
+          if [ -z "$ARTIFACT_BUCKET" ]; then
+            ARTIFACT_BUCKET="vivid-artifacts-${AWS::AccountId}-${AWS::Region}"
           fi
 
-          echo "Tunnel provisioned with ID: $TUNNEL_ID"
+          echo "Fetching deployment assets from S3 bucket: $ARTIFACT_BUCKET"
+          aws s3 cp "s3://$ARTIFACT_BUCKET/.env.template" "$APP_DIR/.env"
+          aws s3 cp "s3://$ARTIFACT_BUCKET/docker-compose.prod.yml" "$APP_DIR/docker-compose.prod.yml"
+          aws s3 cp "s3://$ARTIFACT_BUCKET/deploy-app.sh" "/usr/local/bin/deploy-app"
+          chmod +x /usr/local/bin/deploy-app
+          chmod 644 "$APP_DIR/docker-compose.prod.yml"
+          chmod 600 "$APP_DIR/.env"
 
-          if [ -n "$TUNNEL_ID" ] && [ -f "/root/.cloudflared/$TUNNEL_ID.json" ]; then
-            cp -f "/root/.cloudflared/$TUNNEL_ID.json" "/etc/cloudflared/$TUNNEL_ID.json"
-          fi
-          if [ -n "$TUNNEL_ID" ] && [ -f "/etc/cloudflared/$TUNNEL_ID.json" ]; then
-            chmod 600 "/etc/cloudflared/$TUNNEL_ID.json"
-          fi
+          # Inject Non-Sensitive CloudFormation Parameters into .env
+          APP_HOST=$(echo "${AppBaseUrl}" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
+          sed -i "s|^API_IMAGE=.*|API_IMAGE=${GhcrImageRepository}|" "$APP_DIR/.env"
+          sed -i "s|^APP_TAG=.*|APP_TAG=${AppImageTag}|" "$APP_DIR/.env"
+          sed -i "s|^ASPNETCORE_ENVIRONMENT=.*|ASPNETCORE_ENVIRONMENT=Production|" "$APP_DIR/.env"
+          sed -i "s|^AWS__Region=.*|AWS__Region=${AWS::Region}|" "$APP_DIR/.env"
+          sed -i "s|^AWS__Bucket=.*|AWS__Bucket=${PhotoBucket}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__General__PublicBucket=.*|ApplicationSettings__General__PublicBucket=${PhotoBucket}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__General__StorageType=.*|ApplicationSettings__General__StorageType=S3|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__OpenIdConnectSettings__Authority=.*|ApplicationSettings__OpenIdConnectSettings__Authority=${AppBaseUrl}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__OpenIdConnectSettings__IssuerUri=.*|ApplicationSettings__OpenIdConnectSettings__IssuerUri=${AppBaseUrl}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__Storage__S3__Region=.*|ApplicationSettings__Storage__S3__Region=${AWS::Region}|" "$APP_DIR/.env"
+          sed -i "s|^ApplicationSettings__Storage__S3__BucketName=.*|ApplicationSettings__Storage__S3__BucketName=${PhotoBucket}|" "$APP_DIR/.env"
 
-          echo "Configuring DNS routes in Cloudflare for $APP_HOST and ssh-$APP_HOST..."
-          cloudflared tunnel --origincert /etc/cloudflared/cert.pem route dns -f "$TUNNEL_NAME" "$APP_HOST" || true
-          cloudflared tunnel --origincert /etc/cloudflared/cert.pem route dns -f "$TUNNEL_NAME" "ssh-$APP_HOST" || true
+          echo "=== 4. Securely Fetch Secrets from SSM & Provision Cloudflare Tunnel ==="
+          aws s3 cp "s3://$ARTIFACT_BUCKET/bootstrap-secrets.py" "/tmp/bootstrap-secrets.py"
 
-          cat <<EOF_CF_CONFIG > /etc/cloudflared/config.yml
-          tunnel: $TUNNEL_ID
-          credentials-file: /etc/cloudflared/$TUNNEL_ID.json
-          ingress:
-            - hostname: $APP_HOST
-              service: http://127.0.0.1:8080
-              originRequest:
-                connectTimeout: 30s
-                noTLSVerify: false
-            - hostname: ssh-$APP_HOST
-              service: ssh://127.0.0.1:22
-            - service: http_status:404
-          EOF_CF_CONFIG
-          chmod 600 /etc/cloudflared/config.yml
+          # Tracing disabled to strictly prevent printing secrets or cert to logs
+          set +x
+          export AWS_REGION="${AWS::Region}"
+          export ENV_NAME="${EnvironmentName}"
+          export APP_HOST="$APP_HOST"
+          export TUNNEL_NAME="${EnvironmentName}-vivid-tunnel"
+          export PG_USER="${PostgresUser}"
+          export PG_DB="${PostgresDb}"
+          export GHCR_USER="${GhcrUsername}"
+
+          python3 /tmp/bootstrap-secrets.py
+          rm -f /tmp/bootstrap-secrets.py
+          set -x
 
           cat <<EOF_CF_SERVICE > /etc/systemd/system/cloudflared.service
           [Unit]
@@ -411,67 +427,24 @@ Resources:
           systemctl enable cloudflared
           systemctl start cloudflared
 
-          echo "=== 3. Setup Vivid Imagination Directory & Config ==="
-          APP_DIR="/opt/vivid-imagination"
-          mkdir -p "$APP_DIR/scripts/postgres"
-
-          cat <<'EOF_SQL' > "$APP_DIR/scripts/postgres/init-schemas.sql"
-          -- Vivid Imagination Multi-Schema Initializer
-          CREATE SCHEMA IF NOT EXISTS identity;
-          CREATE SCHEMA IF NOT EXISTS media;
-          CREATE SCHEMA IF NOT EXISTS social;
-          EOF_SQL
-
-          # Write Base Environment Configuration from infra/.env (gzipped base64)
-          cat <<'EOF_GZ_ENV' | base64 -d | gzip -d > "$APP_DIR/.env"
-          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
-          EOF_GZ_ENV
-
-          # Inject Dynamic CloudFormation Parameters into .env
-          sed -i "s|^API_IMAGE=.*|API_IMAGE=${GhcrImageRepository}|" "$APP_DIR/.env"
-          sed -i "s|^APP_TAG=.*|APP_TAG=${AppImageTag}|" "$APP_DIR/.env"
-          sed -i "s|^ASPNETCORE_ENVIRONMENT=.*|ASPNETCORE_ENVIRONMENT=Production|" "$APP_DIR/.env"
-          sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=${PostgresUser}|" "$APP_DIR/.env"
-          sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PostgresPassword}|" "$APP_DIR/.env"
-          sed -i "s|^POSTGRES_DB=.*|POSTGRES_DB=${PostgresDb}|" "$APP_DIR/.env"
-          sed -i "s|^GHCR_USERNAME=.*|GHCR_USERNAME=${GhcrUsername}|" "$APP_DIR/.env"
-          sed -i "s|^GHCR_TOKEN=.*|GHCR_TOKEN=${GhcrToken}|" "$APP_DIR/.env"
-          sed -i "s|^AWS__Region=.*|AWS__Region=${AWS::Region}|" "$APP_DIR/.env"
-          sed -i "s|^AWS__Bucket=.*|AWS__Bucket=${PhotoBucket}|" "$APP_DIR/.env"
-          sed -i "s|^ApplicationSettings__General__PublicBucket=.*|ApplicationSettings__General__PublicBucket=${PhotoBucket}|" "$APP_DIR/.env"
-          sed -i "s|^ApplicationSettings__General__StorageType=.*|ApplicationSettings__General__StorageType=S3|" "$APP_DIR/.env"
-          sed -i "s|^ApplicationSettings__General__SecretKey=.*|ApplicationSettings__General__SecretKey=${JwtSecretKey}|" "$APP_DIR/.env"
-          sed -i "s|^ApplicationSettings__General__EncryptionKey=.*|ApplicationSettings__General__EncryptionKey=${EncryptionKey}|" "$APP_DIR/.env"
-          sed -i "s|^ApplicationSettings__OpenIdConnectSettings__Authority=.*|ApplicationSettings__OpenIdConnectSettings__Authority=${AppBaseUrl}|" "$APP_DIR/.env"
-          sed -i "s|^ApplicationSettings__OpenIdConnectSettings__IssuerUri=.*|ApplicationSettings__OpenIdConnectSettings__IssuerUri=${AppBaseUrl}|" "$APP_DIR/.env"
-          sed -i "s|postgres:mysecretpassword|${PostgresUser}:${PostgresPassword}|g" "$APP_DIR/.env"
-          chmod 600 "$APP_DIR/.env"
-
-          # Write Production Docker Compose File (gzipped base64)
-          cat <<'EOF_GZ_COMPOSE' | base64 -d | gzip -d > "$APP_DIR/docker-compose.prod.yml"
-          H4sIAAAAAAAC/61WbW/TMBD+3l9hVUiAhOOmZStECNTRMiZtoqyb+IBQ5MamtZbYme12VGj/nbPzsoStXXnRpFtyvjtfnnv81IbrtUi4iToI5crYhS6eERIZXfDozhkeYprmQnK/mihpKbzoWNIMwtZiLRiugn0I/LdU2wjR9IZuCh+Xa6GVzLi0xS4ITT/NLo7PJ7P4cjY5j9CTn20H9pXjleH69veM6Wg2+/LpfNzKqp3vxtTSOTUc5dSYG6UZtHS9Epqze5XGR60a8Fru61AQklqhZJGUK21N1TtG3bA/DHrwF0YHLwd9b7p+da3SVcYboRU4MYO+IrKmmqRiTir3dUrcQh0eEJNokVtTRxAhhcUmWfKMmgASIsJUcsU1Bjj1JldCWuxi2DxgpBfie/Fa+fJLTlO7BH9yVbVnYVgR+tp9fzbGs4+T09PuC9TNF7EwmlO2Qfhy52QQZo/j1/1WbgZ9Au1oGqGwZ6oGRMbVCno4qDyaWy0AQHTQAU+m5EKxeYub3hcB/jsoWeZtZeT2efaHvXBY2C0T9bXLcTpLyn124+uQ9Zlm6R4x5gCFe4KxUZYJ+V5lGZXs2VM4bYunz/8JNiC7aB/owjN8/DD7wK24JUWTZT0MJFhzjTCmec4lUzLdoA1/DOLDwfC1N1sA9rUbAO+JbtFSkgpPYgDx3yCk87mw2XUbxco5CMIBBiTA61RtD1jLzD/RyPPR0dHJxdnneDz5MLo8vai1sl4oTuRiBfVutyU5ZWwl1VLZTNwhcIfDvjfdh1ZDvxzerd+fZvnlvwlgC5A9hluGYyboQoI0isT4c3T9X6bth9RQrWBOQWIlC2guWgx48nM0PYlPzkbHE8BvmehAKLJRK42dIrqJk121biNXYBpfjI4jnFJb4/8wayBjF2Hi7yLld0gH4HpkmK96r3reFMNi3B1bEytZRbdvA2VnTLjviJAprg1xMa5NGdLS6L0yGvK0X3zrLO6Rco+EAKTnX66V5YlPJKBZZJTnsbswEGem9eKepIRrRiHmibP8B0/Q4M1bwvia2CQnNezEI/7X/CwcngFxzrVQoL99SO00PrN9zah+Oeu3hqQ2tK12PABPpyO5hevTlS/P+He6SktlajK0DOr8As7QxjRSCgAA
-          EOF_GZ_COMPOSE
-          chmod 644 "$APP_DIR/docker-compose.prod.yml"
-          chown -R ec2-user:ec2-user "$APP_DIR"
-          chmod 755 "$APP_DIR"
-          chmod 600 "$APP_DIR/.env"
-
-          echo "=== 4. Install deploy-app Helper Script ==="
-          cat <<'EOF_GZ_DEPLOY' | base64 -d | gzip -d > /usr/local/bin/deploy-app
-          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
-          EOF_GZ_DEPLOY
-          chmod +x /usr/local/bin/deploy-app
-
           # Pre-create and set permissions on DataProtection volume (UID 1654)
           docker volume create vivid-imagination_api_dataprotection || true
           chown -R 1654:1654 /var/lib/docker/volumes/*dataprotection*/_data || true
           chmod -R 770 /var/lib/docker/volumes/*dataprotection*/_data || true
+          chown -R ec2-user:ec2-user "$APP_DIR"
+          chmod 755 "$APP_DIR"
+          chmod 600 "$APP_DIR/.env"
 
           echo "=== 5. Authenticate GHCR and Launch Stack ==="
           cd "$APP_DIR"
-          if [[ -n "${GhcrToken}" ]]; then
-            echo "${GhcrToken}" | docker login ghcr.io -u "${GhcrUsername}" --password-stdin || echo "Warning: Docker login to GHCR failed. Proceeding..."
+          set +x
+          GH_TOKEN=$(grep -E '^GHCR_TOKEN=' "$APP_DIR/.env" | cut -d '=' -f2- || true)
+          GH_USER=$(grep -E '^GHCR_USERNAME=' "$APP_DIR/.env" | cut -d '=' -f2- || true)
+          if [ -n "$GH_TOKEN" ] && [ -n "$GH_USER" ]; then
+            echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_USER" --password-stdin >/dev/null 2>&1 || echo "Warning: Docker login to GHCR failed. Proceeding..."
           fi
+          unset GH_TOKEN GH_USER
+          set -x
 
           docker compose -f docker-compose.prod.yml pull || true
 
@@ -495,6 +468,10 @@ Resources:
           systemctl daemon-reload
           systemctl enable vivid-imagination
           systemctl start vivid-imagination
+
+          # Sanitize bootstrap logs to guarantee zero plaintext secrets remain
+          sed -i -E 's/(PASSWORD|SECRET|KEY|TOKEN)=[^ ]+/\1=[REDACTED]/g' /var/log/vivid-bootstrap.log 2>/dev/null || true
+          sed -i -E 's/(PASSWORD|SECRET|KEY|TOKEN)=[^ ]+/\1=[REDACTED]/g' /var/log/cloud-init-output.log 2>/dev/null || true
 
           echo "=== Stack successfully initialized! ==="
 
@@ -530,3 +507,7 @@ Outputs:
   CloudflareTunnelVerification:
     Description: Expected local ingress target for Cloudflare Tunnel
     Value: "http://localhost:8080"
+
+  ArtifactBucketName:
+    Description: S3 bucket used for deployment assets
+    Value: !If [HasArtifactBucket, !Ref ArtifactBucket, !Sub "vivid-artifacts-${AWS::AccountId}-${AWS::Region}"]

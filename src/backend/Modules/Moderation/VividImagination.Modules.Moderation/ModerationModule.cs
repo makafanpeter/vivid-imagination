@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using VividImagination.Modules.Media.Contracts.Queries;
 using VividImagination.Modules.Moderation.Controllers.v1;
 using VividImagination.Modules.Moderation.Features.Reviews.Consumers;
 using VividImagination.Modules.Moderation.Persistence;
@@ -47,6 +49,8 @@ public class ModerationModule : IAppModule, IMessagingModule
             Assembly.GetExecutingAssembly(),
             Constants.StandardScopes.ModerationApi,
             []);
+
+        services.TryAddScoped(sp => sp.GetRequiredService<IBus>().CreateRequestClient<ValidatePhotoRequest>());
         
         // Register AWS Rekognition client if AWS region is configured, else null (triggers graceful fallback)
         var awsRegion = configuration["AWS:Region"];

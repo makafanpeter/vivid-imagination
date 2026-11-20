@@ -1,6 +1,7 @@
 using MassTransit;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using VividImagination.Modules.Media.Contracts.Queries;
 using VividImagination.Modules.Moderation.Contracts.Events;
 using VividImagination.Modules.Moderation.Persistence.Documents;
 using VividImagination.Shared.Infrastructure.Exceptions;
@@ -11,11 +12,20 @@ namespace VividImagination.Modules.Moderation.Features.Reviews.Commands;
 public class UpdateModerationVerdictCommandHandler(
     IMongoRepository<Review, Guid> repository,
     IPublishEndpoint publishEndpoint,
+    IRequestClient<ValidatePhotoRequest> photoClient,
     ILogger<UpdateModerationVerdictCommandHandler> logger)
     : IRequestHandler<UpdateModerationVerdictCommand, Review>
 {
     public async Task<Review> Handle(UpdateModerationVerdictCommand request, CancellationToken ct)
     {
+        var photoResponse = await photoClient.GetResponse<PhotoValidationResponse>(
+            new ValidatePhotoRequest(request.PhotoId), ct);
+
+        if (!photoResponse.Message.Exists || photoResponse.Message.IsDeleted)
+        {
+            throw new NotFoundException($"Photo with ID '{request.PhotoId}' not found in media library.");
+        }
+
         var review = await repository.FindByIdAsync(request.PhotoId, ct)
                      ?? throw new NotFoundException($"Moderation review for photo {request.PhotoId} not found");
 

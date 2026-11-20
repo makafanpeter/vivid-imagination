@@ -1,6 +1,7 @@
 using MassTransit;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using VividImagination.Modules.Media.Contracts.Queries;
 using VividImagination.Modules.Social.Contracts.Events;
 using VividImagination.Modules.Social.Features.Votes.Dtos;
 using VividImagination.Modules.Social.Persistence;
@@ -13,6 +14,7 @@ namespace VividImagination.Modules.Social.Features.Votes.Commands;
 public class VoteOnPhotoCommandHandler(
     SocialDbContext db,
     IPublishEndpoint publisher,
+    IRequestClient<ValidatePhotoRequest> photoClient,
     ICurrentUser currentUser)
     : IRequestHandler<VoteOnPhotoCommand, VoteResult>
 {
@@ -21,6 +23,14 @@ public class VoteOnPhotoCommandHandler(
         if (currentUser.CurrentUser == null)
         {
             throw new UnAuthorizedException("You are not authorized to vote on photo");
+        }
+
+        var photoResponse = await photoClient.GetResponse<PhotoValidationResponse>(
+            new ValidatePhotoRequest(request.PhotoId), ct);
+
+        if (!photoResponse.Message.Exists || photoResponse.Message.IsDeleted)
+        {
+            throw new NotFoundException($"Photo with ID '{request.PhotoId}' not found.");
         }
 
         var userId = currentUser.GetUserId() ?? throw new UnAuthorizedException("You are not authorized to vote on photo");

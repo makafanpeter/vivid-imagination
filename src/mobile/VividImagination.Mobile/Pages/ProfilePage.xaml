@@ -2,179 +2,304 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:VividImagination.Mobile.ViewModels"
+             xmlns:controls="clr-namespace:VividImagination.Mobile.Pages.Controls"
              xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="VividImagination.Mobile.Pages.ProfilePage"
              x:DataType="vm:ProfileViewModel"
-             Title="Profile &amp; Settings"
-             BackgroundColor="{AppThemeBinding Light=#F7F7FA, Dark=#141418}">
+             Title="Me"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False"
+             BackgroundColor="{StaticResource AppBackground}">
 
-    <ScrollView>
-        <VerticalStackLayout Spacing="20" Padding="20">
+    <controls:ResponsiveContainer ActiveTab="Me">
+        <Grid RowDefinitions="Auto,*"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
 
-            <!-- Profile Card -->
-            <Border StrokeShape="RoundRectangle 16"
-                    Stroke="#33808080"
-                    StrokeThickness="1"
-                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
-                    Padding="20">
+            <!-- 1. Header: Avatar, Name, Photo Count across the top with a Sign-out Icon -->
+            <Grid Grid.Row="0"
+                  BackgroundColor="#E60D0B0A"
+                  Padding="18,14,18,14"
+                  ColumnDefinitions="Auto,*,Auto"
+                  VerticalOptions="Center"
+                  ZIndex="10">
 
-                <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
-                    <Border StrokeShape="RoundRectangle 36"
-                            WidthRequest="72"
-                            HeightRequest="72"
-                            BackgroundColor="#512BD4"
-                            StrokeThickness="0"
-                            HorizontalOptions="Center">
-                        <Label Text="👤"
-                               FontSize="32"
-                               HorizontalOptions="Center"
-                               VerticalOptions="Center" />
-                    </Border>
+                <!-- Circular Avatar -->
+                <Border Grid.Column="0"
+                        StrokeShape="RoundRectangle 24"
+                        WidthRequest="48"
+                        HeightRequest="48"
+                        BackgroundColor="{StaticResource AppSurfaceElevated}"
+                        Stroke="{StaticResource BorderGlow}"
+                        StrokeThickness="1"
+                        VerticalOptions="Center">
+                    <Label Text="👤"
+                           FontSize="22"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center" />
+                </Border>
 
+                <!-- Name & Photo Count -->
+                <VerticalStackLayout Grid.Column="1"
+                                     Margin="12,0,0,0"
+                                     Spacing="2"
+                                     VerticalOptions="Center">
                     <Label Text="{Binding DisplayName}"
-                           FontSize="18"
+                           FontFamily="SyneBold"
+                           FontSize="17"
                            FontAttributes="Bold"
-                           HorizontalTextAlignment="Center"
-                           TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+                           TextColor="{StaticResource TextPrimary}" />
 
-                    <Label Text="{Binding UserEmail}"
-                           FontSize="13"
-                           TextColor="{AppThemeBinding Light=#757575, Dark=#9E9E9E}"
-                           HorizontalTextAlignment="Center" />
-
-                    <!-- Login Button when unauthenticated -->
-                    <Button Text="Sign In"
-                            Command="{Binding OpenLoginCommand}"
-                            IsVisible="{Binding IsAuthenticated, Converter={toolkit:InvertedBoolConverter}}"
-                            BackgroundColor="#512BD4"
-                            TextColor="White"
-                            CornerRadius="20"
-                            HeightRequest="40"
-                            Padding="28,0"
-                            HorizontalOptions="Center" />
-
-                    <!-- Logout Button when authenticated -->
-                    <Button Text="Sign Out"
-                            Command="{Binding LogoutCommand}"
-                            IsVisible="{Binding IsAuthenticated}"
-                            BackgroundColor="{AppThemeBinding Light=#FFEBEE, Dark=#372224}"
-                            TextColor="#D32F2F"
-                            CornerRadius="20"
-                            HeightRequest="40"
-                            Padding="28,0"
-                            HorizontalOptions="Center" />
+                    <Label Text="{Binding PhotoCountText}"
+                           FontFamily="ManropeRegular"
+                           FontSize="12"
+                           TextColor="{StaticResource TextMuted}" />
                 </VerticalStackLayout>
-            </Border>
 
-            <!-- Safe Browsing Preference Section -->
-            <Border StrokeShape="RoundRectangle 16"
-                    Stroke="#33808080"
-                    StrokeThickness="1"
-                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
-                    Padding="20">
+                <!-- Sign-Out Icon Button -->
+                <Button Grid.Column="2"
+                        Text="🚪"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource TextMuted}"
+                        HeightRequest="40"
+                        WidthRequest="40"
+                        Padding="0"
+                        Command="{Binding LogoutCommand}"
+                        ToolTipProperties.Text="Sign out"
+                        VerticalOptions="Center" />
 
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="🛡️ Safe Browsing Mode"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
+                <BoxView HeightRequest="1"
+                         Color="{StaticResource BorderGlow}"
+                         VerticalOptions="End"
+                         Grid.ColumnSpan="3" />
+            </Grid>
 
-                    <Label Text="Control how AI-flagged sensitive content appears on your community feed:"
-                           FontSize="13"
-                           TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
+            <!-- Body: Sensitive Content Card & 3-Column Square Grid -->
+            <ScrollView Grid.Row="1" Margin="0,0,0,72">
+                <VerticalStackLayout Spacing="18" Padding="14,16,14,24">
 
-                    <Picker SelectedIndex="{Binding SafeBrowsingIndex}"
-                            Title="Select Safe Browsing Mode"
-                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                            BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#2A2A32}">
-                        <Picker.ItemsSource>
-                            <x:Array Type="{x:Type x:String}">
-                                <x:String>Blur Sensitive Content (Default)</x:String>
-                                <x:String>Hide Sensitive Content Completely</x:String>
-                                <x:String>Always Show Without Blur</x:String>
-                            </x:Array>
-                        </Picker.ItemsSource>
-                    </Picker>
-                </VerticalStackLayout>
-            </Border>
+                    <!-- 2. 'Sensitive content' Card with a Three-Option Control (Blur / Hide / Always show) -->
+                    <Border StrokeShape="RoundRectangle 20"
+                            Stroke="{StaticResource BorderGlow}"
+                            StrokeThickness="1"
+                            BackgroundColor="{StaticResource AppSurface}"
+                            Padding="16,14">
 
-            <!-- Environment & OpenAPI Host Configuration Section -->
-            <Border StrokeShape="RoundRectangle 16"
-                    Stroke="#33808080"
-                    StrokeThickness="1"
-                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E24}"
-                    Padding="20">
-
-                <VerticalStackLayout Spacing="14">
-                    <Label Text="🌐 Environment &amp; API Configuration"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="{AppThemeBinding Light=#1B1B1F, Dark=White}" />
-
-                    <Label Text="Select active environment for the OpenAPI client:"
-                           FontSize="13"
-                           TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
-
-                    <!-- Environment Selector -->
-                    <Picker SelectedIndex="{Binding EnvironmentIndex}"
-                            Title="Select Environment"
-                            TextColor="{AppThemeBinding Light=Black, Dark=White}"
-                            BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#2A2A32}">
-                        <Picker.ItemsSource>
-                            <x:Array Type="{x:Type x:String}">
-                                <x:String>Development (Local / Emulator)</x:String>
-                                <x:String>Staging (Cloud Preview)</x:String>
-                                <x:String>Production (Live Cloud)</x:String>
-                            </x:Array>
-                        </Picker.ItemsSource>
-                    </Picker>
-
-                    <!-- Active Base URL Badge -->
-                    <Border StrokeShape="RoundRectangle 8"
-                            BackgroundColor="{AppThemeBinding Light=#E8E5FA, Dark=#25203D}"
-                            StrokeThickness="0"
-                            Padding="12,8">
-                        <VerticalStackLayout Spacing="4">
-                            <Label Text="Active OpenAPI Host:"
-                                   FontSize="11"
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="Sensitive content"
+                                   FontFamily="SyneBold"
+                                   FontSize="15"
                                    FontAttributes="Bold"
-                                   TextColor="#512BD4" />
-                            <Label Text="{Binding ActiveBaseUrl}"
-                                   FontSize="13"
-                                   FontAttributes="Bold"
-                                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
+                                   TextColor="{StaticResource TextPrimary}" />
+
+                            <Label Text="Choose how AI-moderated sensitive photos appear in your feed:"
+                                   FontFamily="ManropeRegular"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextMuted}" />
+
+                            <!-- Three-Way Capsule Segmented Control -->
+                            <Grid ColumnDefinitions="*,*,*"
+                                  BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                  HeightRequest="38"
+                                  Padding="3">
+
+                                <!-- Option 1: Blur -->
+                                <Button Grid.Column="0"
+                                        Text="Blur"
+                                        Command="{Binding SetSafeBrowsingModeCommand}"
+                                        CommandParameter="0"
+                                        CornerRadius="16"
+                                        FontFamily="ManropeSemiBold"
+                                        FontSize="12"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
+                                        TextColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+
+                                <!-- Option 2: Hide -->
+                                <Button Grid.Column="1"
+                                        Text="Hide"
+                                        Command="{Binding SetSafeBrowsingModeCommand}"
+                                        CommandParameter="1"
+                                        CornerRadius="16"
+                                        FontFamily="ManropeSemiBold"
+                                        FontSize="12"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        BackgroundColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
+                                        TextColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+
+                                <!-- Option 3: Always Show -->
+                                <Button Grid.Column="2"
+                                        Text="Always show"
+                                        Command="{Binding SetSafeBrowsingModeCommand}"
+                                        CommandParameter="2"
+                                        CornerRadius="16"
+                                        FontFamily="ManropeSemiBold"
+                                        FontSize="12"
+                                        HeightRequest="32"
+                                        Padding="0"
+                                        BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
+                                        TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+                            </Grid>
                         </VerticalStackLayout>
                     </Border>
 
-                    <!-- Custom URL Override (for Development only) -->
-                    <VerticalStackLayout Spacing="6" IsVisible="{Binding IsDevelopment}">
-                        <Label Text="Custom Development URL (Optional Override):"
+                    <!-- Unauthenticated Prompt -->
+                    <Border StrokeShape="RoundRectangle 20"
+                            Stroke="{StaticResource BorderGlow}"
+                            StrokeThickness="1"
+                            BackgroundColor="{StaticResource AppSurface}"
+                            Padding="20"
+                            IsVisible="{Binding IsAuthenticated, Converter={toolkit:InvertedBoolConverter}}">
+                        <VerticalStackLayout Spacing="14" HorizontalOptions="Center">
+                            <Label Text="Join Vivid Imagination"
+                                   FontFamily="SyneBold"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource TextPrimary}" />
+                            <Label Text="Sign in to post your photos, vote on community uploads, and customize safe browsing."
+                                   FontFamily="ManropeRegular"
+                                   FontSize="13"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{StaticResource TextMuted}" />
+                            <Button Text="Sign In to Your Account"
+                                    Command="{Binding OpenLoginCommand}"
+                                    BackgroundColor="{StaticResource AccentVermilion}"
+                                    TextColor="White"
+                                    FontFamily="ManropeBold"
+                                    CornerRadius="24"
+                                    HeightRequest="46"
+                                    Padding="24,0" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- 3. Uploads Grid Section -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="4,4,4,0">
+                        <Label Grid.Column="0"
+                               Text="Your uploads"
+                               FontFamily="SyneBold"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource TextPrimary}" />
+
+                        <Label Grid.Column="1"
+                               Text="{Binding PhotoCountText}"
+                               FontFamily="ManropeRegular"
                                FontSize="12"
-                               TextColor="{AppThemeBinding Light=#6E6E6E, Dark=#A8A8B2}" />
-                        <Border StrokeShape="RoundRectangle 10"
-                                Stroke="#33808080"
-                                BackgroundColor="{AppThemeBinding Light=#F5F5F5, Dark=#2A2A32}"
-                                Padding="12,0">
-                            <Entry Text="{Binding CustomApiUrl}"
-                                   Placeholder="e.g. http://192.168.1.100:5101"
-                                   PlaceholderColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}"
-                                   TextColor="{AppThemeBinding Light=Black, Dark=White}" />
-                        </Border>
+                               TextColor="{StaticResource TextMuted}"
+                               VerticalOptions="Center" />
+                    </Grid>
+
+                    <!-- Empty Uploads State -->
+                    <VerticalStackLayout HorizontalOptions="Center"
+                                         Spacing="10"
+                                         Padding="24"
+                                         IsVisible="{Binding HasUploads, Converter={toolkit:InvertedBoolConverter}}">
+                        <Label Text="📷" FontSize="32" HorizontalOptions="Center" />
+                        <Label Text="No photos uploaded yet"
+                               FontFamily="SyneBold"
+                               FontSize="15"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{StaticResource TextPrimary}" />
+                        <Label Text="Share your first photograph by tapping the ＋ button."
+                               FontFamily="ManropeRegular"
+                               FontSize="12"
+                               HorizontalTextAlignment="Center"
+                               TextColor="{StaticResource TextMuted}" />
                     </VerticalStackLayout>
+
+                    <!-- 3-Column Square Photo Grid -->
+                    <CollectionView ItemsSource="{Binding UserUploads}">
+                        <CollectionView.ItemsLayout>
+                            <GridItemsLayout Orientation="Vertical"
+                                             Span="3"
+                                             HorizontalItemSpacing="6"
+                                             VerticalItemSpacing="6" />
+                        </CollectionView.ItemsLayout>
+
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:UserUploadItemViewModel">
+                                <!-- Square Photo Container with Aspect Ratio 1:1 -->
+                                <Border StrokeShape="RoundRectangle 12"
+                                        Stroke="{StaticResource BorderGlow}"
+                                        StrokeThickness="1"
+                                        BackgroundColor="{StaticResource AppSurface}"
+                                        HeightRequest="130"
+                                        Padding="0">
+
+                                    <Grid>
+                                        <!-- Photo Image filling the square -->
+                                        <Image Source="{Binding ImageUrl}"
+                                               Aspect="AspectFill"
+                                               HorizontalOptions="Fill"
+                                               VerticalOptions="Fill" />
+
+                                        <!-- Top-Left Status Badge: Checking, Live, Sensitive (amber) or Removed (red) -->
+                                        <Border HorizontalOptions="Start"
+                                                VerticalOptions="Start"
+                                                Margin="4"
+                                                Padding="6,2"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="#D90D0B0A"
+                                                StrokeThickness="0">
+                                            <Label Text="{Binding StatusText}"
+                                                   FontFamily="ManropeBold"
+                                                   FontSize="9"
+                                                   TextColor="{Binding StatusColor}" />
+                                        </Border>
+
+                                        <!-- Action Overlay Bar over image with pencil and bin buttons -->
+                                        <Grid VerticalOptions="End"
+                                              BackgroundColor="#B30D0B0A"
+                                              Padding="4,2"
+                                              ColumnDefinitions="*,Auto,Auto">
+
+                                            <!-- Caption Preview snippet -->
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Caption}"
+                                                   FontFamily="ManropeRegular"
+                                                   FontSize="9"
+                                                   TextColor="{StaticResource TextPrimary}"
+                                                   LineBreakMode="TailTruncation"
+                                                   MaxLines="1"
+                                                   VerticalOptions="Center" />
+
+                                            <!-- Pencil Button: opens prompt to rewrite caption -->
+                                            <Label Grid.Column="1"
+                                                   Text="✏️"
+                                                   FontSize="12"
+                                                   Padding="4,2"
+                                                   VerticalOptions="Center">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=EditCaptionCommand, x:DataType={x:Type vm:ProfileViewModel}}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
+
+                                            <!-- Bin Button: confirms and deletes upload -->
+                                            <Label Grid.Column="2"
+                                                   Text="🗑️"
+                                                   FontSize="12"
+                                                   Padding="4,2"
+                                                   VerticalOptions="Center">
+                                                <Label.GestureRecognizers>
+                                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ProfileViewModel}}, Path=DeleteUploadCommand, x:DataType={x:Type vm:ProfileViewModel}}"
+                                                                          CommandParameter="{Binding .}" />
+                                                </Label.GestureRecognizers>
+                                            </Label>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
                 </VerticalStackLayout>
-            </Border>
-
-            <!-- Save Preferences Button -->
-            <Button Text="Save Preferences"
-                    Command="{Binding SaveSettingsCommand}"
-                    BackgroundColor="#512BD4"
-                    TextColor="White"
-                    CornerRadius="24"
-                    HeightRequest="46"
-                    FontAttributes="Bold"
-                    Margin="0,0,0,24" />
-
-        </VerticalStackLayout>
-    </ScrollView>
+            </ScrollView>
+        </Grid>
+    </controls:ResponsiveContainer>
 
 </ContentPage>

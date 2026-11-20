@@ -13,7 +13,15 @@ public class AppConfigOptions
 
     public AppEnvironment Environment { get; set; } = AppEnvironment.Development;
     public ApiEndpointsOptions Api { get; set; } = new();
+    public AuthConfigOptions Auth { get; set; } = new();
     public SafetyOptions Safety { get; set; } = new();
+}
+
+public class AuthConfigOptions
+{
+    public string ClientId { get; set; } = "VividImagination-client";
+    public string? ClientSecret { get; set; } = "vivid-dev-secret";
+    public string Scope { get; set; } = "offline_access openid profile";
 }
 
 public class ApiEndpointsOptions

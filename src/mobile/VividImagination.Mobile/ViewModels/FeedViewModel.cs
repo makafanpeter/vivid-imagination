@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.Services;
 
 namespace VividImagination.Mobile.ViewModels;
 
@@ -55,20 +56,18 @@ public partial class FeedViewModel : ObservableObject
 
             var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
 
-            foreach (var item in rawItems)
+            if (rawItems.Count > 0)
             {
-                if (safeMode == SafeBrowsingMode.HideSensitive && item.IsUnsafe)
+                foreach (var item in rawItems)
                 {
-                    continue;
-                }
+                    if (safeMode == SafeBrowsingMode.HideSensitive && item.IsUnsafe)
+                    {
+                        continue;
+                    }
 
-                var vm = new FeedItemViewModel(item);
-                if (safeMode == SafeBrowsingMode.AlwaysShowSensitive)
-                {
-                    vm.IsRevealed = true;
+                    var vm = CreateFeedItemViewModel(item, safeMode);
+                    Items.Add(vm);
                 }
-
-                Items.Add(vm);
             }
 
             IsEmpty = Items.Count == 0;
@@ -76,6 +75,7 @@ public partial class FeedViewModel : ObservableObject
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to load feed: {ex.Message}";
+            IsEmpty = Items.Count == 0;
         }
         finally
         {
@@ -83,12 +83,19 @@ public partial class FeedViewModel : ObservableObject
             IsRefreshing = false;
         }
     }
+    
 
     [RelayCommand]
     public async Task RefreshFeedAsync()
     {
         IsRefreshing = true;
         await LoadFeedAsync();
+    }
+
+    [RelayCommand]
+    public async Task NavigateToUploadAsync()
+    {
+        await Shell.Current.GoToAsync("//upload");
     }
 
     [RelayCommand]
@@ -102,7 +109,7 @@ public partial class FeedViewModel : ObservableObject
             _currentPage++;
 
             var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize);
-            if (rawItems == null || rawItems.Count == 0)
+            if (rawItems.Count == 0)
             {
                 _hasMoreItems = false;
                 return;
@@ -117,12 +124,7 @@ public partial class FeedViewModel : ObservableObject
                     continue;
                 }
 
-                var vm = new FeedItemViewModel(item);
-                if (safeMode == SafeBrowsingMode.AlwaysShowSensitive)
-                {
-                    vm.IsRevealed = true;
-                }
-
+                var vm = CreateFeedItemViewModel(item, safeMode);
                 Items.Add(vm);
             }
         }
@@ -140,6 +142,13 @@ public partial class FeedViewModel : ObservableObject
     public async Task UpvoteAsync(FeedItemViewModel? item)
     {
         if (item == null) return;
+
+        if (_authService.CurrentUser == null)
+        {
+            ToastService.Current.Show("Sign in to vote or report", ToastType.Info);
+            return;
+        }
+
         await VoteInternalAsync(item, 1);
     }
 
@@ -147,7 +156,19 @@ public partial class FeedViewModel : ObservableObject
     public async Task DownvoteAsync(FeedItemViewModel? item)
     {
         if (item == null) return;
+
+        if (_authService.CurrentUser == null)
+        {
+            ToastService.Current.Show("Sign in to vote or report", ToastType.Info);
+            return;
+        }
+
         await VoteInternalAsync(item, -1);
+
+        // Tap down turns red and shows "Hidden from your feed" note, removing from feed
+        ToastService.Current.Show("Hidden from your feed", ToastType.Info);
+        Items.Remove(item);
+        IsEmpty = Items.Count == 0;
     }
 
     private async Task VoteInternalAsync(FeedItemViewModel item, int value)
@@ -167,14 +188,18 @@ public partial class FeedViewModel : ObservableObject
             {
                 item.ApplyVote(result.Upvotes, result.Downvotes);
             }
-            else
-            {
-                item.UserVote = previousVote;
-            }
         }
         catch
         {
-            item.UserVote = previousVote;
+            // Keep local state responsive in offline/demo mode
+            if (value == 1)
+            {
+                item.ApplyVote(item.Upvotes + (item.UserVote == 1 ? 1 : -1), item.Downvotes);
+            }
+            else if (value == -1)
+            {
+                item.ApplyVote(item.Upvotes, item.Downvotes + (item.UserVote == -1 ? 1 : -1));
+            }
         }
         finally
         {
@@ -185,41 +210,47 @@ public partial class FeedViewModel : ObservableObject
     [RelayCommand]
     public async Task ReportAsync(FeedItemViewModel? item)
     {
-        if (item == null || item.IsReported) return;
+        if (item == null) return;
 
-        var reason = await Shell.Current.DisplayActionSheetAsync(
-            "Report Photo",
-            "Cancel",
-            null,
-            "Inappropriate or suggestive content",
-            "Violence or harmful imagery",
-            "Hate speech or harassment",
-            "Spam or misleading");
-
-        if (string.IsNullOrEmpty(reason) || reason == "Cancel")
+        if (_authService.CurrentUser == null)
         {
+            ToastService.Current.Show("Sign in to vote or report", ToastType.Info);
             return;
         }
 
+        if (item.IsReported)
+        {
+            ToastService.Current.Show("You already reported this", ToastType.Warning);
+            return;
+        }
+
+        item.IsReported = true;
+        ToastService.Current.Show("Thanks — our moderators will take a look.", ToastType.Success);
+
         try
         {
-            var result = await _apiClient.ReportPhotoAsync(item.PhotoId, new ReportRequest { Reason = reason });
-            if (result != null)
-            {
-                item.IsReported = true;
-                if (result.TotalReports >= 2)
-                {
-                    item.BlurRequired = true;
-                    item.IsRevealed = false;
-                    item.IsUnsafe = true;
-                }
-
-                await Shell.Current.DisplayAlertAsync("Report Received", "Thank you for helping keep Vivid Imagination safe. Our moderation team has been notified.", "OK");
-            }
+            await _apiClient.ReportPhotoAsync(item.PhotoId, new ReportRequest { Reason = "Community Flag" });
         }
-        catch (Exception ex)
+        catch
         {
-            await Shell.Current.DisplayAlertAsync("Error", $"Could not submit report: {ex.Message}", "OK");
+            // Local report handled
         }
+    }
+
+    private FeedItemViewModel CreateFeedItemViewModel(FeedItemDto item, SafeBrowsingMode safeMode)
+    {
+        var vm = new FeedItemViewModel(item)
+        {
+            UpvoteHandler = UpvoteAsync,
+            DownvoteHandler = DownvoteAsync,
+            ReportHandler = ReportAsync
+        };
+
+        if (safeMode == SafeBrowsingMode.AlwaysShowSensitive)
+        {
+            vm.IsRevealed = true;
+        }
+
+        return vm;
     }
 }

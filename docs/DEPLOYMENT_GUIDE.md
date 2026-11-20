@@ -86,12 +86,156 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
    - **Windows**: `%USERPROFILE%\.cloudflared\cert.pem`
 5. Copy the entire contents of `cert.pem` (typically starting with `-----BEGIN ARGO TUNNEL TOKEN-----` and ending with `-----END ARGO TUNNEL TOKEN-----`, or `-----BEGIN CERTIFICATE-----`). This origin token remains valid indefinitely for your domain.
 
-> [!TIP]
-> When pasting `cert.pem` into a JSON parameters file (`parameters.prod.json`), you can escape newlines as `\n` (e.g. `"-----BEGIN ARGO TUNNEL TOKEN-----\n<base64>\n-----END ARGO TUNNEL TOKEN-----\n"`). The EC2 startup script automatically normalizes literal `\n` and `\r\n` characters on boot.
+---
+
+## Step 2: Store Sensitive Secrets in AWS SSM Parameter Store (Prerequisite Step)
+
+To maintain strict security best practices, **zero sensitive secrets** (`CloudflareCertPem`, `PostgresPassword`, `JwtSecretKey`, `EncryptionKey`, and `GhcrToken`) should be passed in CloudFormation templates, parameters files, or UserData.
+
+Store them encrypted as `SecureString` in AWS Systems Manager (SSM) Parameter Store under `/vivid-imagination/{EnvironmentName}/`. The EC2 instance automatically decrypts them at boot time into RAM via its attached IAM instance profile, and immediately shreds temporary credentials (such as `cert.pem`):
+
+### Bash (Linux / macOS / WSL)
+```bash
+# Set AWS Region and Environment Name
+export AWS_REGION="eu-west-1"
+export ENV_NAME="production"
+
+# 1. Cloudflare Origin Certificate (reads file directly without newline escaping)
+aws ssm put-parameter \
+  --name "/vivid-imagination/${ENV_NAME}/CLOUDFLARE_CERT_PEM" \
+  --value "file://${HOME}/.cloudflared/cert.pem" \
+  --type "SecureString" \
+  --overwrite \
+  --region "${AWS_REGION}"
+
+# 2. PostgreSQL Administrative Password
+aws ssm put-parameter \
+  --name "/vivid-imagination/${ENV_NAME}/POSTGRES_PASSWORD" \
+  --value "ReplaceWithStrongPostgresPassword123!" \
+  --type "SecureString" \
+  --overwrite \
+  --region "${AWS_REGION}"
+
+# 3. Application Security Keys (min 32 characters)
+aws ssm put-parameter \
+  --name "/vivid-imagination/${ENV_NAME}/JWT_SECRET_KEY" \
+  --value "vivid-imagination-prod-jwt-secret-key-at-least-32-chars!" \
+  --type "SecureString" \
+  --overwrite \
+  --region "${AWS_REGION}"
+
+aws ssm put-parameter \
+  --name "/vivid-imagination/${ENV_NAME}/ENCRYPTION_KEY" \
+  --value "vivid-imagination-prod-encryption-key-32-chars!" \
+  --type "SecureString" \
+  --overwrite \
+  --region "${AWS_REGION}"
+
+# 4. GitHub Container Registry PAT Token (read:packages scope)
+aws ssm put-parameter \
+  --name "/vivid-imagination/${ENV_NAME}/GHCR_TOKEN" \
+  --value "ghp_yourPersonalAccessTokenWithReadPackagesScope" \
+  --type "SecureString" \
+  --overwrite \
+  --region "${AWS_REGION}"
+```
+
+### PowerShell (Windows)
+```powershell
+# Set AWS Region and Environment Name
+$AWS_REGION = "eu-west-1"
+$ENV_NAME = "production"
+
+# 1. Cloudflare Origin Certificate
+aws ssm put-parameter `
+  --name "/vivid-imagination/$ENV_NAME/CLOUDFLARE_CERT_PEM" `
+  --value "file://$HOME/.cloudflared/cert.pem" `
+  --type "SecureString" `
+  --overwrite `
+  --region $AWS_REGION
+
+# 2. PostgreSQL Administrative Password
+aws ssm put-parameter `
+  --name "/vivid-imagination/$ENV_NAME/POSTGRES_PASSWORD" `
+  --value "ReplaceWithStrongPostgresPassword123!" `
+  --type "SecureString" `
+  --overwrite `
+  --region $AWS_REGION
+
+# 3. Application Security Keys (min 32 characters)
+aws ssm put-parameter `
+  --name "/vivid-imagination/$ENV_NAME/JWT_SECRET_KEY" `
+  --value "vivid-imagination-prod-jwt-secret-key-at-least-32-chars!" `
+  --type "SecureString" `
+  --overwrite `
+  --region $AWS_REGION
+
+aws ssm put-parameter `
+  --name "/vivid-imagination/$ENV_NAME/ENCRYPTION_KEY" `
+  --value "vivid-imagination-prod-encryption-key-32-chars!" `
+  --type "SecureString" `
+  --overwrite `
+  --region $AWS_REGION
+
+# 4. GitHub Container Registry PAT Token
+aws ssm put-parameter `
+  --name "/vivid-imagination/$ENV_NAME/GHCR_TOKEN" `
+  --value "ghp_yourPersonalAccessTokenWithReadPackagesScope" `
+  --type "SecureString" `
+  --overwrite `
+  --region $AWS_REGION
+```
 
 ---
 
-## Step 2: Deploy CloudFormation Stack
+## Step 3: Upload Deployment Artifacts to S3 (Prerequisite Step)
+
+Deployment assets (`docker-compose.prod.yml`, `deploy-app.sh`, `.env.template`, and `bootstrap-secrets.py`) are retrieved directly from S3 by EC2 at boot rather than being bloated into CloudFormation UserData.
+
+Before deploying or updating the CloudFormation stack, ensure the deployment artifacts bucket (`s3://vivid-artifacts-<account>-<region>`) is created and updated with the latest configuration assets:
+
+### Bash (Linux / macOS / WSL)
+```bash
+# 1. Resolve AWS Region, Account ID, and Target Bucket Name
+export AWS_REGION="eu-west-1"
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ARTIFACT_BUCKET="vivid-artifacts-${ACCOUNT_ID}-${AWS_REGION}"
+
+# 2. Create the S3 Bucket (if not already created) and Enable Public Access Block
+aws s3 mb "s3://${ARTIFACT_BUCKET}" --region "${AWS_REGION}"
+aws s3api put-public-access-block \
+  --bucket "${ARTIFACT_BUCKET}" \
+  --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true" \
+  --region "${AWS_REGION}"
+
+# 3. Upload Deployment Assets
+aws s3 cp infra/docker-compose.prod.yml "s3://${ARTIFACT_BUCKET}/docker-compose.prod.yml" --region "${AWS_REGION}"
+aws s3 cp infra/scripts/deploy-app.sh "s3://${ARTIFACT_BUCKET}/deploy-app.sh" --region "${AWS_REGION}"
+aws s3 cp infra/.env.example "s3://${ARTIFACT_BUCKET}/.env.template" --region "${AWS_REGION}"
+aws s3 cp infra/scripts/bootstrap-secrets.py "s3://${ARTIFACT_BUCKET}/bootstrap-secrets.py" --region "${AWS_REGION}"
+```
+
+### PowerShell (Windows)
+```powershell
+# 1. Resolve AWS Region, Account ID, and Target Bucket Name
+$AWS_REGION = "eu-west-1"
+$ACCOUNT_ID = (aws sts get-caller-identity --query Account --output text).Trim()
+$ARTIFACT_BUCKET = "vivid-artifacts-$ACCOUNT_ID-$AWS_REGION"
+
+# 2. Create the S3 Bucket (if not already created) and Enable Public Access Block
+aws s3 mb "s3://$ARTIFACT_BUCKET" --region $AWS_REGION
+aws s3api put-public-access-block --bucket $ARTIFACT_BUCKET --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true" --region $AWS_REGION
+
+# 3. Upload Deployment Assets
+aws s3 cp infra/docker-compose.prod.yml "s3://$ARTIFACT_BUCKET/docker-compose.prod.yml" --region $AWS_REGION
+aws s3 cp infra/scripts/deploy-app.sh "s3://$ARTIFACT_BUCKET/deploy-app.sh" --region $AWS_REGION
+aws s3 cp infra/.env.example "s3://$ARTIFACT_BUCKET/.env.template" --region $AWS_REGION
+aws s3 cp infra/scripts/bootstrap-secrets.py "s3://$ARTIFACT_BUCKET/bootstrap-secrets.py" --region $AWS_REGION
+```
+
+---
+
+## Step 4: Deploy CloudFormation Stack
 
 ### Option A: Using AWS CLI (Recommended)
 
@@ -100,14 +244,15 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
    ```bash
    cp infra/cloudformation/parameters.example.json infra/cloudformation/parameters.prod.json
    ```
-3. Edit `infra/cloudformation/parameters.prod.json` with your real secrets:
-   - `CloudflareCertPem`: Paste the contents of `cert.pem` from Step 1.
+3. Edit `infra/cloudformation/parameters.prod.json` with your real settings.
+   > [!NOTE]
+   > All sensitive secrets (`CloudflareCertPem`, `PostgresPassword`, `JwtSecretKey`, `EncryptionKey`, and `GhcrToken`) were stored in AWS SSM Parameter Store in Step 2 and are intentionally excluded from `parameters.prod.json`.
    - `GhcrUsername`: Your GitHub username or organization name.
-   - `GhcrToken`: Your GitHub PAT with `read:packages` permission.
    - `GhcrImageRepository`: `ghcr.io/<owner>/vividimagination.backend.api`.
-   - `PostgresPassword`: Strong password for PostgreSQL.
-   - `JwtSecretKey` & `EncryptionKey`: 32+ character random strings.
    - `AppBaseUrl`: `https://api.yourdomain.com`.
+   - `AppImageTag`: `latest` (or specific release tag).
+   - `EnvironmentName`: `production`.
+   - `ArtifactBucket`: Optional custom bucket name (leave `""` to use `vivid-artifacts-<AccountId>-<Region>`).
 4. Run the CloudFormation deploy command:
    ```bash
    aws cloudformation deploy \
@@ -118,13 +263,19 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
      --region eu-west-1
    ```
 5. Monitor stack creation in the terminal or AWS Console. The EC2 startup script automatically:
-   - Installs `cloudflared`.
-   - Provisions the tunnel `production-vivid-tunnel`.
-   - Configures Cloudflare DNS CNAME records (`api.yourdomain.com` and `ssh-api.yourdomain.com`) pointing directly to the tunnel.
-   - Establishes the outbound TLS tunnel connection.
-   - Bootstraps the Docker containers (typically takes ~5–8 minutes).
-
----
+   - Downloads configuration assets from the S3 artifacts bucket.
+   - Decrypts secrets from AWS SSM Parameter Store into `/opt/vivid-imagination/.env`.
+   - Provisions the Cloudflare tunnel in memory and shreds the origin certificate.
+   - Configures Cloudflare DNS CNAME records (`api.yourdomain.com` and `ssh-api.yourdomain.com`).
+   - Authenticates to GHCR and starts the Docker Compose stack (typically takes ~5–8 minutes).
+6. Retrieve Stack Outputs:
+   Once stack creation finishes (`CREATE_COMPLETE`), query the stack outputs to view the provisioned resources, EC2 instance ID, S3 bucket name, and direct SSM connection command:
+   ```bash
+   aws cloudformation describe-stacks \
+     --stack-name vivid-imagination-prod \
+     --region eu-west-1 \
+     --query "Stacks[0].Outputs" --output table
+   ```
 
 ### Option B: Using AWS Management Console
 
@@ -133,20 +284,21 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
 3. Select **Upload a template file** &rarr; choose `infra/cloudformation/vivid-imagination-ec2-cloudflare.yaml` &rarr; click **Next**.
 4. Specify Stack Details:
    - **Stack name**: `vivid-imagination-prod`
-   - Fill in parameter values (`CloudflareCertPem`, `GhcrUsername`, `GhcrToken`, `PostgresPassword`, etc.).
+   - Fill in parameter values (`GhcrUsername`, `GhcrImageRepository`, `AppBaseUrl`, etc.). Sensitive parameters (`CloudflareCertPem`, `PostgresPassword`, `JwtSecretKey`, `EncryptionKey`, `GhcrToken`) can be left blank as they are retrieved from SSM.
+5. Click **Next**, proceed through default stack options, check **"I acknowledge that AWS CloudFormation might create IAM resources"**, and click **Submit**.
 5. Click **Next**, proceed through default stack options, check **"I acknowledge that AWS CloudFormation might create IAM resources"**, and click **Submit**.
 
 ---
 
-## Step 3: Verify the Deployment
+## Step 5: Verify the Deployment
 
 ### 1. Check Cloudflare Tunnel Status
 In the Cloudflare Zero Trust dashboard under **Networks** &rarr; **Tunnels**, verify that your tunnel status changes from *Inactive* to **HEALTHY** with an active connector.
 
 ### 2. Connect to EC2 via AWS Systems Manager (No open ports needed)
-Run the following AWS CLI command (replace with your Instance ID from stack outputs):
+Run the `SSMConnectCommand` from the stack outputs table above (or execute the command directly using your Instance ID):
 ```bash
-aws ssm start-session --target i-0123456789abcdef0 --region eu-west-1
+aws ssm start-session --target <INSTANCE_ID> --region eu-west-1
 ```
 Once connected, switch to root to inspect container logs and health:
 ```bash
@@ -225,7 +377,7 @@ ingress:
 
 ---
 
-## Step 4: Connecting GitHub Actions CI/CD
+## Step 6: Connecting GitHub Actions CI/CD
 
 Automated zero-downtime deployments and quality checks are orchestrated via `.github/workflows/ci-cd.yml`:
 
@@ -233,7 +385,7 @@ Automated zero-downtime deployments and quality checks are orchestrated via `.gi
 1. **`test-backend`**:
    - Triggers on changes to `src/backend/**`, `tests/**`, or workflow files.
    - Restores and compiles `VividImagination.Api` and all test projects on .NET 10.
-   - Executes all 74 Unit Tests and 7 NetArchTest architecture boundary tests.
+   - Executes all 104 Unit Tests and 7 NetArchTest architecture boundary tests.
 2. **`build-mobile-android`**:
    - Triggers on changes to `src/mobile/**` or workflow files.
    - Configures Java 17 Temurin and installs the `maui-android` workload.

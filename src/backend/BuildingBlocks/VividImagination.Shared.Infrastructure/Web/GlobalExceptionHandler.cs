@@ -35,6 +35,8 @@ public class GlobalExceptionHandler(
             BadRequestException => LogLevel.Warning,
             ConflictException => LogLevel.Warning,
             ArgumentException => LogLevel.Warning,
+            BadHttpRequestException => LogLevel.Warning,
+            JsonException => LogLevel.Warning,
             _ => LogLevel.Error
         };
 
@@ -86,6 +88,18 @@ public class GlobalExceptionHandler(
 
             BadRequestException e => CreateProblemDetails(
                 title: "Bad Request",
+                status: HttpStatusCode.BadRequest,
+                detail: e.Message,
+                type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1"),
+
+            BadHttpRequestException e => CreateProblemDetails(
+                title: "Bad Request",
+                status: (HttpStatusCode)e.StatusCode,
+                detail: e.Message,
+                type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1"),
+
+            JsonException e => CreateProblemDetails(
+                title: "Invalid JSON Format",
                 status: HttpStatusCode.BadRequest,
                 detail: e.Message,
                 type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.1"),

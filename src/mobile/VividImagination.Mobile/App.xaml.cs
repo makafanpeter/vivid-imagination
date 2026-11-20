@@ -1,17 +1,17 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿namespace VividImagination.Mobile;
 
-namespace VividImagination.Mobile
+public partial class App : Application
 {
-    public partial class App : Application
-    {
-        public App()
-        {
-            InitializeComponent();
-        }
+    private readonly IServiceProvider _serviceProvider;
 
-        protected override Window CreateWindow(IActivationState? activationState)
-        {
-            return new Window(new AppShell());
-        }
+    public App(IServiceProvider serviceProvider)
+    {
+        InitializeComponent();
+        _serviceProvider = serviceProvider;
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        return new Window(_serviceProvider.GetRequiredService<AppShell>());
     }
 }

@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.Services;
 using VividImagination.Mobile.Services.Configuration;
 
 namespace VividImagination.Mobile.ViewModels;
@@ -19,9 +21,16 @@ public partial class ProfileViewModel : ObservableObject
         _authService.AuthStateChanged += (s, e) => UpdateFromAuth();
         _configurationService.EnvironmentChanged += (s, e) => UpdateFromConfig();
 
+        MyUploads = [];
         UpdateFromAuth();
         UpdateFromConfig();
     }
+
+    public ObservableCollection<UserUploadItemViewModel> MyUploads { get; }
+    public ObservableCollection<UserUploadItemViewModel> UserUploads => MyUploads;
+
+    public bool HasUploads => MyUploads.Count > 0;
+    public bool HasUserUploads => HasUploads;
 
     [ObservableProperty]
     private UserProfile? _profile;
@@ -30,25 +39,23 @@ public partial class ProfileViewModel : ObservableObject
     private bool _isAuthenticated;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBlurSelected))]
+    [NotifyPropertyChangedFor(nameof(IsHideSelected))]
+    [NotifyPropertyChangedFor(nameof(IsAlwaysShowSelected))]
     private int _safeBrowsingIndex = 0; // 0 = Blur, 1 = Hide, 2 = Always Show
 
+    public bool IsBlurSelected => SafeBrowsingIndex == 0;
+    public bool IsHideSelected => SafeBrowsingIndex == 1;
+    public bool IsAlwaysShowSelected => SafeBrowsingIndex == 2;
+
     [ObservableProperty]
-    private int _environmentIndex = 0; // 0 = Development, 1 = Staging, 2 = Production
+    private int _environmentIndex = 0;
 
     [ObservableProperty]
     private string _activeBaseUrl = string.Empty;
 
-    [ObservableProperty]
-    private string _customApiUrl = string.Empty;
-
-    [ObservableProperty]
-    private bool _isDevelopment;
-
-    [ObservableProperty]
-    private string? _statusMessage;
-
-    public string DisplayName => Profile?.DisplayName ?? "Anonymous Guest";
-    public string UserEmail => Profile?.Email ?? "Not signed in";
+    public string DisplayName => Profile?.DisplayName ?? "Creator";
+    public string PhotoCountText => $"{MyUploads.Count} photos";
 
     private void UpdateFromAuth()
     {
@@ -59,16 +66,18 @@ public partial class ProfileViewModel : ObservableObject
             SafeBrowsingIndex = (int)Profile.SafeBrowsingMode;
         }
         OnPropertyChanged(nameof(DisplayName));
-        OnPropertyChanged(nameof(UserEmail));
+        OnPropertyChanged(nameof(PhotoCountText));
+        OnPropertyChanged(nameof(HasUploads));
+        OnPropertyChanged(nameof(HasUserUploads));
+        OnPropertyChanged(nameof(UserUploads));
     }
 
     private void UpdateFromConfig()
     {
         EnvironmentIndex = (int)_configurationService.CurrentEnvironment;
         ActiveBaseUrl = _configurationService.ActiveBaseUrl;
-        CustomApiUrl = _configurationService.CustomUrl ?? string.Empty;
-        IsDevelopment = _configurationService.CurrentEnvironment == AppEnvironment.Development;
     }
+
 
     [RelayCommand]
     public async Task RefreshProfileAsync()
@@ -78,9 +87,57 @@ public partial class ProfileViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public async Task OpenLoginAsync()
+    public void SetSafeBrowsingMode(string modeStr)
     {
-        await Shell.Current.GoToAsync("login");
+        if (int.TryParse(modeStr, out var mode))
+        {
+            SafeBrowsingIndex = mode;
+            if (Profile != null)
+            {
+                Profile.SafeBrowsingMode = (SafeBrowsingMode)mode;
+            }
+            ToastService.Current.Show($"Browsing mode set to {(SafeBrowsingMode)mode}", ToastType.Info);
+        }
+    }
+
+    [RelayCommand]
+    public async Task EditCaptionAsync(UserUploadItemViewModel? item)
+    {
+        if (item == null) return;
+
+        var newCaption = await Shell.Current.DisplayPromptAsync(
+            "Rewrite Caption",
+            "Update the caption for this photo:",
+            initialValue: item.Caption,
+            maxLength: 500,
+            keyboard: Keyboard.Text);
+
+        if (!string.IsNullOrWhiteSpace(newCaption) && newCaption != item.Caption)
+        {
+            item.Caption = newCaption;
+            ToastService.Current.Show("Caption updated!", ToastType.Success);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteUploadAsync(UserUploadItemViewModel? item)
+    {
+        if (item == null) return;
+
+        var confirm = await Shell.Current.DisplayAlertAsync(
+            "Delete Photo",
+            "Are you sure you want to delete this photo from your uploads?",
+            "Delete",
+            "Cancel");
+
+        if (confirm)
+        {
+            MyUploads.Remove(item);
+            OnPropertyChanged(nameof(PhotoCountText));
+            OnPropertyChanged(nameof(HasUploads));
+            OnPropertyChanged(nameof(HasUserUploads));
+            ToastService.Current.Show("Photo deleted", ToastType.Info);
+        }
     }
 
     [RelayCommand]
@@ -88,23 +145,13 @@ public partial class ProfileViewModel : ObservableObject
     {
         await _authService.LogoutAsync();
         UpdateFromAuth();
-        StatusMessage = "Signed out.";
+        ToastService.Current.Show("Signed out", ToastType.Info);
+        await Shell.Current.GoToAsync("//login");
     }
 
     [RelayCommand]
-    public async Task SaveSettingsAsync()
+    public async Task OpenLoginAsync()
     {
-        // Update environment
-        _configurationService.CurrentEnvironment = (AppEnvironment)EnvironmentIndex;
-        _configurationService.CustomUrl = string.IsNullOrWhiteSpace(CustomApiUrl) ? null : CustomApiUrl;
-
-        if (Profile != null)
-        {
-            Profile.SafeBrowsingMode = (SafeBrowsingMode)SafeBrowsingIndex;
-        }
-
-        UpdateFromConfig();
-        StatusMessage = "Settings saved successfully.";
-        await Shell.Current.DisplayAlertAsync("Settings", $"Configuration updated. Connected to: {ActiveBaseUrl}", "OK");
+        await Shell.Current.GoToAsync("//login");
     }
 }

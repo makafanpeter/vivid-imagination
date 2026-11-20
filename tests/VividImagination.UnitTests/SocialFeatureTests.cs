@@ -2,6 +2,7 @@ using FluentAssertions;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using VividImagination.Modules.Media.Contracts.Queries;
 using VividImagination.Modules.Social.Contracts.Events;
 using VividImagination.Modules.Social.Features.Reports.Commands;
 using VividImagination.Modules.Social.Features.Reports.Queries;
@@ -35,6 +36,27 @@ public class SocialFeatureTests
         return mock;
     }
 
+    private static Mock<IRequestClient<ValidatePhotoRequest>> CreatePhotoClientMock(bool exists = true, bool isDeleted = false)
+    {
+        var mock = new Mock<IRequestClient<ValidatePhotoRequest>>();
+        var responseMock = new Mock<Response<PhotoValidationResponse>>();
+        responseMock.Setup(r => r.Message).Returns(new PhotoValidationResponse(
+            PhotoId: Guid.NewGuid(),
+            Exists: exists,
+            IsDeleted: isDeleted,
+            OwnerId: "user-1",
+            Name: "Sample Photo",
+            Description: "Test Description"));
+
+        mock.Setup(c => c.GetResponse<PhotoValidationResponse>(
+                It.IsAny<ValidatePhotoRequest>(),
+                It.IsAny<CancellationToken>(),
+                It.IsAny<RequestTimeout>()))
+            .ReturnsAsync(responseMock.Object);
+
+        return mock;
+    }
+
     [Fact]
     public async Task VoteOnPhoto_Should_Persist_Upvote_And_Publish_IntegrationEvent()
     {
@@ -42,8 +64,9 @@ public class SocialFeatureTests
         var publisherMock = new Mock<IPublishEndpoint>();
         long userId = 1001;
         var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock();
 
-        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, currentUserMock.Object);
+        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
         var photoId = Guid.NewGuid();
 
         var result = await handler.Handle(new VoteOnPhotoCommand(photoId, 1), CancellationToken.None);
@@ -73,8 +96,9 @@ public class SocialFeatureTests
         var publisherMock = new Mock<IPublishEndpoint>();
         long userId = 2002;
         var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock();
 
-        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, currentUserMock.Object);
+        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
         var photoId = Guid.NewGuid();
 
         // Initial Upvote
@@ -98,14 +122,47 @@ public class SocialFeatureTests
     }
 
     [Fact]
+    public async Task VoteOnPhoto_Should_Throw_NotFoundException_When_Photo_DoesNotExist()
+    {
+        using var db = CreateInMemoryDbContext();
+        var publisherMock = new Mock<IPublishEndpoint>();
+        long userId = 2003;
+        var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock(exists: false);
+
+        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
+
+        var act = () => handler.Handle(new VoteOnPhotoCommand(Guid.NewGuid(), 1), CancellationToken.None);
+
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task VoteOnPhoto_Should_Throw_NotFoundException_When_Photo_IsDeleted()
+    {
+        using var db = CreateInMemoryDbContext();
+        var publisherMock = new Mock<IPublishEndpoint>();
+        long userId = 2004;
+        var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock(exists: true, isDeleted: true);
+
+        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
+
+        var act = () => handler.Handle(new VoteOnPhotoCommand(Guid.NewGuid(), 1), CancellationToken.None);
+
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
     public async Task VoteOnPhoto_Should_Throw_Unauthorized_When_User_Not_Logged_In()
     {
         using var db = CreateInMemoryDbContext();
         var publisherMock = new Mock<IPublishEndpoint>();
         var currentUserMock = new Mock<ICurrentUser>();
         currentUserMock.Setup(c => c.CurrentUser).Returns((Profile?)null);
+        var photoClientMock = CreatePhotoClientMock();
 
-        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, currentUserMock.Object);
+        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
 
         var act = () => handler.Handle(new VoteOnPhotoCommand(Guid.NewGuid(), 1), CancellationToken.None);
 
@@ -119,8 +176,9 @@ public class SocialFeatureTests
         var publisherMock = new Mock<IPublishEndpoint>();
         long userId = 3003;
         var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock();
 
-        var handler = new ReportPhotoCommandHandler(db, publisherMock.Object, currentUserMock.Object);
+        var handler = new ReportPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
         var photoId = Guid.NewGuid();
 
         var result = await handler.Handle(new ReportPhotoCommand(photoId, "Inappropriate image"), CancellationToken.None);
@@ -142,14 +200,31 @@ public class SocialFeatureTests
     }
 
     [Fact]
+    public async Task ReportPhoto_Should_Throw_NotFoundException_When_Photo_DoesNotExist()
+    {
+        using var db = CreateInMemoryDbContext();
+        var publisherMock = new Mock<IPublishEndpoint>();
+        long userId = 3004;
+        var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock(exists: false);
+
+        var handler = new ReportPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
+
+        var act = () => handler.Handle(new ReportPhotoCommand(Guid.NewGuid(), "Inappropriate image"), CancellationToken.None);
+
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
     public async Task ReportPhoto_Should_Be_Idempotent_For_Same_User_And_Photo()
     {
         using var db = CreateInMemoryDbContext();
         var publisherMock = new Mock<IPublishEndpoint>();
         long userId = 4004;
         var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock();
 
-        var handler = new ReportPhotoCommandHandler(db, publisherMock.Object, currentUserMock.Object);
+        var handler = new ReportPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
         var photoId = Guid.NewGuid();
 
         // First report
@@ -218,8 +293,9 @@ public class SocialFeatureTests
         var publisherMock = new Mock<IPublishEndpoint>();
         long userId = 1001;
         var currentUserMock = CreateCurrentUserMock(userId);
+        var photoClientMock = CreatePhotoClientMock();
 
-        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, currentUserMock.Object);
+        var handler = new VoteOnPhotoCommandHandler(db, publisherMock.Object, photoClientMock.Object, currentUserMock.Object);
         var photoId = Guid.NewGuid();
 
         // Upvote first

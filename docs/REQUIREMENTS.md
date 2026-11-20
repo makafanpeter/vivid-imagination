@@ -117,7 +117,7 @@ Modules declare their consumers autonomously via `IMessagingModule.RegisterConsu
 *   **NFR-01 (Feed Read Latency):** $< 25\text{ ms}$ (P95) from Redis cache; $< 80\text{ ms}$ (P95) on MongoDB cache miss.
 *   **NFR-02 (Moderation Turnaround):** $< 1.2\text{ seconds}$ (P95) for Amazon Rekognition S3 inspection and RabbitMQ event propagation.
 *   **NFR-03 (Automated Test Coverage & Boundary Enforcement):**
-    - **74 Passed Unit Tests** covering feature slice commands/queries, domain rules, MediatR pipeline behaviors, WebP transcoding, BlurHash generation, role seeding, and error handling.
+    - **104 Passed Unit Tests** covering feature slice commands/queries, domain rules, MediatR pipeline behaviors, WebP transcoding, BlurHash generation, role seeding, and error handling.
     - **7 NetArchTest Boundary Enforcement Tests** executed on every build:
         - Zero direct references between module implementation assemblies.
         - Public integration events restricted exclusively to `*.Contracts` assemblies.
