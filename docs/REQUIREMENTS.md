@@ -30,7 +30,7 @@ Architecturally, **Vivid Imagination** serves as a reference **.NET Modular Mono
 ### 3.1 Identity & User Management (`IdentityModule` — PostgreSQL)
 *   **FR-ID-01 (Social Sign-In):** Users shall authenticate using external OAuth2 / OpenID Connect providers (Google, Facebook, Apple).
 *   **FR-ID-02 (Session & Token Issuance):** Upon authentication, the system shall issue stateless JWT access tokens and refresh tokens stored in the `identity` PostgreSQL schema.
-*   **FR-ID-03 (Content Safety Preferences):** Authenticated users shall configure a profile preference (`SafeBrowsingMode`: `BlurSensitive` [Default], `HideSensitive`, or `AlwaysShowSensitive`).
+*   **FR-ID-03 (Content Safety & Personalisation Preferences):** Authenticated users shall configure profile preferences via unified endpoints `GET /api/v1/identity/users/me/preferences` and `PUT /api/v1/identity/users/me/preferences`, controlling `SafeBrowsingMode` (`BlurSensitive` [Default], `HideSensitive`, or `AlwaysShowSensitive`) and `IsPersonalisationEnabled` (Boolean, default `true`).
 *   **FR-ID-04 (Current User Profile):** Exposes `GET /api/v1/identity/users/me` endpoint to fetch the current authenticated profile and preferences.
 *   **FR-ID-05 (Startup Role Seeding & Safety Validation):** The system shall seed default roles (`User`, `Admin`, `Moderator`) via `IdentityContextSeed` upon startup using distributed 64-bit Snowflake IDs (`SnowFlakIdGenerator.NewId()`) and uppercase normalized names. Handlers creating users (`RegisterUserCommandHandler`) or provisioning external OAuth accounts (`GoogleSignInCommandHandler`) must verify that required roles exist prior to user creation, failing fast with a `SystemErrorException("ROLE_NOT_CONFIGURED")` if the identity store is uninitialized.
 
@@ -63,7 +63,33 @@ Architecturally, **Vivid Imagination** serves as a reference **.NET Modular Mono
 *   **FR-FEED-03 (Automatic Pipeline Caching):** `GetFeedQuery` implements `ICacheRequest`. Responses are automatically cached in Redis via MediatR's `CachingBehavior` and `IStaticCacheManager`.
 *   **FR-FEED-04 (Prefix-Based Cache Invalidation):** All consumers emit `InvalidateFeedCacheCommand` (implementing `IInvalidateCacheRequest` with prefix `vivid:feed`), automatically clearing all cached feed pages on uploads, votes, safety updates, and deletions.
 
-### 3.6 Cross-Platform Mobile Client (`VividImagination.Mobile` — .NET MAUI 10)
+### 3.6 Personalised Feed (`FeedModule` & `IdentityModule`)
+*   **FR-PF-001 (Personalised Feed Generation):** The system shall generate personalised photo feeds for authenticated users adapting content ranking based on:
+    *   User interests and preferred photo tags.
+    *   Historical upvotes and downvotes.
+    *   Creator engagement and affinity.
+    *   Photo popularity and quality.
+    *   Content freshness.
+    *   Negative interactions and preferences.
+*   **FR-PF-002 (Interaction Tracking):** The system shall capture user interactions (photo impressions/views, dwell duration, upvotes/downvotes, hides/reports, shares). Client UI telemetry interactions (impressions, dwell duration, shares, in-feed hides) shall be ingested via `POST /api/v1/feed/interactions` returning `202 Accepted` and published through MassTransit integration events (`FeedInteractionOccurredIntegrationEvent`), while social actions (upvotes/downvotes) flow via `PhotoVotedIntegrationEvent`. All interactions are processed asynchronously by the `FeedModule` with idempotency guarantees.
+*   **FR-PF-003 (User Interest Profiles):** The system shall maintain derived user interest profiles in MongoDB (`user_interest_profiles`) containing tag affinity scores, creator affinity scores, negative tag preferences, negative creator preferences, downvoted/hidden photo exclusions, recently viewed histories, and last updated timestamps. Profiles shall be cached in Redis.
+*   **FR-PF-004 (Bounded Candidate Generation):** The system shall retrieve a bounded collection of 200–300 candidate photos per request from recent uploads, trending photos, photos matching user interests and preferred tags, photos from high-affinity creators, and low-exposure photos for exploration. Candidates shall be merged and deduplicated prior to ranking.
+*   **FR-PF-005 (Normalized Personalised Ranking):** The system shall rank candidate photos using the configurable scoring algorithm:
+    $$S = 0.25R + 0.20Q + 0.30T + 0.15C - 0.15N + 0.10E$$
+    Where $R$ is Recency, $Q$ is Quality, $T$ is Tag Affinity, $C$ is Creator Affinity, $N$ is Negative Affinity penalty, and $E$ is Exploration boost. All ranking signals shall be normalized before calculating the composite score.
+*   **FR-PF-006 (Content Filtering & Diversity):** The personalised feed shall:
+    *   Exclude photos previously downvoted or hidden by the user.
+    *   Exclude rejected or quarantined content.
+    *   Respect the user's `SafeBrowsingMode`.
+    *   Limit consecutive photos from the same creator to at most 2.
+    *   Encourage diversity across tags and content categories.
+    *   Avoid repeatedly displaying recently viewed photos.
+    *   Reserve 10–20% of feed recommendations for exploration.
+*   **FR-PF-007 (Cold-Start Handling):** Users without sufficient interaction history (< 3 interactions) shall receive the existing global ranked feed fallback until adequate data is collected.
+*   **FR-PF-008 (Pagination & Caching):** The personalised feed shall support cursor-based and page-based pagination. Redis shall cache user interest profiles and personalised feed slices to optimize retrieval latency.
+*   **FR-PF-009 (Personalisation Preferences):** Authenticated users shall be able to enable or disable personalised recommendations via the unified `/api/v1/identity/users/me/preferences` profile preferences endpoint (`IsPersonalisationEnabled`). When disabled, the system shall serve the global ranked feed.
+
+### 3.7 Cross-Platform Mobile Client (`VividImagination.Mobile` — .NET MAUI 10)
 *   **FR-MOB-01 (Cross-Platform Photo Ingestion):** The mobile application shall provide native camera and photo library selection (`PhotoUploadPage`), streaming multipart payloads directly to `POST /api/v1/media` with caption and tag metadata.
 *   **FR-MOB-02 (Interactive Sensitive Content Shield):** Client feeds consuming `feed_items` where `BlurRequired = true` shall render a dedicated `BlurShieldView` control with blurred overlay, warning badge (`SensitiveContentWarning`), and an interactive reveal-consent toggle button (`Show Content`).
 *   **FR-MOB-03 (Dynamic Feed Stream):** The client shall support paginated feed browsing, score-based ordering, and pull-to-refresh connected to `GET /api/v1/feed`.
@@ -80,7 +106,7 @@ A core teaching point of this Modular Monolith is that **module autonomy enables
 | **`MediaModule`** | **MongoDB** (`MongoDB.Driver`) + **AWS S3** | Collection: `FileEntries` | Document-oriented media asset metadata with tailored sparse and compound indexes + S3 object storage for raw and WebP variants. |
 | **`SocialModule`** | **PostgreSQL** (`EF Core`) | Schema: `social` | High-concurrency ACID transactions enforcing unique `(UserId, PhotoId)` vote constraints. |
 | **`ModerationModule`** | **MongoDB** (`MongoDB.Driver`) | Collection: `moderation_reviews` | Schema-flexible storage for variable-length Amazon Rekognition `ModerationLabel` hierarchies and AI audit payloads. |
-| **`FeedModule`** | **MongoDB** + **Redis** | Collection: `feed_items` | Denormalized, read-optimized documents avoiding cross-module SQL joins; backed by Redis sub-millisecond pipeline caching. |
+| **`FeedModule`** | **MongoDB** + **Redis** | Collections: `feed_items`, `user_interest_profiles`, `user_interactions` | Denormalized, read-optimized documents avoiding cross-module SQL joins; backed by Redis sub-millisecond pipeline caching. |
 
 ### 4.1 Document Index Optimization Strategy
 MongoDB collections are indexed according to query access patterns to prevent costly collection scans:
@@ -89,6 +115,11 @@ MongoDB collections are indexed according to query access patterns to prevent co
     *   `{ FileLocation: 1 }` (`Unique = true`, `Sparse = true`): Unique sparse constraint guaranteeing file storage key uniqueness while safely allowing unassigned or in-transit documents.
 *   **`feed_items` (`FeedDbContext`)**:
     *   `{ Score: -1, UploadedAt: -1 }`: Compound descending index allowing zero-memory sorted feed scans on database fallback.
+*   **`user_interest_profiles` (`FeedDbContext`)**:
+    *   `{ UserId: 1 }` (`Unique = true`): High-throughput primary index for user affinity lookups and caching.
+*   **`user_interactions` (`FeedDbContext`)**:
+    *   `{ EventId: 1 }` (`Unique = true`): Strict idempotency constraint preventing duplicate event processing.
+    *   `{ UserId: 1, Timestamp: -1 }`: Compound index for user interaction timeline extraction.
 *   **`moderation_reviews` (`ModerationDbContext`)**:
     *   `{ PhotoId: 1 }`: Primary lookup index for review status and audit trails.
     *   `{ Status: 1, CreatedAt: -1 }`: Compound index for moderator escalation queues.
@@ -97,11 +128,11 @@ MongoDB collections are indexed according to query access patterns to prevent co
 
 ## 5. Messaging & Integration Matrix (MassTransit + RabbitMQ)
 
-All cross-module communication is asynchronous via **MassTransit**. During MVP/Testing, MassTransit uses its `InMemory` transport; at scale, it switches via configuration to **RabbitMQ** exchanges and queues.
+All cross-module communication is asynchronous via **MassTransit**, with synchronous entity verification supported via MassTransit `IRequestClient<T>`. During MVP/Testing, MassTransit uses its `InMemory` transport; at scale, it switches via configuration to **RabbitMQ** exchanges and queues.
 
 Modules declare their consumers autonomously via `IMessagingModule.RegisterConsumers`.
 
-| Integration Event | Source Contracts Assembly | Publisher | Consumer Module(s) | Broker Action |
+| Integration Message / Contract | Source Contracts Assembly | Publisher / Caller | Consumer Module(s) | Broker Action |
 | :--- | :--- | :--- | :--- | :--- |
 | `PhotoUploadedIntegrationEvent` | `VividImagination.Modules.Media.Contracts` | `MediaModule` | `MediaModule`, `ModerationModule`, `FeedModule` | `Media` runs background WebP optimization; `Moderation` calls Amazon Rekognition; `Feed` inserts initial document (`Id = PhotoId`) into MongoDB and clears cache. |
 | `PhotoOptimizedIntegrationEvent` | `VividImagination.Modules.Media.Contracts` | `MediaModule` | `FeedModule` | `Feed` updates `BlurHash` with real pixel hash, sets `StorageKey` to medium WebP variant, and clears cache prefix. |
@@ -109,6 +140,8 @@ Modules declare their consumers autonomously via `IMessagingModule.RegisterConsu
 | `PhotoModeratedIntegrationEvent` | `VividImagination.Modules.Moderation.Contracts` | `ModerationModule` | `FeedModule` | `Feed` updates `IsUnsafe` / `BlurRequired` flags (or purges if `Rejected`) and clears cache prefix. |
 | `PhotoVotedIntegrationEvent` | `VividImagination.Modules.Social.Contracts` | `SocialModule` | `FeedModule` | `Feed` updates upvote/downvote counters, recalculates score, and clears cache prefix. |
 | `PhotoReportedIntegrationEvent` | `VividImagination.Modules.Social.Contracts` | `SocialModule` | `ModerationModule` | At $\ge 2$ reports, `Moderation` marks item `TaggedUnsafe` and emits `PhotoModeratedIntegrationEvent`. |
+| `FeedInteractionOccurredIntegrationEvent` | `VividImagination.Modules.Feed.Contracts` | `FeedModule` / Clients | `FeedModule` | `Feed` updates `UserInterestProfile` tag and creator affinities, tracks negative exclusions, and evicts user feed caches. |
+| `ValidatePhotoRequest` / `PhotoValidationResponse` | `VividImagination.Modules.Media.Contracts` | `SocialModule`, `ModerationModule` | `MediaModule` | Synchronous MassTransit RPC: queries `FileEntries` in MongoDB to verify photo existence without shared database access. |
 
 ---
 
