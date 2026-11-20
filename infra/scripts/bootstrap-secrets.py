@@ -36,21 +36,30 @@ def main():
         print(f"[SSM] Warning: Failed to query SSM path {ssm_path}: {e}")
         secrets = {}
 
-    # Merge with fallback environment variables if not present in SSM
-    fallbacks = {
-        "CLOUDFLARE_CERT_PEM": os.environ.get("FALLBACK_CF_CERT", ""),
-        "POSTGRES_PASSWORD": os.environ.get("FALLBACK_PG_PASS", ""),
-        "JWT_SECRET_KEY": os.environ.get("FALLBACK_JWT_KEY", ""),
-        "ENCRYPTION_KEY": os.environ.get("FALLBACK_ENC_KEY", ""),
-        "GHCR_TOKEN": os.environ.get("FALLBACK_GHCR_TOKEN", ""),
+    # Non-sensitive configuration defaults (can be overridden by SSM if present)
+    defaults = {
         "POSTGRES_USER": os.environ.get("PG_USER", "vivid_user"),
         "POSTGRES_DB": os.environ.get("PG_DB", "vivid_imagination"),
         "GHCR_USERNAME": os.environ.get("GHCR_USER", ""),
     }
-
-    for k, v in fallbacks.items():
+    for k, v in defaults.items():
         if k not in secrets and v:
             secrets[k] = v
+
+    # Strict validation: all sensitive credentials must exist in SSM Parameter Store
+    required_secrets = [
+        "CLOUDFLARE_CERT_PEM",
+        "POSTGRES_PASSWORD",
+        "JWT_SECRET_KEY",
+        "ENCRYPTION_KEY",
+        "GHCR_TOKEN",
+    ]
+    missing = [k for k in required_secrets if not secrets.get(k)]
+    if missing:
+        print(f"[SSM] ERROR: Missing required secrets in SSM under {ssm_path}: {', '.join(missing)}")
+        print("[SSM] ERROR: All sensitive credentials must be stored in AWS SSM Parameter Store as SecureString.")
+        print("[SSM] Please follow Step 2 in docs/DEPLOYMENT_GUIDE.md to configure them.")
+        sys.exit(1)
 
     # 1. Update /opt/vivid-imagination/.env
     env_file = "/opt/vivid-imagination/.env"
@@ -140,10 +149,6 @@ ingress:
         subprocess.run(["shred", "-u", cert_path], capture_output=True)
         print("[Cloudflare] Origin certificate successfully used and securely shredded from RAM.")
 
-    # 3. Memory Cleanup
-    for k in ["FALLBACK_CF_CERT", "FALLBACK_PG_PASS", "FALLBACK_JWT_KEY", "FALLBACK_ENC_KEY", "FALLBACK_GHCR_TOKEN"]:
-        if k in os.environ:
-            del os.environ[k]
 
 if __name__ == "__main__":
     main()

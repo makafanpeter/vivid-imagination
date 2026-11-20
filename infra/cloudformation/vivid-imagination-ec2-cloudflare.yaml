@@ -35,21 +35,9 @@ Parameters:
     Default: ""
     Description: S3 bucket containing deployment assets (docker-compose, deploy-app, env template). Defaults to vivid-artifacts-<account>-<region>
 
-  CloudflareCertPem:
-    Type: String
-    NoEcho: true
-    Default: ""
-    Description: Contents of ~/.cloudflared/cert.pem generated via 'cloudflared tunnel login' to automate tunnel creation and DNS routing
-
   GhcrUsername:
     Type: String
     Description: GitHub username for authenticating to GitHub Container Registry (ghcr.io)
-
-  GhcrToken:
-    Type: String
-    NoEcho: true
-    Default: ""
-    Description: GitHub Personal Access Token (PAT) with read:packages scope to pull private images
 
   GhcrImageRepository:
     Type: String
@@ -66,31 +54,10 @@ Parameters:
     Default: vivid_user
     Description: PostgreSQL administrative username
 
-  PostgresPassword:
-    Type: String
-    NoEcho: true
-    Default: ""
-    MinLength: 0
-    Description: PostgreSQL administrative password
-
   PostgresDb:
     Type: String
     Default: vivid_imagination
     Description: PostgreSQL primary database name
-
-  JwtSecretKey:
-    Type: String
-    NoEcho: true
-    Default: ""
-    MinLength: 0
-    Description: Secret key for JWT and application signing (min 32 characters)
-
-  EncryptionKey:
-    Type: String
-    NoEcho: true
-    Default: ""
-    MinLength: 0
-    Description: Symmetric encryption key for data protection (min 32 characters)
 
   AppBaseUrl:
     Type: String
@@ -431,20 +398,12 @@ Resources:
           export ENV_NAME="${EnvironmentName}"
           export APP_HOST="$APP_HOST"
           export TUNNEL_NAME="${EnvironmentName}-vivid-tunnel"
-          export FALLBACK_CF_CERT="${CloudflareCertPem}"
-          export FALLBACK_PG_PASS="${PostgresPassword}"
-          export FALLBACK_JWT_KEY="${JwtSecretKey}"
-          export FALLBACK_ENC_KEY="${EncryptionKey}"
-          export FALLBACK_GHCR_TOKEN="${GhcrToken}"
           export PG_USER="${PostgresUser}"
           export PG_DB="${PostgresDb}"
           export GHCR_USER="${GhcrUsername}"
 
           python3 /tmp/bootstrap-secrets.py
           rm -f /tmp/bootstrap-secrets.py
-
-          # Clean up exported variables from bash subshell
-          unset FALLBACK_CF_CERT FALLBACK_PG_PASS FALLBACK_JWT_KEY FALLBACK_ENC_KEY FALLBACK_GHCR_TOKEN
           set -x
 
           cat <<EOF_CF_SERVICE > /etc/systemd/system/cloudflared.service
