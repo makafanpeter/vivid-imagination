@@ -87,11 +87,34 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
 5. Copy the entire contents of `cert.pem` (typically starting with `-----BEGIN ARGO TUNNEL TOKEN-----` and ending with `-----END ARGO TUNNEL TOKEN-----`, or `-----BEGIN CERTIFICATE-----`). This origin token remains valid indefinitely for your domain.
 
 > [!TIP]
-> When pasting `cert.pem` into a JSON parameters file (`parameters.prod.json`), you can escape newlines as `\n` (e.g. `"-----BEGIN ARGO TUNNEL TOKEN-----\n<base64>\n-----END ARGO TUNNEL TOKEN-----\n"`). The EC2 startup script automatically normalizes literal `\n` and `\r\n` characters on boot.
+> **Recommended Security Best Practice — Store Secrets in AWS SSM Parameter Store**:
+> Instead of keeping plaintext secrets in `parameters.prod.json`, you can store them encrypted as `SecureString` in AWS SSM Parameter Store under `/vivid-imagination/production/`. The EC2 instance automatically decrypts them at boot time via its attached IAM role:
+> ```bash
+> # 1. Cloudflare Origin Certificate (reads file directly without escaping newlines!)
+> aws ssm put-parameter --name "/vivid-imagination/production/CLOUDFLARE_CERT_PEM" \
+>   --value "file://$HOME/.cloudflared/cert.pem" --type "SecureString" --region eu-west-1
+> 
+> # 2. Database, JWT, Encryption, and GHCR Secrets
+> aws ssm put-parameter --name "/vivid-imagination/production/POSTGRES_PASSWORD" --value "<StrongPassword>" --type "SecureString" --region eu-west-1
+> aws ssm put-parameter --name "/vivid-imagination/production/JWT_SECRET_KEY" --value "<32CharJwtSecret>" --type "SecureString" --region eu-west-1
+> aws ssm put-parameter --name "/vivid-imagination/production/ENCRYPTION_KEY" --value "<32CharEncKey>" --type "SecureString" --region eu-west-1
+> aws ssm put-parameter --name "/vivid-imagination/production/GHCR_TOKEN" --value "<ghp_token>" --type "SecureString" --region eu-west-1
+> ```
+> When stored in SSM, these secrets can be left blank in `parameters.prod.json`, ensuring **zero plaintext secrets in UserData, IMDS, or git repositories**. At boot, `cert.pem` is loaded only into RAM (`/dev/shm`), used to provision the tunnel and DNS, and **immediately shredded (`shred -u`)**.
 
 ---
 
 ## Step 2: Deploy CloudFormation Stack
+
+### 0. Upload Deployment Artifacts to S3 (One-Time / When Assets Change)
+
+Deployment assets (`docker-compose.prod.yml`, `deploy-app.sh`, `.env.template`, and `bootstrap-secrets.py`) are retrieved directly from S3 by EC2 at boot rather than being bloated into CloudFormation UserData.
+
+Run the provided asset uploader to create/sync your artifacts bucket (`s3://vivid-artifacts-<account>-<region>`):
+
+```bash
+python infra/scripts/upload-artifacts.py
+```
 
 ### Option A: Using AWS CLI (Recommended)
 
@@ -100,13 +123,13 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
    ```bash
    cp infra/cloudformation/parameters.example.json infra/cloudformation/parameters.prod.json
    ```
-3. Edit `infra/cloudformation/parameters.prod.json` with your real secrets:
-   - `CloudflareCertPem`: Paste the contents of `cert.pem` from Step 1.
+3. Edit `infra/cloudformation/parameters.prod.json` with your real secrets (or omit sensitive values if stored in AWS SSM Parameter Store as described above):
+   - `CloudflareCertPem`: Paste the contents of `cert.pem` from Step 1 (or leave blank if stored in SSM).
    - `GhcrUsername`: Your GitHub username or organization name.
-   - `GhcrToken`: Your GitHub PAT with `read:packages` permission.
+   - `GhcrToken`: Your GitHub PAT with `read:packages` permission (or leave blank if stored in SSM).
    - `GhcrImageRepository`: `ghcr.io/<owner>/vividimagination.backend.api`.
-   - `PostgresPassword`: Strong password for PostgreSQL.
-   - `JwtSecretKey` & `EncryptionKey`: 32+ character random strings.
+   - `PostgresPassword`: Strong password for PostgreSQL (or leave blank if stored in SSM).
+   - `JwtSecretKey` & `EncryptionKey`: 32+ character random strings (or leave blank if stored in SSM).
    - `AppBaseUrl`: `https://api.yourdomain.com`.
 4. Run the CloudFormation deploy command:
    ```bash
