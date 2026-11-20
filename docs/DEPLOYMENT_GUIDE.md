@@ -123,8 +123,14 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
    - Configures Cloudflare DNS CNAME records (`api.yourdomain.com` and `ssh-api.yourdomain.com`) pointing directly to the tunnel.
    - Establishes the outbound TLS tunnel connection.
    - Bootstraps the Docker containers (typically takes ~5–8 minutes).
-
----
+6. Retrieve Stack Outputs:
+   Once stack creation finishes (`CREATE_COMPLETE`), query the stack outputs to view the provisioned resources, EC2 instance ID, S3 bucket name, and direct SSM connection command:
+   ```bash
+   aws cloudformation describe-stacks \
+     --stack-name vivid-imagination-prod \
+     --region eu-west-1 \
+     --query "Stacks[0].Outputs" --output table
+   ```
 
 ### Option B: Using AWS Management Console
 
@@ -144,9 +150,9 @@ With `CloudflareCertPem`, you **never need to visit the Cloudflare Zero Trust we
 In the Cloudflare Zero Trust dashboard under **Networks** &rarr; **Tunnels**, verify that your tunnel status changes from *Inactive* to **HEALTHY** with an active connector.
 
 ### 2. Connect to EC2 via AWS Systems Manager (No open ports needed)
-Run the following AWS CLI command (replace with your Instance ID from stack outputs):
+Run the `SSMConnectCommand` from the stack outputs table above (or execute the command directly using your Instance ID):
 ```bash
-aws ssm start-session --target i-0123456789abcdef0 --region eu-west-1
+aws ssm start-session --target <INSTANCE_ID> --region eu-west-1
 ```
 Once connected, switch to root to inspect container logs and health:
 ```bash
