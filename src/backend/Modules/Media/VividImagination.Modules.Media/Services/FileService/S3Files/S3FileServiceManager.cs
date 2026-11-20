@@ -26,6 +26,7 @@ public class S3FileServiceManager : IFileServiceManager
         _bucketName = settings.BucketName;
         _region = RegionEndpoint.GetBySystemName(settings.Region);
         _s3Client = new AmazonS3Client(_region);
+        _logger.LogInformation("Setting up Bucket: {BucketName}-{Region}", _bucketName, _region);
     }
 
     public async Task CreateAsync(
