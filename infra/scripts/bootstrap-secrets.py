@@ -89,9 +89,56 @@ def main():
 
         pg_user = secrets.get("POSTGRES_USER", "vivid_user")
         pg_pass = secrets.get("POSTGRES_PASSWORD", "")
+        pg_db = secrets.get("POSTGRES_DB", "vivid_imagination")
+
         if pg_pass:
-            content = content.replace("postgres:mysecretpassword", f"{pg_user}:{pg_pass}")
-            content = content.replace("ReplaceWithStrongPostgresPassword123!", pg_pass)
+            pg_conn = (
+                f"Host=postgres;Port=5432;Database={pg_db};"
+                f"Username={pg_user};Password={pg_pass};"
+                "Include Error Detail=true"
+            )
+
+            pg_conn_keys = [
+                "ConnectionStrings__Postgres",
+                "ConnectionStrings__Identity",
+                "ConnectionStrings__Social",
+                "Identity__ConnectionString",
+                "Social__ConnectionString",
+            ]
+
+            for conn_key in pg_conn_keys:
+                content = re.sub(
+                    rf"^{re.escape(conn_key)}=.*$",
+                    lambda _: f"{conn_key}={pg_conn}",
+                    content,
+                    flags=re.MULTILINE,
+                )
+
+            # Fallback replacements for compound formats and lingering default passwords
+            content = content.replace(
+                "Username=postgres;Password=mysecretpassword",
+                f"Username={pg_user};Password={pg_pass}",
+            )
+
+            content = content.replace(
+                "Password=mysecretpassword",
+                f"Password={pg_pass}",
+            )
+
+            content = content.replace(
+                "postgres:mysecretpassword",
+                f"{pg_user}:{pg_pass}",
+            )
+
+            content = content.replace(
+                "mysecretpassword",
+                pg_pass,
+            )
+
+            content = content.replace(
+                "ReplaceWithStrongPostgresPassword123!",
+                pg_pass,
+            )
 
         with open(env_file, "w") as f:
             f.write(content)
