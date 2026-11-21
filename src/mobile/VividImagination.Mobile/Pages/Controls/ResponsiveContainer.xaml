@@ -4,41 +4,43 @@
              xmlns:controls="clr-namespace:VividImagination.Mobile.Pages.Controls"
              x:Class="VividImagination.Mobile.Pages.Controls.ResponsiveContainer">
 
-    <!-- Outermost background canvas -->
-    <Grid BackgroundColor="{StaticResource AppBackground}"
-          HorizontalOptions="Fill"
-          VerticalOptions="Fill">
+    <ContentView.Content>
+        <!-- Outermost background canvas -->
+        <Grid BackgroundColor="{StaticResource AppBackground}"
+              HorizontalOptions="Fill"
+              VerticalOptions="Fill">
 
-        <!-- Centered Responsive Column Frame -->
-        <Border x:Name="ColumnFrame"
-                BackgroundColor="{StaticResource AppBackground}"
-                Stroke="{StaticResource BorderGlow}"
-                StrokeThickness="0"
-                Padding="0"
-                VerticalOptions="Fill"
-                HorizontalOptions="Fill">
+            <!-- Centered Responsive Column Frame -->
+            <Border x:Name="ColumnFrame"
+                    BackgroundColor="{StaticResource AppBackground}"
+                    Stroke="{StaticResource BorderGlow}"
+                    StrokeThickness="0"
+                    Padding="0"
+                    VerticalOptions="Fill"
+                    HorizontalOptions="Fill">
 
-            <Grid x:Name="ColumnContainer"
-                  VerticalOptions="Fill"
-                  HorizontalOptions="Fill">
+                <Grid x:Name="ColumnContainer"
+                      VerticalOptions="Fill"
+                      HorizontalOptions="Fill">
 
-                <!-- Page Body Slot -->
-                <ContentView x:Name="PageBodyPresenter"
-                             HorizontalOptions="Fill"
-                             VerticalOptions="Fill" />
+                    <!-- Page Body Slot -->
+                    <ContentView x:Name="PageBodyPresenter"
+                                 HorizontalOptions="Fill"
+                                 VerticalOptions="Fill" />
 
-                <!-- Pinned Frosted Bottom Navigation Bar -->
-                <controls:BottomNavBar x:Name="BottomNavControl"
-                                       VerticalOptions="End"
-                                       HorizontalOptions="Fill"
-                                       ZIndex="20" />
+                    <!-- Pinned Frosted Bottom Navigation Bar -->
+                    <controls:BottomNavBar x:Name="BottomNavControl"
+                                           VerticalOptions="End"
+                                           HorizontalOptions="Fill"
+                                           ZIndex="20" />
 
-                <!-- Top Toast Overlay -->
-                <controls:TopToastView VerticalOptions="Start"
-                                       HorizontalOptions="Fill"
-                                       ZIndex="100" />
-            </Grid>
-        </Border>
-    </Grid>
+                    <!-- Top Toast Overlay -->
+                    <controls:TopToastView VerticalOptions="Start"
+                                           HorizontalOptions="Fill"
+                                           ZIndex="100" />
+                </Grid>
+            </Border>
+        </Grid>
+    </ContentView.Content>
 
 </ContentView>
