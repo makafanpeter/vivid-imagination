@@ -274,7 +274,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdateSafeBrowsingPreferenceRequest body);
+        System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdatePreferencesRequest body);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -282,7 +282,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdateSafeBrowsingPreferenceRequest body, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdatePreferencesRequest body, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Sign in or auto-provision user with Google ID token
@@ -328,6 +328,21 @@ namespace VividImagination.Mobile.OpenApi
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<Review> UpdateModerationVerdictAsync(System.Guid photoId, UpdateModerationVerdictRequest body, System.Threading.CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Get media uploaded by the current authenticated user
+        /// </summary>
+        /// <returns>Success</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UploadDocumentViewModel>> GetMyMediaAsync(int? page, int? pageSize);
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get media uploaded by the current authenticated user
+        /// </summary>
+        /// <returns>Success</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UploadDocumentViewModel>> GetMyMediaAsync(int? page, int? pageSize, System.Threading.CancellationToken cancellationToken);
 
     }
 
@@ -1875,7 +1890,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdateSafeBrowsingPreferenceRequest body)
+        public virtual System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdatePreferencesRequest body)
         {
             return UpdateUserPreferencesAsync(body, System.Threading.CancellationToken.None);
         }
@@ -1886,7 +1901,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdateSafeBrowsingPreferenceRequest body, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(UpdatePreferencesRequest body, System.Threading.CancellationToken cancellationToken)
         {
             if (body == null)
                 throw new System.ArgumentNullException("body");
@@ -2236,6 +2251,112 @@ namespace VividImagination.Mobile.OpenApi
             }
         }
 
+        /// <summary>
+        /// Get media uploaded by the current authenticated user
+        /// </summary>
+        /// <returns>Success</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UploadDocumentViewModel>> GetMyMediaAsync(int? page, int? pageSize)
+        {
+            return GetMyMediaAsync(page, pageSize, System.Threading.CancellationToken.None);
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get media uploaded by the current authenticated user
+        /// </summary>
+        /// <returns>Success</returns>
+        /// <exception cref="ApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<UploadDocumentViewModel>> GetMyMediaAsync(int? page, int? pageSize, System.Threading.CancellationToken cancellationToken)
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/v1/media/me"
+                    urlBuilder_.Append("api/v1/media/me");
+                    urlBuilder_.Append('?');
+                    if (page != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("page")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(page, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (pageSize != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<UploadDocumentViewModel>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new ApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 401)
+                        {
+                            string responseText_ = ( response_.Content == null ) ? string.Empty : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new ApiException("Unauthorized", status_, responseText_, headers_, null);
+                        }
+                        else
+                        if (status_ == 500)
+                        {
+                            string responseText_ = ( response_.Content == null ) ? string.Empty : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new ApiException("Internal Server Error", status_, responseText_, headers_, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new ApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
         protected struct ObjectResponseResult<T>
         {
             public ObjectResponseResult(T responseObject, string responseText)
@@ -2522,6 +2643,9 @@ namespace VividImagination.Mobile.OpenApi
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         public string? Reason { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("reasonType")]
+        public int? ReasonType { get; set; } = 0;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -2682,16 +2806,19 @@ namespace VividImagination.Mobile.OpenApi
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("userId")]
-        public System.Guid UserId { get; set; } = default!;
+        public long UserId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("email")]
         public string Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("isSuccess")]
-        public bool IsSuccess { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("fullName")]
+        public string? FullName { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("message")]
-        public string? Message { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
+        public int SafeBrowsingMode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("createdOn")]
+        public System.DateTime CreatedOn { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2709,10 +2836,13 @@ namespace VividImagination.Mobile.OpenApi
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("userId")]
-        public System.Guid UserId { get; set; } = default!;
+        public long UserId { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("mode")]
-        public int Mode { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
+        public int SafeBrowsingMode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isPersonalisationEnabled")]
+        public bool? IsPersonalisationEnabled { get; set; } = true;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2729,8 +2859,11 @@ namespace VividImagination.Mobile.OpenApi
     public partial class UpdateSafeBrowsingPreferenceRequest
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("mode")]
-        public int Mode { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
+        public int SafeBrowsingMode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isPersonalisationEnabled")]
+        public bool? IsPersonalisationEnabled { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2750,6 +2883,9 @@ namespace VividImagination.Mobile.OpenApi
         [System.Text.Json.Serialization.JsonPropertyName("idToken")]
         public string IdToken { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
+        public int? SafeBrowsingMode { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -2765,17 +2901,20 @@ namespace VividImagination.Mobile.OpenApi
     public partial class GoogleSignInResult
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("success")]
-        public bool Success { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("userId")]
+        public long UserId { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("token")]
-        public string? Token { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("email")]
+        public string Email { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("user")]
-        public Profile? User { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("fullName")]
+        public string? FullName { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("error")]
-        public string? Error { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
+        public int SafeBrowsingMode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isNewUser")]
+        public bool IsNewUser { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2878,6 +3017,27 @@ namespace VividImagination.Mobile.OpenApi
 
         [System.Text.Json.Serialization.JsonPropertyName("blurRequired")]
         public bool? BlurRequired { get; set; } = false;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.0.0 (NJsonSchema v11.6.0.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdatePreferencesRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
+        public int SafeBrowsingMode { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("isPersonalisationEnabled")]
+        public bool? IsPersonalisationEnabled { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

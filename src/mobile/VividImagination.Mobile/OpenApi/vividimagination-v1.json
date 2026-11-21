@@ -666,14 +666,14 @@
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateSafeBrowsingPreferenceRequest"
+                "$ref": "#/components/schemas/UpdatePreferencesRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -800,6 +800,61 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/media/me": {
+      "get": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Get media uploaded by the current authenticated user",
+        "operationId": "GetMyMedia",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UploadDocumentViewModel"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -986,6 +1041,11 @@
           "reason": {
             "type": "string",
             "nullable": true
+          },
+          "reasonType": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
           }
         }
       },
@@ -1136,22 +1196,28 @@
         "required": [
           "userId",
           "email",
-          "isSuccess"
+          "safeBrowsingMode",
+          "createdOn"
         ],
         "properties": {
           "userId": {
-            "type": "string",
-            "format": "uuid"
+            "type": "integer",
+            "format": "int64"
           },
           "email": {
             "type": "string"
           },
-          "isSuccess": {
-            "type": "boolean"
-          },
-          "message": {
+          "fullName": {
             "type": "string",
             "nullable": true
+          },
+          "safeBrowsingMode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdOn": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -1159,28 +1225,36 @@
         "type": "object",
         "required": [
           "userId",
-          "mode"
+          "safeBrowsingMode"
         ],
         "properties": {
           "userId": {
-            "type": "string",
-            "format": "uuid"
+            "type": "integer",
+            "format": "int64"
           },
-          "mode": {
+          "safeBrowsingMode": {
             "type": "integer",
             "format": "int32"
+          },
+          "isPersonalisationEnabled": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
       "UpdateSafeBrowsingPreferenceRequest": {
         "type": "object",
         "required": [
-          "mode"
+          "safeBrowsingMode"
         ],
         "properties": {
-          "mode": {
+          "safeBrowsingMode": {
             "type": "integer",
             "format": "int32"
+          },
+          "isPersonalisationEnabled": {
+            "type": "boolean",
+            "nullable": true
           }
         }
       },
@@ -1192,29 +1266,40 @@
         "properties": {
           "idToken": {
             "type": "string"
+          },
+          "safeBrowsingMode": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         }
       },
       "GoogleSignInResult": {
         "type": "object",
         "required": [
-          "success"
+          "userId",
+          "email",
+          "safeBrowsingMode",
+          "isNewUser"
         ],
         "properties": {
-          "success": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "safeBrowsingMode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isNewUser": {
             "type": "boolean"
-          },
-          "token": {
-            "type": "string",
-            "nullable": true
-          },
-          "user": {
-            "$ref": "#/components/schemas/Profile",
-            "nullable": true
-          },
-          "error": {
-            "type": "string",
-            "nullable": true
           }
         }
       },
@@ -1318,6 +1403,22 @@
           "blurRequired": {
             "type": "boolean",
             "default": false
+          }
+        }
+      },
+      "UpdatePreferencesRequest": {
+        "type": "object",
+        "required": [
+          "safeBrowsingMode"
+        ],
+        "properties": {
+          "safeBrowsingMode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isPersonalisationEnabled": {
+            "type": "boolean",
+            "nullable": true
           }
         }
       }

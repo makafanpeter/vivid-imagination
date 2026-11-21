@@ -163,14 +163,16 @@ public class MobileFeatureTests
     {
         var prefJson = """
         {
-            "userId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
-            "mode": 1
+            "userId": 123456789012345678,
+            "safeBrowsingMode": 1,
+            "isPersonalisationEnabled": true
         }
         """;
         var pref = JsonSerializer.Deserialize<SafeBrowsingPreferenceDto>(prefJson, JsonOptions);
         pref.Should().NotBeNull();
-        pref!.UserId.Should().Be(Guid.Parse("c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"));
-        pref.Mode.Should().Be(1);
+        pref!.UserId.Should().Be(123456789012345678L);
+        pref.SafeBrowsingMode.Should().Be(1);
+        pref.IsPersonalisationEnabled.Should().BeTrue();
 
         var interactionRequest = new RecordInteractionRequest
         {
@@ -183,6 +185,42 @@ public class MobileFeatureTests
         var interactionJson = JsonSerializer.Serialize(interactionRequest);
         interactionJson.Should().Contain("\"interactionType\":\"dwell\"");
         interactionJson.Should().Contain("\"dwellDurationMs\":2500");
+    }
+
+    [Fact]
+    public void Identity_RegisterAndGoogleSignIn_SerializeAndDeserializeCorrectly()
+    {
+        var registerResultJson = """
+        {
+            "userId": 987654321098765432,
+            "email": "creator@example.com",
+            "fullName": "Creative User",
+            "safeBrowsingMode": 0,
+            "createdOn": "2026-11-21T12:00:00Z"
+        }
+        """;
+        var regResult = JsonSerializer.Deserialize<RegisterUserResult>(registerResultJson, JsonOptions);
+        regResult.Should().NotBeNull();
+        regResult!.UserId.Should().Be(987654321098765432L);
+        regResult.Email.Should().Be("creator@example.com");
+        regResult.FullName.Should().Be("Creative User");
+        regResult.SafeBrowsingMode.Should().Be(0);
+
+        var googleResultJson = """
+        {
+            "userId": 987654321098765432,
+            "email": "google@example.com",
+            "fullName": "Google User",
+            "safeBrowsingMode": 2,
+            "isNewUser": true
+        }
+        """;
+        var googleResult = JsonSerializer.Deserialize<GoogleSignInResult>(googleResultJson, JsonOptions);
+        googleResult.Should().NotBeNull();
+        googleResult!.UserId.Should().Be(987654321098765432L);
+        googleResult.Email.Should().Be("google@example.com");
+        googleResult.SafeBrowsingMode.Should().Be(2);
+        googleResult.IsNewUser.Should().BeTrue();
     }
 
     [Fact]
@@ -201,6 +239,7 @@ public class MobileFeatureTests
         methodNames.Should().Contain("UpdateUserPreferencesAsync");
         methodNames.Should().Contain("GoogleSignInAsync");
         methodNames.Should().Contain("UpdatePhotoMetadataAsync");
+        methodNames.Should().Contain("GetMyMediaAsync");
     }
 
     [Fact]

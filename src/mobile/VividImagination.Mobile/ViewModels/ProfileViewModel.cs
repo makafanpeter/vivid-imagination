@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.OpenApi;
 using VividImagination.Mobile.Services;
 using VividImagination.Mobile.Services.Configuration;
 
@@ -10,20 +11,28 @@ public partial class ProfileViewModel : ObservableObject
 {
     private readonly IAuthService _authService;
     private readonly IConfigurationService _configurationService;
+    private readonly IVividImaginationClient _apiClient;
 
     public ProfileViewModel(
         IAuthService authService,
-        IConfigurationService configurationService)
+        IConfigurationService configurationService,
+        IVividImaginationClient apiClient)
     {
         _authService = authService;
         _configurationService = configurationService;
+        _apiClient = apiClient;
 
-        _authService.AuthStateChanged += (s, e) => UpdateFromAuth();
+        _authService.AuthStateChanged += (s, e) =>
+        {
+            UpdateFromAuth();
+            _ = LoadUploadsAsync();
+        };
         _configurationService.EnvironmentChanged += (s, e) => UpdateFromConfig();
 
         MyUploads = [];
         UpdateFromAuth();
         UpdateFromConfig();
+        _ = LoadUploadsAsync();
     }
 
     public ObservableCollection<UserUploadItemViewModel> MyUploads { get; }
@@ -66,10 +75,7 @@ public partial class ProfileViewModel : ObservableObject
             SafeBrowsingIndex = (int)Profile.SafeBrowsingMode;
         }
         OnPropertyChanged(nameof(DisplayName));
-        OnPropertyChanged(nameof(PhotoCountText));
-        OnPropertyChanged(nameof(HasUploads));
-        OnPropertyChanged(nameof(HasUserUploads));
-        OnPropertyChanged(nameof(UserUploads));
+        NotifyUploadsChanged();
     }
 
     private void UpdateFromConfig()
@@ -78,16 +84,62 @@ public partial class ProfileViewModel : ObservableObject
         ActiveBaseUrl = _configurationService.ActiveBaseUrl;
     }
 
+    private void NotifyUploadsChanged()
+    {
+        OnPropertyChanged(nameof(PhotoCountText));
+        OnPropertyChanged(nameof(HasUploads));
+        OnPropertyChanged(nameof(HasUserUploads));
+        OnPropertyChanged(nameof(UserUploads));
+    }
+
+    [RelayCommand]
+    public async Task LoadUploadsAsync()
+    {
+        if (Profile == null)
+        {
+            MyUploads.Clear();
+            NotifyUploadsChanged();
+            return;
+        }
+
+        try
+        {
+            var mediaList = await _apiClient.GetMyMediaAsync(1, 50);
+            MyUploads.Clear();
+            if (mediaList != null)
+            {
+                foreach (var media in mediaList)
+                {
+                    MyUploads.Add(new UserUploadItemViewModel
+                    {
+                        PhotoId = media.Id,
+                        ImageUrl = media.Url ?? string.Empty,
+                        Caption = media.Description ?? media.Name ?? string.Empty,
+                        Status = (media.Public == true) ? "Live" : "Checking"
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load user uploads: {ex.Message}");
+        }
+        finally
+        {
+            NotifyUploadsChanged();
+        }
+    }
 
     [RelayCommand]
     public async Task RefreshProfileAsync()
     {
         Profile = await _authService.GetCurrentUserProfileAsync();
         UpdateFromAuth();
+        await LoadUploadsAsync();
     }
 
     [RelayCommand]
-    public void SetSafeBrowsingMode(string modeStr)
+    public async Task SetSafeBrowsingMode(string modeStr)
     {
         if (int.TryParse(modeStr, out var mode))
         {
@@ -95,6 +147,14 @@ public partial class ProfileViewModel : ObservableObject
             if (Profile != null)
             {
                 Profile.SafeBrowsingMode = (SafeBrowsingMode)mode;
+            }
+            try
+            {
+                await _apiClient.UpdateUserPreferencesAsync(mode);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to persist safe browsing preference: {ex.Message}");
             }
             ToastService.Current.Show($"Browsing mode set to {(SafeBrowsingMode)mode}", ToastType.Info);
         }
@@ -132,10 +192,17 @@ public partial class ProfileViewModel : ObservableObject
 
         if (confirm)
         {
+            try
+            {
+                await _apiClient.DeletePhotoAsync(item.PhotoId);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to delete photo from API: {ex.Message}");
+            }
+
             MyUploads.Remove(item);
-            OnPropertyChanged(nameof(PhotoCountText));
-            OnPropertyChanged(nameof(HasUploads));
-            OnPropertyChanged(nameof(HasUserUploads));
+            NotifyUploadsChanged();
             ToastService.Current.Show("Photo deleted", ToastType.Info);
         }
     }
@@ -145,6 +212,8 @@ public partial class ProfileViewModel : ObservableObject
     {
         await _authService.LogoutAsync();
         UpdateFromAuth();
+        MyUploads.Clear();
+        NotifyUploadsChanged();
         ToastService.Current.Show("Signed out", ToastType.Info);
         await Shell.Current.GoToAsync("//login");
     }
