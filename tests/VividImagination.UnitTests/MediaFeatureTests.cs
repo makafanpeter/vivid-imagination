@@ -13,11 +13,13 @@ using VividImagination.Modules.Media;
 using VividImagination.Modules.Media.Contracts.Events;
 using VividImagination.Modules.Media.Controllers.v1;
 using VividImagination.Modules.Media.Features.Photos.Commands;
+using VividImagination.Modules.Media.Features.Photos.Queries;
 using VividImagination.Modules.Media.Features.Photos.Validations;
 using VividImagination.Modules.Media.Features.Photos.ViewModels;
 using VividImagination.Modules.Media.Persistence.Entities;
 using VividImagination.Modules.Media.Services.FileService;
 using VividImagination.Shared.Contract.Identity;
+using VividImagination.Shared.Domain.Infrastructure;
 using VividImagination.Shared.Infrastructure.Exceptions;
 using VividImagination.Shared.Infrastructure.Mongo;
 using VividImagination.Shared.Infrastructure.Web;
@@ -365,5 +367,125 @@ public class MediaFeatureTests
         var updateAntiforgery = updateEndpoint!.Metadata.GetMetadata<IAntiforgeryMetadata>();
         updateAntiforgery.Should().NotBeNull();
         updateAntiforgery!.RequiresValidation.Should().BeFalse();
+    }
+
+    [Fact]
+    public void MapMediaApiV1_Should_Register_GetMyMedia_Endpoint()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddCustomVersioning();
+        var app = builder.Build();
+        var versioned = app.NewVersionedApi(MediaModule.ModuleConstants.FormattedModuleName);
+        versioned.MapMediaApiV1();
+
+        var endpoints = ((IEndpointRouteBuilder)app).DataSources
+            .SelectMany(ds => ds.Endpoints)
+            .OfType<RouteEndpoint>()
+            .ToList();
+
+        var myMediaEndpoint = endpoints.FirstOrDefault(e => e.DisplayName?.Contains("GetMyMediaAsync") == true);
+        myMediaEndpoint.Should().NotBeNull();
+        myMediaEndpoint!.RoutePattern.RawText.Should().Be("/api/v{version:apiVersion}/media/me");
+    }
+
+    [Fact]
+    public async Task GetMyMedia_Should_Return_Only_User_Files_Mapped_Directly()
+    {
+        var fileRepositoryMock = new Mock<IMongoRepository<FileEntry, Guid>>();
+        var mapperMock = new Mock<IMapper>();
+        var currentUserMock = new Mock<ICurrentUser>();
+
+        long userId = 101;
+        currentUserMock.Setup(c => c.GetUserId()).Returns(userId);
+        currentUserMock.Setup(c => c.CurrentUser).Returns(new UserProfile { Sub = userId.ToString() });
+
+        var createdTime = DateTimeOffset.UtcNow;
+        var existingFiles = new List<FileEntry>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                Name = "photo_1",
+                FileName = "photo_1.jpg",
+                ContentType = "image/jpeg",
+                FileExtension = ".jpg",
+                OwnerId = userId.ToString(),
+                Url = "https://example.com/download/photo_1",
+                Deleted = false,
+                CreatedOn = createdTime,
+                Status = "Optimized",
+                BlurHash = "L6PZfSi_.AyE_3t7t7R**0o#DgR4"
+            }
+        };
+
+        var pagedList = new PagedList<FileEntry>(existingFiles, 0, 20, existingFiles.Count);
+
+        fileRepositoryMock.Setup(r => r.FindPagedAsync(
+                It.IsAny<System.Linq.Expressions.Expression<System.Func<FileEntry, bool>>>(),
+                0,
+                20,
+                It.IsAny<SortDefinition<FileEntry>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(pagedList);
+
+        mapperMock.Setup(m => m.Map<UploadDocumentViewModel>(It.IsAny<FileEntry>()))
+            .Returns((FileEntry entry) => new UploadDocumentViewModel
+            {
+                Id = entry.Id,
+                FileName = entry.FileName,
+                ContentType = entry.ContentType,
+                FileExtension = entry.FileExtension,
+                OwnerId = entry.OwnerId,
+                Url = entry.Url,
+                Status = entry.Status,
+                BlurHash = entry.BlurHash,
+                CreatedOn = entry.CreatedOn
+            });
+
+        var handler = new GetMyMediaQueryHandler(
+            fileRepositoryMock.Object,
+            mapperMock.Object,
+            currentUserMock.Object);
+
+        var result = await handler.Handle(new GetMyMediaQuery(1, 20), CancellationToken.None);
+
+        result.Should().HaveCount(1);
+        result[0].OwnerId.Should().Be(userId.ToString());
+        result[0].Url.Should().Be("https://example.com/download/photo_1");
+        result[0].CreatedOn.Should().Be(createdTime);
+        result[0].Status.Should().Be("Optimized");
+    }
+
+    [Fact]
+    public async Task GetMyMedia_Should_Throw_Unauthorized_When_User_Not_Authenticated()
+    {
+        var fileRepositoryMock = new Mock<IMongoRepository<FileEntry, Guid>>();
+        var mapperMock = new Mock<IMapper>();
+        var currentUserMock = new Mock<ICurrentUser>();
+
+        currentUserMock.Setup(c => c.GetUserId()).Returns((long?)null);
+        currentUserMock.Setup(c => c.CurrentUser).Returns((UserProfile?)null);
+
+        var handler = new GetMyMediaQueryHandler(
+            fileRepositoryMock.Object,
+            mapperMock.Object,
+            currentUserMock.Object);
+
+        var act = () => handler.Handle(new GetMyMediaQuery(1, 20), CancellationToken.None);
+
+        await act.Should().ThrowAsync<UnAuthorizedException>();
+    }
+
+    [Fact]
+    public void GetMyMediaQueryValidator_Should_Validate_Page_And_PageSize()
+    {
+        var validator = new GetMyMediaQueryValidator();
+
+        validator.Validate(new GetMyMediaQuery(1, 20)).IsValid.Should().BeTrue();
+        validator.Validate(new GetMyMediaQuery(0, 20)).IsValid.Should().BeFalse();
+        validator.Validate(new GetMyMediaQuery(-1, 20)).IsValid.Should().BeFalse();
+        validator.Validate(new GetMyMediaQuery(1, 0)).IsValid.Should().BeFalse();
+        validator.Validate(new GetMyMediaQuery(1, 101)).IsValid.Should().BeFalse();
+        validator.Validate(new GetMyMediaQuery(1, 100)).IsValid.Should().BeTrue();
     }
 }

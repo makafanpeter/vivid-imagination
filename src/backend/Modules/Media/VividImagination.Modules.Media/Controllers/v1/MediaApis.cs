@@ -11,6 +11,7 @@ using VividImagination.Modules.Media.Features.Photos.Commands;
 using VividImagination.Modules.Media.Features.Photos.Queries;
 using VividImagination.Modules.Media.Features.Photos.ViewModels;
 using VividImagination.Modules.Media.Persistence.Enums;
+using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Infrastructure.Common;
 using VividImagination.Shared.Infrastructure.Exceptions;
 
@@ -45,6 +46,15 @@ public static class MediaApis
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status403Forbidden);
+
+        group.MapGet("me", GetMyMediaAsync)
+            .WithName(nameof(GetMyMediaAsync))
+            .WithDescription("Get media uploaded by the current authenticated user")
+            .RequireAuthorization(AuthorizeAttribute)
+            .Produces<IReadOnlyList<UploadDocumentViewModel>>(StatusCodes.Status200OK)
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .Produces(StatusCodes.Status401Unauthorized);
 
         group.MapGet("{id:guid}/download", DownloadAsync)
             .WithName(nameof(DownloadAsync))
@@ -194,5 +204,16 @@ public static class MediaApis
         var response = await mediator.Send(command, ct);
         return Results.Ok(response);
     }
-    
+
+    private static async Task<IResult> GetMyMediaAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromServices] ICurrentUser currentUser = default!,
+        [FromServices] IMediator mediator = default!,
+        CancellationToken ct = default)
+    {
+        var userId = currentUser.GetUserId() ?? throw new UnAuthorizedException("You are not authorized");
+        var result = await mediator.Send(new GetMyMediaQuery(page, pageSize, userId.ToString()), ct);
+        return Results.Ok(result);
+    }
 }

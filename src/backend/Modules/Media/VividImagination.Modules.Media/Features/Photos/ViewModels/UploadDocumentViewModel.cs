@@ -21,6 +21,7 @@ namespace VividImagination.Modules.Media.Features.Photos.ViewModels
         public string? BlurHash { get; set; }
         public int? Width { get; set; }
         public int? Height { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
         public Dictionary<string, FileVariantInfo> Variants { get; set; } = new();
     }
 }
