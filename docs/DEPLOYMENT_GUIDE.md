@@ -503,6 +503,44 @@ The deployment script authenticates with GHCR, pulls the new image tag, performs
   curl -I http://127.0.0.1:8080/docs
   ```
 
+### 4. Debugging Stack Creation Failures (`--disable-rollback`)
+- **Symptom**: CloudFormation stack enters `ROLLBACK_IN_PROGRESS` or `ROLLBACK_COMPLETE` when an error occurs, immediately terminating the EC2 instance and destroying the root volume and logs before they can be examined.
+- **Cause**: By default, AWS CloudFormation automatically rolls back and destroys all created resources upon encountering any failure.
+- **Fix**: Re-run the deploy command with `--disable-rollback` to keep the EC2 instance and all resources alive in the failed state for live investigation:
+  ```bash
+  aws cloudformation deploy \
+    --template-file infra/cloudformation/vivid-imagination-ec2-cloudflare.yaml \
+    --stack-name vivid-imagination-prod \
+    --parameter-overrides file://infra/cloudformation/parameters.prod.json \
+    --capabilities CAPABILITY_IAM \
+    --disable-rollback \
+    --region eu-west-1
+  ```
+  Once deployment halts with resources preserved in `CREATE_FAILED`, locate the instance ID and connect via AWS SSM Session Manager to inspect the logs:
+  ```bash
+  # 1. Retrieve the EC2 Instance ID from the preserved stack resources
+  INSTANCE_ID=$(aws cloudformation describe-stack-resources \
+    --stack-name vivid-imagination-prod \
+    --region eu-west-1 \
+    --query "StackResources[?LogicalResourceId=='EC2Instance'].PhysicalResourceId" \
+    --output text)
+
+  # 2. Connect directly via SSM Session Manager (no SSH key or open ports needed)
+  aws ssm start-session --target "${INSTANCE_ID}" --region eu-west-1
+
+  # 3. Inside the instance, inspect bootstrap and container logs
+  sudo su -
+  cat /var/log/vivid-bootstrap.log
+  cat /var/log/cloud-init-output.log
+  journalctl -u cloudflared -f
+  docker compose -f /opt/vivid-imagination/docker-compose.prod.yml logs
+  ```
+  After diagnosing and resolving the issue, manually delete the preserved failed stack before re-attempting deployment:
+  ```bash
+  aws cloudformation delete-stack --stack-name vivid-imagination-prod --region eu-west-1
+  aws cloudformation wait stack-delete-complete --stack-name vivid-imagination-prod --region eu-west-1
+  ```
+
 ---
 
 ## Day-2 Operations
