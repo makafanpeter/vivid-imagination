@@ -51,10 +51,9 @@ public partial class FeedViewModel : ObservableObject
             _currentPage = 1;
             _hasMoreItems = true;
 
-            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize);
-            Items.Clear();
-
             var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
+            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, (int?)safeMode);
+            Items.Clear();
 
             if (rawItems.Count > 0)
             {
@@ -108,14 +107,13 @@ public partial class FeedViewModel : ObservableObject
             IsLoadingMore = true;
             _currentPage++;
 
-            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize);
+            var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
+            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, (int?)safeMode);
             if (rawItems.Count == 0)
             {
                 _hasMoreItems = false;
                 return;
             }
-
-            var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
 
             foreach (var item in rawItems)
             {
@@ -183,7 +181,16 @@ public partial class FeedViewModel : ObservableObject
             var newVote = previousVote == value ? 0 : value;
             item.UserVote = newVote;
 
-            var result = await _apiClient.VoteOnPhotoAsync(item.PhotoId, new VoteRequest { Value = newVote });
+            VoteResult? result;
+            if (newVote == 0)
+            {
+                result = await _apiClient.CancelVoteOnPhotoAsync(item.PhotoId);
+            }
+            else
+            {
+                result = await _apiClient.VoteOnPhotoAsync(item.PhotoId, new VoteRequest { Value = newVote });
+            }
+
             if (result != null)
             {
                 item.ApplyVote(result.Upvotes, result.Downvotes);

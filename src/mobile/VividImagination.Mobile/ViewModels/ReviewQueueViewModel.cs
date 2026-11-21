@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.OpenApi;
 using VividImagination.Mobile.Services;
 
 namespace VividImagination.Mobile.ViewModels;
@@ -45,11 +46,24 @@ public partial class ReviewQueueViewModel : ObservableObject
     {
         if (item == null) return;
 
+        try
+        {
+            await _apiClient.UpdateModerationVerdictAsync(item.PhotoId, new UpdateModerationVerdictRequest
+            {
+                Verdict = "Approved",
+                BlurRequired = false,
+                Reason = "Approved by moderator"
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to record approve verdict: {ex.Message}");
+        }
+
         QueueItems.Remove(item);
         WaitingCount = QueueItems.Count;
         OnPropertyChanged(nameof(IsEmpty));
         ToastService.Current.Show("Photo approved for feed", ToastType.Success);
-        await Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -57,11 +71,24 @@ public partial class ReviewQueueViewModel : ObservableObject
     {
         if (item == null) return;
 
+        try
+        {
+            await _apiClient.UpdateModerationVerdictAsync(item.PhotoId, new UpdateModerationVerdictRequest
+            {
+                Verdict = "TaggedUnsafe",
+                BlurRequired = true,
+                Reason = "Marked as sensitive by moderator"
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to record sensitive verdict: {ex.Message}");
+        }
+
         QueueItems.Remove(item);
         WaitingCount = QueueItems.Count;
         OnPropertyChanged(nameof(IsEmpty));
         ToastService.Current.Show("Marked as Sensitive with blur cover", ToastType.Warning);
-        await Task.CompletedTask;
     }
 
     [RelayCommand]
@@ -69,10 +96,23 @@ public partial class ReviewQueueViewModel : ObservableObject
     {
         if (item == null) return;
 
+        try
+        {
+            await _apiClient.UpdateModerationVerdictAsync(item.PhotoId, new UpdateModerationVerdictRequest
+            {
+                Verdict = "Rejected",
+                BlurRequired = true,
+                Reason = "Rejected by moderator"
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to record reject verdict: {ex.Message}");
+        }
+
         QueueItems.Remove(item);
         WaitingCount = QueueItems.Count;
         OnPropertyChanged(nameof(IsEmpty));
         ToastService.Current.Show("Photo rejected and removed from community", ToastType.Error);
-        await Task.CompletedTask;
     }
 }

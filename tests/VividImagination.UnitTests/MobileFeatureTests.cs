@@ -121,6 +121,89 @@ public class MobileFeatureTests
     }
 
     [Fact]
+    public void Review_And_VerdictRequest_SerializeAndDeserializeCorrectly()
+    {
+        var verdictRequest = new UpdateModerationVerdictRequest
+        {
+            Verdict = "Approved",
+            BlurRequired = false,
+            Reason = "Approved by moderator"
+        };
+        var json = JsonSerializer.Serialize(verdictRequest);
+        json.Should().Contain("\"verdict\":\"Approved\"");
+
+        var reviewJson = """
+        {
+            "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+            "photoId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+            "maxRiskScore": 0.85,
+            "adultScore": 0.85,
+            "violenceScore": 0.1,
+            "hateScore": 0.05,
+            "verdict": "TaggedUnsafe",
+            "isUnsafe": true,
+            "blurRequired": true,
+            "reportCount": 3,
+            "reviewedAt": "2026-11-20T10:00:00Z"
+        }
+        """;
+
+        var review = JsonSerializer.Deserialize<Review>(reviewJson, JsonOptions);
+        review.Should().NotBeNull();
+        review!.PhotoId.Should().Be(Guid.Parse("b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"));
+        review.Verdict.Should().Be("TaggedUnsafe");
+        review.IsUnsafe.Should().BeTrue();
+        review.BlurRequired.Should().BeTrue();
+        review.AdultScore.Should().Be(0.85);
+        review.ReportCount.Should().Be(3);
+    }
+
+    [Fact]
+    public void SafeBrowsingPreference_And_RecordInteraction_SerializeAndDeserializeCorrectly()
+    {
+        var prefJson = """
+        {
+            "userId": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f",
+            "mode": 1
+        }
+        """;
+        var pref = JsonSerializer.Deserialize<SafeBrowsingPreferenceDto>(prefJson, JsonOptions);
+        pref.Should().NotBeNull();
+        pref!.UserId.Should().Be(Guid.Parse("c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"));
+        pref.Mode.Should().Be(1);
+
+        var interactionRequest = new RecordInteractionRequest
+        {
+            PhotoId = Guid.Parse("b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"),
+            CreatorId = Guid.Parse("c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"),
+            InteractionType = "dwell",
+            FeedPosition = 1,
+            DwellDurationMs = 2500
+        };
+        var interactionJson = JsonSerializer.Serialize(interactionRequest);
+        interactionJson.Should().Contain("\"interactionType\":\"dwell\"");
+        interactionJson.Should().Contain("\"dwellDurationMs\":2500");
+    }
+
+    [Fact]
+    public void IVividImaginationClient_ContainsUpdatedInterfaceMethods()
+    {
+        var interfaceType = typeof(IVividImaginationClient);
+        var methodNames = interfaceType.GetMethods().Select(m => m.Name).ToHashSet();
+
+        methodNames.Should().Contain("GetModerationReviewAsync");
+        methodNames.Should().Contain("UpdateModerationVerdictAsync");
+        methodNames.Should().Contain("CancelVoteOnPhotoAsync");
+        methodNames.Should().Contain("GetPersonalizedFeedAsync");
+        methodNames.Should().Contain("RecordFeedInteractionAsync");
+        methodNames.Should().Contain("RegisterUserAsync");
+        methodNames.Should().Contain("GetUserPreferencesAsync");
+        methodNames.Should().Contain("UpdateUserPreferencesAsync");
+        methodNames.Should().Contain("GoogleSignInAsync");
+        methodNames.Should().Contain("UpdatePhotoMetadataAsync");
+    }
+
+    [Fact]
     public void EnvironmentResolution_CalculatesEndpointsCorrectly()
     {
         // Development Desktop default

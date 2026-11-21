@@ -13,7 +13,9 @@
   "paths": {
     "/api/v1/feed": {
       "get": {
-        "tags": ["Feed"],
+        "tags": [
+          "Feed"
+        ],
         "summary": "Retrieve ranked public feed",
         "operationId": "GetRankedFeed",
         "parameters": [
@@ -33,6 +35,16 @@
               "type": "integer",
               "format": "int32",
               "default": 20
+            }
+          },
+          {
+            "name": "safeBrowsingMode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
             }
           }
         ],
@@ -55,7 +67,9 @@
     },
     "/api/v1/media": {
       "post": {
-        "tags": ["Media"],
+        "tags": [
+          "Media"
+        ],
         "summary": "Upload a document/photo",
         "operationId": "UploadPhoto",
         "security": [
@@ -68,7 +82,9 @@
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["FormFile"],
+                "required": [
+                  "FormFile"
+                ],
                 "properties": {
                   "FormFile": {
                     "type": "string",
@@ -104,7 +120,9 @@
     },
     "/api/v1/media/{id}/download": {
       "get": {
-        "tags": ["Media"],
+        "tags": [
+          "Media"
+        ],
         "summary": "Download a document/photo",
         "operationId": "DownloadPhoto",
         "security": [
@@ -140,7 +158,9 @@
     },
     "/api/v1/media/{id}": {
       "get": {
-        "tags": ["Media"],
+        "tags": [
+          "Media"
+        ],
         "summary": "Get document/photo metadata",
         "operationId": "GetPhotoMetadata",
         "security": [
@@ -173,7 +193,9 @@
         }
       },
       "delete": {
-        "tags": ["Media"],
+        "tags": [
+          "Media"
+        ],
         "summary": "Delete a photo",
         "operationId": "DeletePhoto",
         "security": [
@@ -197,11 +219,78 @@
             "description": "No Content"
           }
         }
+      },
+      "put": {
+        "tags": [
+          "Media"
+        ],
+        "summary": "Update document metadata and file",
+        "operationId": "UpdatePhotoMetadata",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "FormFile"
+                ],
+                "properties": {
+                  "FormFile": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "Name": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "Description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "Container": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadDocumentViewModel"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/social-service/photos/{photoId}/vote": {
       "post": {
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "summary": "Vote on a photo",
         "operationId": "VoteOnPhoto",
         "security": [
@@ -244,9 +333,46 @@
         }
       },
       "get": {
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "summary": "Get current vote on photo",
         "operationId": "GetVoteOnPhoto",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResult"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Social"
+        ],
+        "summary": "Cancel or remove vote on a photo",
+        "operationId": "CancelVoteOnPhoto",
         "security": [
           {
             "oauth2": []
@@ -279,7 +405,9 @@
     },
     "/api/v1/social-service/photos/{photoId}/report": {
       "post": {
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "summary": "Report a photo",
         "operationId": "ReportPhoto",
         "security": [
@@ -321,7 +449,9 @@
         }
       },
       "get": {
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "summary": "Get report status for photo",
         "operationId": "GetPhotoReport",
         "security": [
@@ -356,7 +486,9 @@
     },
     "/api/v1/identity/users/me": {
       "get": {
-        "tags": ["Identity"],
+        "tags": [
+          "Identity"
+        ],
         "summary": "Get current user profile",
         "operationId": "GetCurrentUser",
         "security": [
@@ -371,6 +503,300 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Profile"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/feed/personalized": {
+      "get": {
+        "tags": [
+          "Feed"
+        ],
+        "summary": "Retrieve personalized feed with safe-browsing filters and excluded downvotes",
+        "operationId": "GetPersonalizedFeed",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "safeBrowsingMode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedItemDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/feed/interactions": {
+      "post": {
+        "tags": [
+          "Feed"
+        ],
+        "summary": "Record feed interaction telemetry (dwell time, share, hide, impression)",
+        "operationId": "RecordFeedInteraction",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordInteractionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/v1/identity/users/register": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Register a new user account with email and password",
+        "operationId": "RegisterUser",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterUserResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/users/me/preferences": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Get safe browsing preferences for current user",
+        "operationId": "GetUserPreferences",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafeBrowsingPreferenceDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Update safe browsing preferences for current user",
+        "operationId": "UpdateUserPreferences",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSafeBrowsingPreferenceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafeBrowsingPreferenceDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/auth/google": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Sign in or auto-provision user with Google ID token",
+        "operationId": "GoogleSignIn",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleSignInRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleSignInResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderation-service/reviews/{photoId}": {
+      "get": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "Get a moderation review for a photo",
+        "operationId": "GetModerationReview",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Review"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/moderation-service/reviews/{photoId}/verdict": {
+      "post": {
+        "tags": [
+          "Moderation"
+        ],
+        "summary": "Manually override a photo verdict (Moderator Action)",
+        "operationId": "UpdateModerationVerdict",
+        "security": [
+          {
+            "oauth2": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "photoId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateModerationVerdictRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Review"
                 }
               }
             }
@@ -398,7 +824,20 @@
     "schemas": {
       "FeedItemDto": {
         "type": "object",
-        "required": ["id", "photoId", "userId", "storageKey", "blurHash", "caption", "upvotes", "downvotes", "score", "isUnsafe", "blurRequired", "uploadedAt"],
+        "required": [
+          "id",
+          "photoId",
+          "userId",
+          "storageKey",
+          "blurHash",
+          "caption",
+          "upvotes",
+          "downvotes",
+          "score",
+          "isUnsafe",
+          "blurRequired",
+          "uploadedAt"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -455,7 +894,12 @@
       },
       "UploadDocumentViewModel": {
         "type": "object",
-        "required": ["id", "fileName", "contentType", "fileExtension"],
+        "required": [
+          "id",
+          "fileName",
+          "contentType",
+          "fileExtension"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -504,7 +948,9 @@
       },
       "VoteRequest": {
         "type": "object",
-        "required": ["value"],
+        "required": [
+          "value"
+        ],
         "properties": {
           "value": {
             "type": "integer",
@@ -514,7 +960,11 @@
       },
       "VoteResult": {
         "type": "object",
-        "required": ["photoId", "upvotes", "downvotes"],
+        "required": [
+          "photoId",
+          "upvotes",
+          "downvotes"
+        ],
         "properties": {
           "photoId": {
             "type": "string",
@@ -541,7 +991,10 @@
       },
       "ReportResult": {
         "type": "object",
-        "required": ["photoId", "totalReports"],
+        "required": [
+          "photoId",
+          "totalReports"
+        ],
         "properties": {
           "photoId": {
             "type": "string",
@@ -609,6 +1062,262 @@
             "type": "integer",
             "format": "int32",
             "description": "0 = BlurSensitive, 1 = HideSensitive, 2 = AlwaysShowSensitive"
+          }
+        }
+      },
+      "RecordInteractionRequest": {
+        "type": "object",
+        "required": [
+          "photoId",
+          "creatorId",
+          "interactionType"
+        ],
+        "properties": {
+          "photoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "creatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interactionType": {
+            "type": "string"
+          },
+          "feedPosition": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "dwellDurationMs": {
+            "type": "integer",
+            "format": "int32",
+            "default": 0
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        }
+      },
+      "RegisterUserRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "safeBrowsingMode": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        }
+      },
+      "RegisterUserResult": {
+        "type": "object",
+        "required": [
+          "userId",
+          "email",
+          "isSuccess"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string"
+          },
+          "isSuccess": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "SafeBrowsingPreferenceDto": {
+        "type": "object",
+        "required": [
+          "userId",
+          "mode"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateSafeBrowsingPreferenceRequest": {
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GoogleSignInRequest": {
+        "type": "object",
+        "required": [
+          "idToken"
+        ],
+        "properties": {
+          "idToken": {
+            "type": "string"
+          }
+        }
+      },
+      "GoogleSignInResult": {
+        "type": "object",
+        "required": [
+          "success"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/Profile",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "RekognitionLabelInfo": {
+        "type": "object",
+        "required": [
+          "name",
+          "confidence"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "parentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "required": [
+          "photoId",
+          "verdict",
+          "isUnsafe",
+          "blurRequired",
+          "reportCount",
+          "reviewedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "photoId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "maxRiskScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "adultScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "violenceScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "hateScore": {
+            "type": "number",
+            "format": "double"
+          },
+          "safetyCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "verdict": {
+            "type": "string"
+          },
+          "isUnsafe": {
+            "type": "boolean"
+          },
+          "blurRequired": {
+            "type": "boolean"
+          },
+          "reportCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RekognitionLabelInfo"
+            }
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpdateModerationVerdictRequest": {
+        "type": "object",
+        "required": [
+          "verdict"
+        ],
+        "properties": {
+          "verdict": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "blurRequired": {
+            "type": "boolean",
+            "default": false
           }
         }
       }

@@ -8,10 +8,14 @@
 
 [CmdletBinding()]
 param(
-    [string]$SpecPath = "$PSScriptRoot/../src/mobile/VividImagination.Mobile/OpenApi/nswag.json"
+    [string]$SpecPath = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($SpecPath)) {
+    $SpecPath = Join-Path $PSScriptRoot "../src/mobile/VividImagination.Mobile/OpenApi/nswag.json"
+}
 
 Write-Host "Verifying NSwag CLI..." -ForegroundColor Cyan
 if (-not (Get-Command "nswag" -ErrorAction SilentlyContinue)) {
@@ -20,7 +24,16 @@ if (-not (Get-Command "nswag" -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "Generating OpenAPI client from $SpecPath..." -ForegroundColor Cyan
-nswag run $SpecPath
+$targetDir = Split-Path -Parent (Resolve-Path $SpecPath)
+$configLeaf = Split-Path -Leaf $SpecPath
+
+Push-Location $targetDir
+try {
+    nswag run $configLeaf
+}
+finally {
+    Pop-Location
+}
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host "Successfully generated OpenAPI Client!" -ForegroundColor Green
