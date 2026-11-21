@@ -19,7 +19,21 @@ namespace VividImagination.Mobile
             {
                 try
                 {
-                    using var stream = FileSystem.OpenAppPackageFileAsync(filename).GetAwaiter().GetResult();
+                    var assembly = typeof(MauiProgram).Assembly;
+                    var resourceName = assembly.GetManifestResourceNames()
+                        .SingleOrDefault(name => name.EndsWith(filename, StringComparison.OrdinalIgnoreCase));
+
+                    if (resourceName is null)
+                    {
+                        throw new InvalidOperationException($"Embedded app configuration resource '{filename}' was not found.");
+                    }
+
+                    using var stream = assembly.GetManifestResourceStream(resourceName);
+                    if (stream is null)
+                    {
+                        throw new InvalidOperationException($"Embedded app configuration resource '{filename}' could not be opened.");
+                    }
+
                     var memoryStream = new MemoryStream();
                     stream.CopyTo(memoryStream);
                     memoryStream.Position = 0;
