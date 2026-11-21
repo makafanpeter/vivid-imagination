@@ -6,7 +6,7 @@ public static class FeedRankingCalculator
     /// Computes the dynamic ranking score:
     /// Score = (Upvotes - Downvotes) / (AgeInHours + 2)^1.5
     /// </summary>
-    public static double CalculateScore(int upvotes, int downvotes, DateTime uploadedAt)
+    public static double CalculateScore(int upvotes, int downvotes, DateTimeOffset uploadedAt)
     {
         double ageInHours = Math.Max(0.0, (DateTime.UtcNow - uploadedAt).TotalHours);
         int netVotes = upvotes - downvotes;

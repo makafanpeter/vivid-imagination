@@ -44,8 +44,8 @@ public class PhotoUploadedFeedConsumer : IConsumer<PhotoUploadedIntegrationEvent
             IsUnsafe = false,
             BlurRequired = false,
             Verdict = "Pending",
-            UploadedAt = msg.UploadedAt,
-            LastUpdatedAt = DateTime.UtcNow
+            CreatedOn = msg.UploadedAt,
+            UpdatedOn = DateTime.UtcNow
         };
 
         await _repository.AddAsync(feedItem, context.CancellationToken);

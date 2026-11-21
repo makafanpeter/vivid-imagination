@@ -43,7 +43,7 @@ public class PhotoModeratedFeedConsumer : IConsumer<PhotoModeratedIntegrationEve
                 item.BlurRequired = msg.BlurRequired;
                 item.SafetyCategory = msg.SafetyCategory;
                 item.Verdict = msg.Verdict;
-                item.LastUpdatedAt = DateTime.UtcNow;
+                item.UpdatedOn = DateTime.UtcNow;
 
                 await _repository.UpdateAsync(item, context.CancellationToken);
             }

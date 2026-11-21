@@ -126,7 +126,7 @@ public static class IdentityApis
         CancellationToken ct)
     {
         var userId = currentUser.GetUserId() ?? throw new UnAuthorizedException("You are not authorized");
-        var result = await mediator.Send(new UpdateSafeBrowsingPreferenceCommand(userId, request.SafeBrowsingMode), ct);
+        var result = await mediator.Send(new UpdateSafeBrowsingPreferenceCommand(userId, request.SafeBrowsingMode, request.IsPersonalisationEnabled), ct);
         return Results.Ok(result);
     }
 }

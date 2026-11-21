@@ -8,8 +8,8 @@ This guide provides step-by-step instructions for deploying the **Vivid Imaginat
 
 ```mermaid
 flowchart TD
-    Client["Client Mobile / Web"] -->|"HTTPS (443)"| CFEdge["Cloudflare Edge (WAF, CDN, DDoS Protection, SSL)"]
-    Admin["CI/CD / Admin"] -->|SSH over Cloudflare Access| CFEdge
+    Client["Client (Mobile / Web)"] -->|"HTTPS (Port 443)"| CFEdge["Cloudflare Edge (WAF, CDN, DDoS Protection, SSL)"]
+    Admin["CI/CD / Admin"] -->|"SSH via Cloudflare Access"| CFEdge
 
     subgraph AWS ["AWS Cloud (VPC: 10.0.0.0/16)"]
         subgraph PublicSubnet ["Public Subnet (10.0.1.0/24)"]
@@ -24,7 +24,7 @@ flowchart TD
                     RabbitMQ["RabbitMQ 3.13 (:5672, :15672)"]
                 end
 
-                Cloudflared -->|http://localhost:8080| Api
+                Cloudflared -->|"http://localhost:8080"| Api
                 Api --> Postgres
                 Api --> Mongo
                 Api --> Redis
@@ -33,17 +33,17 @@ flowchart TD
         end
 
         subgraph AWSServices ["AWS Managed Cloud Services"]
-            S3["Amazon S3 Photo Bucket<br/>(AES256, Public Access Blocked)"]
-            Rekognition["Amazon Rekognition<br/>(AI Content Moderation)"]
-            SSM["AWS Systems Manager<br/>(Session Manager CLI access)"]
+            S3["Amazon S3 Photo Bucket (AES256, Public Access Blocked)"]
+            Rekognition["Amazon Rekognition (AI Content Moderation)"]
+            SSM["AWS Systems Manager (Session Manager CLI access)"]
         end
 
-        Api -->|IAM Instance Profile: Put/Get/Delete| S3
-        Api -->|IAM Instance Profile: DetectModerationLabels| Rekognition
-        EC2 -.->|Managed Policy| SSM
+        Api -->|"IAM Instance Profile: Put/Get/Delete"| S3
+        Api -->|"IAM Instance Profile: DetectModerationLabels"| Rekognition
+        EC2 -.->|"Managed Policy"| SSM
     end
 
-    CFEdge <== Outbound Secure Tunnel (Port 443) ==> Cloudflared
+    CFEdge <-->|"Outbound Secure Tunnel (Port 443)"| Cloudflared
 ```
 
 ### Key Security & Reliability Features
@@ -529,11 +529,12 @@ docker exec vivid-mongodb mongodump --out=/data/backup_$(date +%F)
 
 ## Stack Clean Up & Teardown
 
-When you want to dismantle the infrastructure and stop all AWS charges, follow these teardown steps.
+When you want to dismantle the infrastructure and stop all AWS charges, follow these teardown steps in order:
 
-### 1. (Optional) Empty the S3 Photo Bucket
+### 1. Empty the S3 Photo Bucket
 AWS CloudFormation will refuse to delete an S3 bucket that still contains objects. If any photos were uploaded, empty the bucket prior to deleting the stack:
 
+#### Bash
 ```bash
 # Retrieve the S3 photo bucket name from stack outputs
 BUCKET_NAME=$(aws cloudformation describe-stacks \
@@ -546,8 +547,19 @@ BUCKET_NAME=$(aws cloudformation describe-stacks \
 aws s3 rm "s3://${BUCKET_NAME}" --recursive --region eu-west-1
 ```
 
+#### PowerShell
+```powershell
+$BUCKET_NAME = (aws cloudformation describe-stacks `
+  --stack-name vivid-imagination-prod `
+  --region eu-west-1 `
+  --query "Stacks[0].Outputs[?OutputKey=='PhotoBucketName'].OutputValue" `
+  --output text).Trim()
+
+aws s3 rm "s3://$BUCKET_NAME" --recursive --region eu-west-1
+```
+
 ### 2. Delete the CloudFormation Stack
-Trigger the automated deletion of the EC2 instance, EBS GP3 volume, S3 bucket, IAM roles, Security Group, and VPC resources:
+Trigger the automated deletion of the EC2 instance, root GP3 EBS volume, photo S3 bucket, IAM roles, Security Group, and VPC resources:
 
 ```bash
 aws cloudformation delete-stack \
@@ -555,19 +567,81 @@ aws cloudformation delete-stack \
   --region eu-west-1
 ```
 
-### 3. Wait for Stack Deletion to Complete
-Monitor the stack deletion progress until all resources are successfully deleted:
-
+Wait for stack deletion to complete:
 ```bash
 aws cloudformation wait stack-delete-complete \
   --stack-name vivid-imagination-prod \
   --region eu-west-1
 ```
 
-### 4. Clean Up Cloudflare Zero Trust Resources
+### 3. Delete AWS SSM Parameter Store Secrets
+Because secrets in SSM Parameter Store were created as prerequisites outside of CloudFormation for zero-plaintext security, delete them during teardown:
+
+#### Bash
+```bash
+export AWS_REGION="eu-west-1"
+export ENV_NAME="production"
+
+aws ssm delete-parameters \
+  --names \
+    "/vivid-imagination/${ENV_NAME}/CLOUDFLARE_CERT_PEM" \
+    "/vivid-imagination/${ENV_NAME}/POSTGRES_PASSWORD" \
+    "/vivid-imagination/${ENV_NAME}/JWT_SECRET_KEY" \
+    "/vivid-imagination/${ENV_NAME}/ENCRYPTION_KEY" \
+    "/vivid-imagination/${ENV_NAME}/GHCR_TOKEN" \
+  --region "${AWS_REGION}"
+```
+
+#### PowerShell
+```powershell
+$AWS_REGION = "eu-west-1"
+$ENV_NAME = "production"
+
+aws ssm delete-parameters `
+  --names `
+    "/vivid-imagination/$ENV_NAME/CLOUDFLARE_CERT_PEM" `
+    "/vivid-imagination/$ENV_NAME/POSTGRES_PASSWORD" `
+    "/vivid-imagination/$ENV_NAME/JWT_SECRET_KEY" `
+    "/vivid-imagination/$ENV_NAME/ENCRYPTION_KEY" `
+    "/vivid-imagination/$ENV_NAME/GHCR_TOKEN" `
+  --region $AWS_REGION
+```
+
+### 4. Empty & Delete S3 Deployment Artifacts Bucket
+The deployment artifacts bucket was created as a prerequisite step to stage `docker-compose.prod.yml`, `deploy-app.sh`, `.env.template`, and `bootstrap-secrets.py`. Empty and remove it:
+
+#### Bash
+```bash
+export AWS_REGION="eu-west-1"
+export ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+export ARTIFACT_BUCKET="vivid-artifacts-${ACCOUNT_ID}-${AWS_REGION}"
+
+# Empty all artifacts and remove bucket
+aws s3 rm "s3://${ARTIFACT_BUCKET}" --recursive --region "${AWS_REGION}"
+aws s3 rb "s3://${ARTIFACT_BUCKET}" --region "${AWS_REGION}"
+```
+
+#### PowerShell
+```powershell
+$AWS_REGION = "eu-west-1"
+$ACCOUNT_ID = (aws sts get-caller-identity --query Account --output text).Trim()
+$ARTIFACT_BUCKET = "vivid-artifacts-$ACCOUNT_ID-$AWS_REGION"
+
+aws s3 rm "s3://$ARTIFACT_BUCKET" --recursive --region $AWS_REGION
+aws s3 rb "s3://$ARTIFACT_BUCKET" --region $AWS_REGION
+```
+
+### 5. Clean Up Cloudflare Zero Trust Resources
 1. In the [Cloudflare Zero Trust Dashboard](https://one.dash.cloudflare.com/):
    - Navigate to **Networks** &rarr; **Tunnels**.
-   - Select your tunnel (`vivid-imagination-prod`) and delete the public hostnames (`api.yourdomain.com`, `ssh-api.yourdomain.com`).
+   - Select your tunnel (`production-vivid-tunnel`) and delete the public hostnames (`api.yourdomain.com`, `ssh-api.yourdomain.com`).
    - If no longer needed, click **Delete tunnel**.
 2. Navigate to **Access** &rarr; **Applications** and remove the `EC2 SSH Deploy` application.
 3. Navigate to **Access** &rarr; **Service Auth** &rarr; **Service Tokens** and revoke/delete the `github-actions-deploy` token.
+
+### 6. Clean Up Local Configuration Files (Optional)
+Remove local sensitive or parameter overrides files:
+```bash
+rm -f infra/cloudformation/parameters.prod.json
+rm -f ./deploy_key ./deploy_key.pub
+```

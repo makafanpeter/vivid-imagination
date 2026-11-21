@@ -26,7 +26,4 @@ public class FeedItem: BaseEntity<Guid>, IAggregate<Guid>
     public bool BlurRequired { get; set; }
     public string? SafetyCategory { get; set; }
     public string Verdict { get; set; } = "Approved";
-
-    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
-    public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
 }

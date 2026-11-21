@@ -24,7 +24,7 @@ public class PhotoOptimizedFeedConsumer(
         {
             item.BlurHash = msg.BlurHash;
             item.StorageKey = msg.MediumKey;
-            item.LastUpdatedAt = msg.OptimizedAt;
+            item.UpdatedOn = msg.OptimizedAt;
 
             await repository.UpdateAsync(item, context.CancellationToken);
             logger.LogInformation("FeedModule: FeedItem {PhotoId} updated with BlurHash {BlurHash} and StorageKey {StorageKey}", msg.PhotoId, msg.BlurHash, msg.MediumKey);

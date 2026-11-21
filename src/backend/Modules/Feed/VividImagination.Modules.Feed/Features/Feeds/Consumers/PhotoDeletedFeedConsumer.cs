@@ -7,20 +7,12 @@ using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Feed.Features.Feeds.Consumers;
 
-public class PhotoDeletedFeedConsumer : IConsumer<PhotoDeletedIntegrationEvent>
+public class PhotoDeletedFeedConsumer(IMongoRepository<FeedItem, Guid> repository, IMediator mediator)
+    : IConsumer<PhotoDeletedIntegrationEvent>
 {
-    private readonly IMongoRepository<FeedItem, Guid> _repository;
-    private readonly IMediator _mediator;
-
-    public PhotoDeletedFeedConsumer(IMongoRepository<FeedItem, Guid> repository, IMediator mediator)
-    {
-        _repository = repository;
-        _mediator = mediator;
-    }
-
     public async Task Consume(ConsumeContext<PhotoDeletedIntegrationEvent> context)
     {
-        await _repository.DeleteByIdAsync(context.Message.PhotoId, context.CancellationToken);
-        await _mediator.Send(new InvalidateFeedCacheCommand(), context.CancellationToken);
+        await repository.DeleteByIdAsync(context.Message.PhotoId, context.CancellationToken);
+        await mediator.Send(new InvalidateFeedCacheCommand(), context.CancellationToken);
     }
 }

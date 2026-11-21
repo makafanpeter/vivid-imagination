@@ -14,4 +14,4 @@ public sealed record FeedItemDto(
     bool BlurRequired,
     string? SafetyCategory,
     string? SensitiveContentWarning,
-    DateTime UploadedAt);
+    DateTimeOffset UploadedAt);

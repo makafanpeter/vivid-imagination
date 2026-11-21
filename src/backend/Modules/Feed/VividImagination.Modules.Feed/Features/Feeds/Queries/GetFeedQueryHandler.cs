@@ -23,7 +23,7 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, IReadOnlyList<F
 
         var sort = Builders<FeedItem>.Sort
             .Descending(x => x.Score)
-            .Descending(x => x.UploadedAt);
+            .Descending(x => x.CreatedOn);
 
         var pagedItems = await _repository.FindPagedAsync(
             x => x.Verdict != "Rejected",
@@ -63,7 +63,7 @@ public class GetFeedQueryHandler : IRequestHandler<GetFeedQuery, IReadOnlyList<F
                 blurRequired,
                 i.SafetyCategory,
                 warning,
-                i.UploadedAt
+                i.CreatedOn
             );
         }).ToList();
     }
