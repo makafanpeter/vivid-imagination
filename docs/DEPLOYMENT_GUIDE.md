@@ -390,11 +390,17 @@ Automated zero-downtime deployments and quality checks are orchestrated via `.gi
    - Triggers on changes to `src/mobile/**` or workflow files.
    - Configures Java 17 Temurin and installs the `maui-android` workload.
    - Executes `dotnet restore ... -p:TargetFramework=net10.0-android` and compiles release APK and Android App Bundle (AAB).
-   - Archives mobile artifacts (`mobile-android-apk`, `mobile-android-aab`) as downloadable pipeline artifacts.
-3. **`build`**:
+   - Archives mobile artifacts (`vivid-imagination-mobile-android`) as downloadable pipeline artifacts and publishes to GitHub Releases on tag.
+3. **`build-mobile-windows`**:
+   - Triggers on changes to `src/mobile/**` or workflow files.
+   - Runs on `windows-latest` with .NET 10 SDK and the `maui-windows` workload.
+   - Injects API base URL and client credentials from secrets into `appsettings*.json`.
+   - Executes `dotnet restore ... -p:TargetFramework=net10.0-windows10.0.19041.0` and publishes unpackaged WinUI 3 standalone x64 binaries.
+   - Packages `VividImagination-Windows-x64.zip`, archives it as pipeline artifact `vivid-imagination-mobile-windows`, and publishes to GitHub Releases on tag.
+4. **`build`**:
    - Builds and publishes the `vividimagination.backend.api` production container image.
    - Pushes signed container images to GitHub Container Registry (`ghcr.io/<owner>/vividimagination.backend.api:<sha>`).
-4. **`deploy`**:
+5. **`deploy`**:
    - Runs conditionally on pushes to `develop` or `main`.
    - Connects securely to the EC2 instance over Cloudflare Access SSH.
    - Executes rolling reload and container health verification.

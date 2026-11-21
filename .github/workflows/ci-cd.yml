@@ -176,6 +176,95 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ── Mobile: Windows Build ──────────────────────────────────────────────────
+  build-mobile-windows:
+    needs: changes
+    runs-on: windows-latest
+    if: needs.changes.outputs.mobile == 'true' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'preview'
+
+      - name: Install .NET MAUI Windows Workload
+        run: dotnet workload install maui-windows
+
+      - name: Substitute API and Auth Configuration from Secrets
+        env:
+          BASE_API_URL: ${{ secrets.BASE_API_URL }}
+          AUTH_CLIENT_ID: ${{ secrets.AUTH_CLIENT_ID }}
+          AUTH_CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}
+        run: |
+          python -c "
+          import json, os
+
+          url = os.environ.get('BASE_API_URL', '').strip().rstrip('/')
+          client_id = os.environ.get('AUTH_CLIENT_ID', '').strip()
+          client_secret = os.environ.get('AUTH_CLIENT_SECRET', '').strip()
+
+          raw_dir = 'src/mobile/VividImagination.Mobile/Resources/Raw'
+          target_files = ['appsettings.json', 'appsettings.Production.json', 'appsettings.Staging.json']
+
+          for name in target_files:
+              path = os.path.join(raw_dir, name)
+              if os.path.exists(path):
+                  with open(path, 'r', encoding='utf-8') as f:
+                      data = json.load(f)
+
+                  app_config = data.setdefault('AppConfig', {})
+
+                  if url:
+                      api = app_config.setdefault('Api', {})
+                      api['DesktopBaseUrl'] = url
+                      api['AndroidEmulatorBaseUrl'] = url
+                      print(f'[+] Injected BASE_API_URL into {name}')
+
+                  if client_id:
+                      auth = app_config.setdefault('Auth', {})
+                      auth['ClientId'] = client_id
+                      print(f'[+] Injected AUTH_CLIENT_ID into {name}')
+
+                  if client_secret:
+                      auth = app_config.setdefault('Auth', {})
+                      auth['ClientSecret'] = client_secret
+                      print(f'[+] Injected AUTH_CLIENT_SECRET into {name}')
+
+                  with open(path, 'w', encoding='utf-8') as f:
+                      json.dump(data, f, indent=2)
+          "
+
+      - name: Restore Mobile Dependencies
+        run: dotnet restore src/mobile/VividImagination.Mobile/VividImagination.Mobile.csproj -p:TargetFramework=net10.0-windows10.0.19041.0
+
+      - name: Publish Windows App (Unpackaged x64)
+        run: dotnet publish src/mobile/VividImagination.Mobile/VividImagination.Mobile.csproj -c Release -f net10.0-windows10.0.19041.0 -p:RuntimeIdentifier=win-x64 -p:Platform=x64 --no-restore
+
+      - name: Package Windows App (ZIP)
+        run: |
+          Compress-Archive -Path src/mobile/VividImagination.Mobile/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/* -DestinationPath VividImagination-Windows-x64.zip
+
+      - name: Upload Windows Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vivid-imagination-mobile-windows
+          path: |
+            VividImagination-Windows-x64.zip
+            src/mobile/VividImagination.Mobile/bin/Release/net10.0-windows10.0.19041.0/win-x64/publish/
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: VividImagination-Windows-x64.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # ── Build & push Docker images to GHCR ─────────────────────────────────────
   build:
     needs: [changes, test-backend]
