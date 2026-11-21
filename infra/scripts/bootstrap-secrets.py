@@ -9,6 +9,7 @@ using an ephemeral in-memory certificate in /dev/shm, and immediately shreds the
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -105,32 +106,66 @@ def main():
             f.write(cert_pem.replace("\\n", "\n").replace("\r", "").strip() + "\n")
         os.chmod(cert_path, 0o600)
 
-        print(f"[Cloudflare] Provisioning tunnel '{tunnel_name}' using in-memory certificate...")
-        create_res = subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "create", tunnel_name], capture_output=True, text=True)
-        out = create_res.stdout + create_res.stderr
-        tunnel_id_match = re.search(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', out)
-        if not tunnel_id_match:
+        os.makedirs("/etc/cloudflared", exist_ok=True)
+        cred_path = "/etc/cloudflared/credentials.json"
+
+        # Clean up any stale credentials or tunnel from prior runs
+        if os.path.exists(cred_path):
+            os.remove(cred_path)
+
+        print(f"[Cloudflare] Cleaning up any stale tunnel named '{tunnel_name}'...")
+        subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "delete", "-f", tunnel_name], capture_output=True)
+
+        print(f"[Cloudflare] Provisioning fresh tunnel '{tunnel_name}'...")
+        res = subprocess.run([
+            "cloudflared", "tunnel",
+            "--origincert", cert_path,
+            "create",
+            "--credentials-file", cred_path,
+            tunnel_name
+        ], capture_output=True, text=True)
+
+        if not os.path.exists(cred_path):
+            print(f"[Cloudflare] First attempt did not write credentials. Retrying with force cleanup...")
             subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "delete", "-f", tunnel_name], capture_output=True)
-            create_res = subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "create", tunnel_name], capture_output=True, text=True)
-            out = create_res.stdout + create_res.stderr
-            tunnel_id_match = re.search(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', out)
+            res = subprocess.run([
+                "cloudflared", "tunnel",
+                "--origincert", cert_path,
+                "create",
+                "--credentials-file", cred_path,
+                tunnel_name
+            ], capture_output=True, text=True)
 
-        if tunnel_id_match:
-            tunnel_id = tunnel_id_match.group(0)
-            print(f"[Cloudflare] Tunnel provisioned with ID: {tunnel_id}")
-            src_json = f"/root/.cloudflared/{tunnel_id}.json"
-            dst_json = f"/etc/cloudflared/{tunnel_id}.json"
-            if os.path.exists(src_json):
-                subprocess.run(["cp", "-f", src_json, dst_json])
-                os.chmod(dst_json, 0o600)
+        if not os.path.exists(cred_path):
+            print(f"[Cloudflare] ERROR: Failed to create tunnel credentials file at {cred_path}!")
+            print(f"[Cloudflare] Output: {res.stdout} {res.stderr}")
+            sys.exit(1)
 
-            if app_host:
-                print(f"[Cloudflare] Configuring DNS routes for {app_host} and ssh-{app_host}...")
-                subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "route", "dns", "-f", tunnel_name, app_host], capture_output=True)
-                subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "route", "dns", "-f", tunnel_name, f"ssh-{app_host}"], capture_output=True)
+        os.chmod(cred_path, 0o600)
 
-            config_content = f"""tunnel: {tunnel_id}
-credentials-file: {dst_json}
+        # Read TunnelID directly from credentials JSON
+        with open(cred_path, "r") as f:
+            cred_data = json.load(f)
+            tunnel_id = cred_data.get("TunnelID", "")
+
+        if not tunnel_id:
+            print(f"[Cloudflare] ERROR: TunnelID not found in {cred_path}!")
+            sys.exit(1)
+
+        print(f"[Cloudflare] Tunnel successfully provisioned with ID: {tunnel_id}")
+
+        # Also copy to /etc/cloudflared/<tunnel_id>.json for compatibility
+        named_json = f"/etc/cloudflared/{tunnel_id}.json"
+        shutil.copyfile(cred_path, named_json)
+        os.chmod(named_json, 0o600)
+
+        if app_host:
+            print(f"[Cloudflare] Configuring DNS routes for {app_host} and ssh-{app_host}...")
+            subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "route", "dns", "-f", tunnel_name, app_host], capture_output=True)
+            subprocess.run(["cloudflared", "tunnel", "--origincert", cert_path, "route", "dns", "-f", tunnel_name, f"ssh-{app_host}"], capture_output=True)
+
+        config_content = f"""tunnel: {tunnel_id}
+credentials-file: {named_json}
 ingress:
   - hostname: {app_host}
     service: http://127.0.0.1:8080
@@ -141,9 +176,9 @@ ingress:
     service: ssh://127.0.0.1:22
   - service: http_status:404
 """
-            with open("/etc/cloudflared/config.yml", "w") as f:
-                f.write(config_content)
-            os.chmod("/etc/cloudflared/config.yml", 0o600)
+        with open("/etc/cloudflared/config.yml", "w") as f:
+            f.write(config_content)
+        os.chmod("/etc/cloudflared/config.yml", 0o600)
 
         # Securely shred and remove cert.pem from RAM
         subprocess.run(["shred", "-u", cert_path], capture_output=True)
