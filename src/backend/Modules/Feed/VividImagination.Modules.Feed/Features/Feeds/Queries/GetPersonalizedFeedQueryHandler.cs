@@ -129,7 +129,7 @@ public class GetPersonalizedFeedQueryHandler : IRequestHandler<GetPersonalizedFe
                 blurRequired,
                 i.SafetyCategory,
                 warning,
-                i.UploadedAt
+                i.CreatedOn
             );
         }).ToList();
 
@@ -159,7 +159,7 @@ public class GetPersonalizedFeedQueryHandler : IRequestHandler<GetPersonalizedFe
 
         var sort = Builders<FeedItem>.Sort
             .Descending(x => x.Score)
-            .Descending(x => x.UploadedAt);
+            .Descending(x => x.CreatedOn);
 
         var pagedItems = await _repository.FindPagedAsync(
             x => x.Verdict != "Rejected" && (!hideSensitive || (!x.IsUnsafe && !x.BlurRequired)),
@@ -190,7 +190,7 @@ public class GetPersonalizedFeedQueryHandler : IRequestHandler<GetPersonalizedFe
             i.BlurRequired,
             i.SafetyCategory,
             i.BlurRequired ? $"Sensitive Content: {i.SafetyCategory ?? "Content Flagged"}" : null,
-            i.UploadedAt
+            i.CreatedOn
         )).ToList();
     }
 }

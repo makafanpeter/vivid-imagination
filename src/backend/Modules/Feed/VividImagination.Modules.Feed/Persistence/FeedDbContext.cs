@@ -26,7 +26,7 @@ public class FeedDbContext : MongoDbContext
             new CreateIndexModel<FeedItem>(
                 Builders<FeedItem>.IndexKeys
                     .Descending(x => x.Score)
-                    .Descending(x => x.UploadedAt),
+                    .Descending(x => x.CreatedOn),
                 new CreateIndexOptions { Name = "idx_score_desc_uploadedAt_desc" })
         };
         await FeedItems.Indexes.CreateManyAsync(feedIndexes, ct);
@@ -49,8 +49,8 @@ public class FeedDbContext : MongoDbContext
                 new CreateIndexModel<UserInteraction>(
                     Builders<UserInteraction>.IndexKeys
                         .Ascending(x => x.UserId)
-                        .Descending(x => x.Timestamp),
-                    new CreateIndexOptions { Name = "idx_user_interactions_userId_timestamp" })
+                        .Descending(x => x.CreatedOn),
+                    new CreateIndexOptions { Name = "idx_user_interactions_userId_createdOn" })
             };
             await UserInteractions.Indexes.CreateManyAsync(interactionIndexes, ct);
         }

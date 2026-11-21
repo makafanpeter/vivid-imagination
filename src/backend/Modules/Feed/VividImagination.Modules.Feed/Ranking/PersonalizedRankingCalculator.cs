@@ -110,7 +110,7 @@ public static class PersonalizedRankingCalculator
     public static PersonalizedScoreBreakdown ComputeBreakdown(FeedItem item, UserInterestProfile? profile, DateTime utcNow)
     {
         var tags = TagExtractor.ExtractTags(item.Caption);
-        var r = CalculateRecency(item.UploadedAt, utcNow);
+        var r = CalculateRecency(item.CreatedOn.DateTime, utcNow);
         var q = CalculateQuality(item.Upvotes, item.Downvotes);
         var t = CalculateTagAffinity(tags, profile);
         var c = CalculateCreatorAffinity(item.UserId, profile);

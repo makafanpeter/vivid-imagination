@@ -4,15 +4,8 @@ using VividImagination.Shared.Infrastructure.Mongo;
 
 namespace VividImagination.Modules.Feed.Ranking;
 
-public class CandidateGenerator : ICandidateGenerator
+public class CandidateGenerator(IMongoRepository<FeedItem, Guid> repository) : ICandidateGenerator
 {
-    private readonly IMongoRepository<FeedItem, Guid> _repository;
-
-    public CandidateGenerator(IMongoRepository<FeedItem, Guid> repository)
-    {
-        _repository = repository;
-    }
-
     public async Task<IReadOnlyList<FeedItem>> GenerateCandidatesAsync(
         UserInterestProfile? profile,
         int targetCount = 300,
@@ -22,11 +15,11 @@ public class CandidateGenerator : ICandidateGenerator
         var sliceSize = Math.Max(20, targetCount / 5);
 
         // Slice 1: Recent uploads
-        var recentItems = await _repository.FindPagedAsync(
+        var recentItems = await repository.FindPagedAsync(
             x => x.Verdict != "Rejected",
             0,
             sliceSize,
-            Builders<FeedItem>.Sort.Descending(x => x.UploadedAt),
+            Builders<FeedItem>.Sort.Descending(x => x.CreatedOn),
             ct);
 
         foreach (var item in recentItems)
@@ -35,7 +28,7 @@ public class CandidateGenerator : ICandidateGenerator
         }
 
         // Slice 2: Trending / Top Decay-Ranked
-        var trendingItems = await _repository.FindPagedAsync(
+        var trendingItems = await repository.FindPagedAsync(
             x => x.Verdict != "Rejected",
             0,
             sliceSize,
@@ -60,7 +53,7 @@ public class CandidateGenerator : ICandidateGenerator
 
             if (topCreatorIds.Count > 0)
             {
-                var creatorItems = await _repository.FindPagedAsync(
+                var creatorItems = await repository.FindPagedAsync(
                     x => x.Verdict != "Rejected" && topCreatorIds.Contains(x.UserId),
                     0,
                     sliceSize,
@@ -84,11 +77,11 @@ public class CandidateGenerator : ICandidateGenerator
                 .Select(kv => kv.Key.ToLowerInvariant())
                 .ToList();
 
-            var extraPool = await _repository.FindPagedAsync(
+            var extraPool = await repository.FindPagedAsync(
                 x => x.Verdict != "Rejected",
                 0,
                 sliceSize * 2,
-                Builders<FeedItem>.Sort.Descending(x => x.UploadedAt),
+                Builders<FeedItem>.Sort.Descending(x => x.CreatedOn),
                 ct);
 
             foreach (var item in extraPool)
@@ -102,11 +95,11 @@ public class CandidateGenerator : ICandidateGenerator
         }
 
         // Slice 5: Exploration candidates (low total votes / fresh exposure)
-        var explorationItems = await _repository.FindPagedAsync(
+        var explorationItems = await repository.FindPagedAsync(
             x => x.Verdict != "Rejected" && (x.Upvotes + x.Downvotes) < 5,
             0,
             sliceSize,
-            Builders<FeedItem>.Sort.Descending(x => x.UploadedAt),
+            Builders<FeedItem>.Sort.Descending(x => x.CreatedOn),
             ct);
 
         foreach (var item in explorationItems)

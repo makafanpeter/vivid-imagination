@@ -167,7 +167,7 @@ public class PersonalizedRankingTests
             Caption = "Beautiful #landscape sunset",
             Upvotes = 20,
             Downvotes = 1,
-            UploadedAt = now.AddHours(-1)
+            CreatedOn = now.AddHours(-1)
         };
 
         var randomItem = new FeedItem
@@ -178,7 +178,7 @@ public class PersonalizedRankingTests
             Caption = "Random photo with #architecture",
             Upvotes = 2,
             Downvotes = 0,
-            UploadedAt = now.AddHours(-24)
+            CreatedOn = now.AddHours(-24)
         };
 
         var scoreFavorite = PersonalizedRankingCalculator.CalculateScore(favoriteItem, profile, now);

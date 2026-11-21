@@ -29,5 +29,5 @@ public class UserInteraction : BaseEntity<Guid>, IAggregate<Guid>
     public int FeedPosition { get; set; }
     public int DwellDurationMs { get; set; }
     public List<string> Tags { get; set; } = new();
-    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    
 }

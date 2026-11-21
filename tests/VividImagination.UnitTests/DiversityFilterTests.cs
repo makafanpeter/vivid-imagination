@@ -80,12 +80,12 @@ public class DiversityFilterTests
         // 4 photos from Creator A with high score, 1 from Creator B, 1 from Creator C
         var candidates = new List<FeedItem>
         {
-            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 1", Upvotes = 100, UploadedAt = DateTime.UtcNow, Verdict = "Approved" },
-            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 2", Upvotes = 95, UploadedAt = DateTime.UtcNow, Verdict = "Approved" },
-            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 3", Upvotes = 90, UploadedAt = DateTime.UtcNow, Verdict = "Approved" },
-            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 4", Upvotes = 85, UploadedAt = DateTime.UtcNow, Verdict = "Approved" },
-            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorB, Caption = "#city 1", Upvotes = 50, UploadedAt = DateTime.UtcNow, Verdict = "Approved" },
-            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorC, Caption = "#art 1", Upvotes = 40, UploadedAt = DateTime.UtcNow, Verdict = "Approved" }
+            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 1", Upvotes = 100, CreatedOn = DateTime.UtcNow, Verdict = "Approved" },
+            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 2", Upvotes = 95, CreatedOn = DateTime.UtcNow, Verdict = "Approved" },
+            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 3", Upvotes = 90, CreatedOn = DateTime.UtcNow, Verdict = "Approved" },
+            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorA, Caption = "#nature 4", Upvotes = 85, CreatedOn = DateTime.UtcNow, Verdict = "Approved" },
+            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorB, Caption = "#city 1", Upvotes = 50, CreatedOn = DateTime.UtcNow, Verdict = "Approved" },
+            new() { Id = Guid.NewGuid(), PhotoId = Guid.NewGuid(), UserId = creatorC, Caption = "#art 1", Upvotes = 40, CreatedOn = DateTime.UtcNow, Verdict = "Approved" }
         };
 
         var result = DiversityFilter.FilterAndDiversify(candidates, null, null, null, DateTime.UtcNow);

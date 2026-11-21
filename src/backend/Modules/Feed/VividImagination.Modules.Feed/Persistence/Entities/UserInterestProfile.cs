@@ -39,5 +39,4 @@ public class UserInterestProfile : BaseEntity<Guid>, IAggregate<Guid>
     public List<Guid> RecentlyViewedPhotoIds { get; set; } = new();
 
     public int TotalInteractions { get; set; }
-    public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
 }

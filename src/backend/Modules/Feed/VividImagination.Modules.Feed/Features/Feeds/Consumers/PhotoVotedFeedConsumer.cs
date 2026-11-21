@@ -36,8 +36,8 @@ public class PhotoVotedFeedConsumer : IConsumer<PhotoVotedIntegrationEvent>
         {
             item.Upvotes = msg.TotalUpvotes;
             item.Downvotes = msg.TotalDownvotes;
-            item.Score = FeedRankingCalculator.CalculateScore(item.Upvotes, item.Downvotes, item.UploadedAt);
-            item.LastUpdatedAt = DateTime.UtcNow;
+            item.Score = FeedRankingCalculator.CalculateScore(item.Upvotes, item.Downvotes, item.CreatedOn);
+            item.UpdatedOn = DateTime.UtcNow;
 
             await _repository.UpdateAsync(item, context.CancellationToken);
             await _mediator.Send(new InvalidateFeedCacheCommand(), context.CancellationToken);

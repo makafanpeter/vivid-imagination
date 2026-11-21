@@ -69,7 +69,7 @@ public class FeedInteractionConsumer : IConsumer<FeedInteractionOccurredIntegrat
             FeedPosition = msg.FeedPosition,
             DwellDurationMs = msg.DwellDurationMs,
             Tags = normalizedTags,
-            Timestamp = msg.Timestamp
+            CreatedOn = msg.Timestamp
         };
         await _interactionRepository.AddAsync(interaction, ct);
 
@@ -83,7 +83,7 @@ public class FeedInteractionConsumer : IConsumer<FeedInteractionOccurredIntegrat
             {
                 Id = Guid.NewGuid(),
                 UserId = msg.UserId,
-                LastUpdatedAt = DateTime.UtcNow
+                UpdatedOn = DateTime.UtcNow
             };
         }
 
@@ -179,7 +179,7 @@ public class FeedInteractionConsumer : IConsumer<FeedInteractionOccurredIntegrat
         }
 
         profile.TotalInteractions++;
-        profile.LastUpdatedAt = DateTime.UtcNow;
+        profile.UpdatedOn = DateTime.UtcNow;
 
         if (isNew)
         {

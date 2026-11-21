@@ -83,7 +83,7 @@ public class FeedFeatureTests
                 BlurRequired = true,
                 SafetyCategory = "Suggestive",
                 Verdict = "Approved",
-                UploadedAt = DateTime.UtcNow.AddMinutes(-30)
+                CreatedOn = DateTime.UtcNow.AddMinutes(-30)
             }
         };
 
@@ -134,7 +134,7 @@ public class FeedFeatureTests
                 IsUnsafe = false,
                 BlurRequired = false,
                 Verdict = "Approved",
-                UploadedAt = DateTime.UtcNow
+                CreatedOn = DateTime.UtcNow
             },
             new()
             {
@@ -146,7 +146,7 @@ public class FeedFeatureTests
                 BlurRequired = true,
                 SafetyCategory = "Suggestive",
                 Verdict = "TaggedUnsafe",
-                UploadedAt = DateTime.UtcNow
+                CreatedOn = DateTime.UtcNow
             }
         };
 
@@ -191,7 +191,7 @@ public class FeedFeatureTests
                 BlurRequired = true,
                 SafetyCategory = "Suggestive",
                 Verdict = "TaggedUnsafe",
-                UploadedAt = DateTime.UtcNow
+                CreatedOn = DateTime.UtcNow
             }
         };
 
@@ -308,7 +308,7 @@ public class FeedFeatureTests
             Upvotes = 2,
             Downvotes = 0,
             Score = 2.0,
-            UploadedAt = DateTime.UtcNow.AddHours(-1)
+            CreatedOn = DateTime.UtcNow.AddHours(-1)
         };
 
         repoMock.Setup(r => r.FindByIdAsync(photoId, It.IsAny<CancellationToken>()))

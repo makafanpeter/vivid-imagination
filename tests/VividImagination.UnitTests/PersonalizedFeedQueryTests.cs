@@ -117,8 +117,8 @@ public class PersonalizedFeedQueryTests
 
         var candidates = new List<FeedItem>
         {
-            new() { Id = photoId1, PhotoId = photoId1, UserId = Guid.NewGuid(), Caption = "Nice #nature view", Upvotes = 10, UploadedAt = DateTime.UtcNow, Verdict = "Approved" },
-            new() { Id = photoId2, PhotoId = photoId2, UserId = Guid.NewGuid(), Caption = "Urban #city", Upvotes = 2, UploadedAt = DateTime.UtcNow.AddDays(-2), Verdict = "Approved" }
+            new() { Id = photoId1, PhotoId = photoId1, UserId = Guid.NewGuid(), Caption = "Nice #nature view", Upvotes = 10, CreatedOn = DateTime.UtcNow, Verdict = "Approved" },
+            new() { Id = photoId2, PhotoId = photoId2, UserId = Guid.NewGuid(), Caption = "Urban #city", Upvotes = 2, CreatedOn = DateTime.UtcNow.AddDays(-2), Verdict = "Approved" }
         };
 
         _candidateGeneratorMock.Setup(c => c.GenerateCandidatesAsync(activeProfile, 300, It.IsAny<CancellationToken>()))
