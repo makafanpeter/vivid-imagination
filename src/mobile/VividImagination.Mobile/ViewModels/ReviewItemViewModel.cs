@@ -10,6 +10,9 @@ public partial class ReviewItemViewModel : ObservableObject
     private string _imageUrl = string.Empty;
 
     [ObservableProperty]
+    private ImageSource? _photoSource;
+
+    [ObservableProperty]
     private string _caption = string.Empty;
 
     [ObservableProperty]

@@ -131,6 +131,9 @@ namespace VividImagination.Mobile
                 return new AuthService(httpClient, tokenStorage, configService, apiClient);
             });
 
+            // Photo Loader & Cache Service
+            builder.Services.AddSingleton<IPhotoLoaderService, PhotoLoaderService>();
+
             // ViewModels
             builder.Services.AddSingleton<IToastService>(ToastService.Current);
             builder.Services.AddSingleton<FeedViewModel>();

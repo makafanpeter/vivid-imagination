@@ -310,7 +310,7 @@
 
                                     <Grid>
                                         <!-- Photo Image filling the square -->
-                                        <Image Source="{Binding ImageUrl}"
+                                        <Image Source="{Binding PhotoSource}"
                                                Aspect="AspectFill"
                                                HorizontalOptions="Fill"
                                                VerticalOptions="Fill" />

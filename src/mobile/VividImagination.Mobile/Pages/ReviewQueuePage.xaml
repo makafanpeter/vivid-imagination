@@ -116,7 +116,7 @@
 
                                     <VerticalStackLayout Spacing="0">
                                         <!-- Photo Image -->
-                                        <Image Source="{Binding ImageUrl}"
+                                        <Image Source="{Binding PhotoSource}"
                                                Aspect="AspectFill"
                                                HeightRequest="240"
                                                HorizontalOptions="Fill" />

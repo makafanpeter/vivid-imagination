@@ -12,15 +12,18 @@ public partial class ProfileViewModel : ObservableObject
     private readonly IAuthService _authService;
     private readonly IConfigurationService _configurationService;
     private readonly IVividImaginationClient _apiClient;
+    private readonly IPhotoLoaderService _photoLoader;
 
     public ProfileViewModel(
         IAuthService authService,
         IConfigurationService configurationService,
-        IVividImaginationClient apiClient)
+        IVividImaginationClient apiClient,
+        IPhotoLoaderService photoLoader)
     {
         _authService = authService;
         _configurationService = configurationService;
         _apiClient = apiClient;
+        _photoLoader = photoLoader;
 
         _authService.AuthStateChanged += (s, e) =>
         {
@@ -110,13 +113,16 @@ public partial class ProfileViewModel : ObservableObject
             {
                 foreach (var media in mediaList)
                 {
-                    MyUploads.Add(new UserUploadItemViewModel
+                    var uploadItem = new UserUploadItemViewModel
                     {
                         PhotoId = media.Id,
                         ImageUrl = media.Url ?? string.Empty,
                         Caption = media.Description ?? media.Name ?? string.Empty,
                         Status = (media.Public == true) ? "Live" : "Checking"
-                    });
+                    };
+
+                    _ = LoadUploadPhotoAsync(uploadItem, media.Id, media.BlurHash);
+                    MyUploads.Add(uploadItem);
                 }
             }
         }
@@ -127,6 +133,25 @@ public partial class ProfileViewModel : ObservableObject
         finally
         {
             NotifyUploadsChanged();
+        }
+    }
+
+    private async Task LoadUploadPhotoAsync(UserUploadItemViewModel item, Guid photoId, string? blurHash)
+    {
+        try
+        {
+            var source = await _photoLoader.LoadPhotoAsync(photoId, blurHash);
+            if (source != null)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    item.PhotoSource = source;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to load upload photo {photoId}: {ex.Message}");
         }
     }
 

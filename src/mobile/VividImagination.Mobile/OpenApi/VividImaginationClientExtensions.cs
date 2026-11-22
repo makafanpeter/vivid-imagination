@@ -161,3 +161,28 @@ public partial class VividImaginationClient
         return UpdateUserPreferencesAsync(modeEnum, isPersonalisationEnabled, cancellationToken);
     }
 }
+
+public partial class UploadDocumentViewModel
+{
+    public string? BlurHash
+    {
+        get
+        {
+            if (AdditionalProperties != null &&
+                AdditionalProperties.TryGetValue("blurHash", out var val))
+            {
+                if (val is System.Text.Json.JsonElement element && element.ValueKind == System.Text.Json.JsonValueKind.String)
+                {
+                    return element.GetString();
+                }
+
+                if (val is string s)
+                {
+                    return s;
+                }
+            }
+
+            return null;
+        }
+    }
+}

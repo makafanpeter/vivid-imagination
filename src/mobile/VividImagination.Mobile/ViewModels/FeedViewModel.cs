@@ -9,16 +9,19 @@ public partial class FeedViewModel : ObservableObject
 {
     private readonly IVividImaginationClient _apiClient;
     private readonly IAuthService _authService;
+    private readonly IPhotoLoaderService _photoLoader;
     private int _currentPage = 1;
     private const int PageSize = 10;
     private bool _hasMoreItems = true;
 
     public FeedViewModel(
         IVividImaginationClient apiClient,
-        IAuthService authService)
+        IAuthService authService,
+        IPhotoLoaderService photoLoader)
     {
         _apiClient = apiClient;
         _authService = authService;
+        _photoLoader = photoLoader;
         Items = [];
     }
 
@@ -249,7 +252,7 @@ public partial class FeedViewModel : ObservableObject
 
     private FeedItemViewModel CreateFeedItemViewModel(FeedItemDto item, SafeBrowsingMode safeMode)
     {
-        var vm = new FeedItemViewModel(item)
+        var vm = new FeedItemViewModel(item, _photoLoader)
         {
             UpvoteHandler = UpvoteAsync,
             DownvoteHandler = DownvoteAsync,

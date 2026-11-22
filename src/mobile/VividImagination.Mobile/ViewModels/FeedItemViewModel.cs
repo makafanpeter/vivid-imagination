@@ -1,17 +1,23 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Text.RegularExpressions;
+using VividImagination.Mobile.Services;
 
 namespace VividImagination.Mobile.ViewModels;
 
 public partial class FeedItemViewModel : ObservableObject
 {
     private readonly FeedItemDto _model;
+    private readonly IPhotoLoaderService? _photoLoader;
     private ImageSource? _blurHashImage;
 
-    public FeedItemViewModel(FeedItemDto model)
+    [ObservableProperty]
+    private ImageSource? _photoSource;
+
+    public FeedItemViewModel(FeedItemDto model, IPhotoLoaderService? photoLoader = null)
     {
         _model = model;
+        _photoLoader = photoLoader;
         Upvotes = model.Upvotes;
         Downvotes = model.Downvotes;
         Score = model.Score;
@@ -19,6 +25,35 @@ public partial class FeedItemViewModel : ObservableObject
         IsUnsafe = model.IsUnsafe;
         IsRevealed = !model.BlurRequired;
         ExtractTags();
+
+        // Immediately show BlurHash preview while full resolution photo downloads
+        PhotoSource = BlurHashImageSource;
+
+        if (_photoLoader != null)
+        {
+            _ = LoadPhotoAsync();
+        }
+    }
+
+    public async Task LoadPhotoAsync(CancellationToken ct = default)
+    {
+        if (_photoLoader == null) return;
+
+        try
+        {
+            var source = await _photoLoader.LoadPhotoAsync(PhotoId, BlurHash, ct);
+            if (source != null)
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    PhotoSource = source;
+                });
+            }
+        }
+        catch
+        {
+            // Keep BlurHash preview on error
+        }
     }
 
     public Guid Id => _model.Id;

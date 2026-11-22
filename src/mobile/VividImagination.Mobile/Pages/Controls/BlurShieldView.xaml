@@ -10,7 +10,7 @@
     <Grid HeightRequest="380" HorizontalOptions="Fill" IsClippedToBounds="True">
 
         <!-- Main Photo: Loaded edge-to-edge -->
-        <Image Source="{Binding ImageUrl}"
+        <Image Source="{Binding PhotoSource}"
                Aspect="AspectFill"
                HorizontalOptions="Fill"
                VerticalOptions="Fill" />
