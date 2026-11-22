@@ -689,37 +689,6 @@
         }
       }
     },
-    "/api/v1/identity/auth/google": {
-      "post": {
-        "tags": [
-          "Identity"
-        ],
-        "summary": "Sign in or auto-provision user with Google ID token",
-        "operationId": "GoogleSignIn",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GoogleSignInRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GoogleSignInResult"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/moderation-service/reviews/{photoId}": {
       "get": {
         "tags": [
@@ -1255,51 +1224,6 @@
           "isPersonalisationEnabled": {
             "type": "boolean",
             "nullable": true
-          }
-        }
-      },
-      "GoogleSignInRequest": {
-        "type": "object",
-        "required": [
-          "idToken"
-        ],
-        "properties": {
-          "idToken": {
-            "type": "string"
-          },
-          "safeBrowsingMode": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          }
-        }
-      },
-      "GoogleSignInResult": {
-        "type": "object",
-        "required": [
-          "userId",
-          "email",
-          "safeBrowsingMode",
-          "isNewUser"
-        ],
-        "properties": {
-          "userId": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "email": {
-            "type": "string"
-          },
-          "fullName": {
-            "type": "string",
-            "nullable": true
-          },
-          "safeBrowsingMode": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "isNewUser": {
-            "type": "boolean"
           }
         }
       },

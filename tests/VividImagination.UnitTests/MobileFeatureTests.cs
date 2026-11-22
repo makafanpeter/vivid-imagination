@@ -189,7 +189,7 @@ public class MobileFeatureTests
     }
 
     [Fact]
-    public void Identity_RegisterAndGoogleSignIn_SerializeAndDeserializeCorrectly()
+    public void Identity_RegisterAndTokenResponse_SerializeAndDeserializeCorrectly()
     {
         var registerResultJson = """
         {
@@ -207,21 +207,22 @@ public class MobileFeatureTests
         regResult.FullName.Should().Be("Creative User");
         regResult.SafeBrowsingMode.Should().Be(0);
 
-        var googleResultJson = """
+        var tokenResponseJson = """
         {
-            "userId": 987654321098765432,
-            "email": "google@example.com",
-            "fullName": "Google User",
-            "safeBrowsingMode": 2,
-            "isNewUser": true
+            "access_token": "mock.jwt.access_token",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "refresh_token": "mock.refresh_token",
+            "scope": "openid email profile roles identity-api"
         }
         """;
-        var googleResult = JsonSerializer.Deserialize<GoogleSignInResult>(googleResultJson, JsonOptions);
-        googleResult.Should().NotBeNull();
-        googleResult!.UserId.Should().Be(987654321098765432L);
-        googleResult.Email.Should().Be("google@example.com");
-        googleResult.SafeBrowsingMode.Should().Be(2);
-        googleResult.IsNewUser.Should().BeTrue();
+        var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(tokenResponseJson, JsonOptions);
+        tokenResponse.Should().NotBeNull();
+        tokenResponse!.AccessToken.Should().Be("mock.jwt.access_token");
+        tokenResponse.TokenType.Should().Be("Bearer");
+        tokenResponse.ExpiresIn.Should().Be(3600);
+        tokenResponse.RefreshToken.Should().Be("mock.refresh_token");
+        tokenResponse.Scope.Should().Be("openid email profile roles identity-api");
     }
 
     [Fact]
@@ -238,7 +239,7 @@ public class MobileFeatureTests
         methodNames.Should().Contain("RegisterUserAsync");
         methodNames.Should().Contain("GetUserPreferencesAsync");
         methodNames.Should().Contain("UpdateUserPreferencesAsync");
-        methodNames.Should().Contain("GoogleSignInAsync");
+        methodNames.Should().NotContain("GoogleSignInAsync");
         methodNames.Should().Contain("UpdatePhotoMetadataAsync");
         methodNames.Should().Contain("GetMyMediaAsync");
     }

@@ -8,7 +8,7 @@ This reference scope document serves as the foundation for the talk: **"From MVP
 
 At the MVP stage, the goal is rapid delivery in a single deployable `.NET` host:
 
-*   **User Authentication:** Social sign-in (Google/Facebook/Apple via OIDC) and profile management.
+*   **User Authentication:** Standard credential authentication exclusively via OpenIddict OAuth2 /connect/token (Password grant & Refresh token grant) and profile management.
 *   **Photo Management:** Upload photos to AWS S3, manage captions/tags, and delete uploads.
 *   **Global Photo Feed:** A chronological feed displaying published photos to users.
 *   **Community Engagement & Basic Moderation:** 
@@ -88,7 +88,7 @@ graph TD
 
 | Module / Project | Implementation Project | Contracts Project | Responsibility | Storage Engine | Key Scaling Pattern |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`IdentityModule`** | `VividImagination.Modules.Identity` | `Identity.Contracts` | OAuth/OIDC sign-in, JWT tokens, user safety preferences, startup role seeding | **PostgreSQL** (`identity.*`) | Snowflake ID role seeding (`IdentityContextSeed`) & `ROLE_NOT_CONFIGURED` fail-fast validation |
+| **`IdentityModule`** | `VividImagination.Modules.Identity` | `Identity.Contracts` | Standard credential registration (`POST /api/v1/identity/users/register`), OpenIddict OAuth2 token issuance (`POST /connect/token`), user safety preferences, startup role seeding | **PostgreSQL** (`identity.*`) | Snowflake ID role seeding (`IdentityContextSeed`) & `ROLE_NOT_CONFIGURED` fail-fast validation |
 | **`MediaModule`** | `VividImagination.Modules.Media` | `Media.Contracts` | S3 uploads, background WebP conversion (3 variants), pixel BlurHash, cascading cleanup | **MongoDB** (`FileEntries`) + **AWS S3** | Unique sparse index on `FileLocation`, compound active index `{ Deleted: 1, UploadedTime: -1 }` |
 | **`ModerationModule`** | `VividImagination.Modules.Moderation` | `Moderation.Contracts` | Amazon Rekognition vision scan, unsafe tagging, audit trail, moderator override | **MongoDB** (`moderation_reviews`) | Zero-copy S3 Rekognition scan via `IMessagingModule` consumer |
 | **`SocialModule`** | `VividImagination.Modules.Social` | `Social.Contracts` | Upvotes/downvotes, vote cancellation, 2-flag community reports | **PostgreSQL** (`social.*`) | ACID unique composite `(PhotoId, UserId)` constraints |

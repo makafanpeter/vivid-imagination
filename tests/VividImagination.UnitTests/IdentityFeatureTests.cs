@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Moq;
 using OpenIddict.Abstractions;
+using OpenIddict.Server.AspNetCore;
+using VividImagination.Modules.Identity.Controllers.v1;
 using VividImagination.Modules.Identity.Features.Preferences.Commands;
 using VividImagination.Modules.Identity.Features.Preferences.Dtos;
 using VividImagination.Modules.Identity.Features.Preferences.Queries;
@@ -17,6 +19,7 @@ using VividImagination.Shared.Contract.Identity;
 using VividImagination.Shared.Contract.Identity.Enums;
 using VividImagination.Shared.Infrastructure.Common;
 using VividImagination.Shared.Infrastructure.Exceptions;
+using VividImagination.Shared.Infrastructure.Web.Helpers;
 using VividImagination.Shared.Infrastructure.Web.Identity;
 using Xunit;
 
@@ -359,125 +362,200 @@ public class IdentityFeatureTests
     }
 
     [Fact]
-    public async Task GoogleSignInCommandHandler_WhenNewUser_ShouldPerformJitSignup()
+    public async Task AuthorizationController_Userinfo_WhenValidSubject_ShouldReturnOkWithClaims()
     {
         // Arrange
-        var validatorMock = new Mock<VividImagination.Modules.Identity.Features.Auth.Services.IGoogleTokenValidator>();
-        validatorMock.Setup(v => v.ValidateAsync("valid_google_token", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new VividImagination.Modules.Identity.Features.Auth.Services.GoogleTokenPayload(
-                "google-sub-12345",
-                "googleuser@gmail.com",
-                true,
-                "Google",
-                "Creator"));
-
         var userStoreMock = new Mock<IUserStore<User>>();
         var userManagerMock = new Mock<UserManager<User>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        userManagerMock.Setup(m => m.FindByLoginAsync("Google", "google-sub-12345"))
-            .ReturnsAsync((User?)null);
-        userManagerMock.Setup(m => m.FindByEmailAsync("googleuser@gmail.com"))
-            .ReturnsAsync((User?)null);
+        var testUser = new User
+        {
+            Id = 555L,
+            Email = "member@vivid.local",
+            UserName = "member",
+            FirstName = "Vivid",
+            LastName = "Member",
+            SafeBrowsingMode = SafeBrowsingMode.BlurSensitive
+        };
 
-        User? capturedJitUser = null;
-        userManagerMock.Setup(m => m.CreateAsync(It.IsAny<User>()))
-            .Callback<User>(u => capturedJitUser = u)
-            .ReturnsAsync(IdentityResult.Success);
+        userManagerMock.Setup(m => m.FindByIdAsync("555")).ReturnsAsync(testUser);
+        userManagerMock.Setup(m => m.GetRolesAsync(testUser)).ReturnsAsync(["User"]);
 
-        userManagerMock.Setup(m => m.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()))
-            .ReturnsAsync(IdentityResult.Success);
+        var signInManagerMock = new Mock<SignInManager<User>>(
+            userManagerMock.Object,
+            new Mock<IHttpContextAccessor>().Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null!, null!, null!, null!);
 
-        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
+        var webHelperMock = new Mock<IWebHelper>();
+        var loggerMock = new Mock<Microsoft.Extensions.Logging.ILogger<AuthorizationController>>();
 
-        var handler = new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommandHandler(
-            validatorMock.Object, userManagerMock.Object, publishEndpointMock.Object);
+        var controller = new AuthorizationController(
+            userManagerMock.Object,
+            signInManagerMock.Object,
+            webHelperMock.Object,
+            loggerMock.Object);
+
+        var claims = new List<Claim>
+        {
+            new(OpenIddictConstants.Claims.Subject, "555"),
+            new(OpenIddictConstants.Claims.Scope, OpenIddictConstants.Scopes.Roles),
+            new(OpenIddictConstants.Claims.Private.Scope, OpenIddictConstants.Scopes.Roles)
+        };
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Bearer"));
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = principal }
+        };
 
         // Act
-        var result = await handler.Handle(
-            new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommand("valid_google_token"),
-            CancellationToken.None);
+        var result = await controller.Userinfo();
 
         // Assert
-        result.Should().NotBeNull();
-        result.IsNewUser.Should().BeTrue();
-        result.Email.Should().Be("googleuser@gmail.com");
-        result.FullName.Should().Be("Google Creator");
-
-        capturedJitUser.Should().NotBeNull();
-        capturedJitUser!.UserName.Should().Be("googleuser@gmail.com");
-        capturedJitUser.Email.Should().Be("googleuser@gmail.com");
-        capturedJitUser.EmailConfirmed.Should().BeTrue();
-        capturedJitUser.SafeBrowsingMode.Should().Be(SafeBrowsingMode.BlurSensitive);
-
-        userManagerMock.Verify(m => m.AddLoginAsync(
-            capturedJitUser,
-            It.Is<UserLoginInfo>(l => l.LoginProvider == "Google" && l.ProviderKey == "google-sub-12345")), Times.Once);
-
-        publishEndpointMock.Verify(p => p.Publish(
-            It.Is<VividImagination.Modules.Identity.Contracts.Events.UserRegisteredIntegrationEvent>(
-                e => e.Email == "googleuser@gmail.com"),
-            It.IsAny<CancellationToken>()), Times.Once);
+        result.Should().BeOfType<Microsoft.AspNetCore.Mvc.OkObjectResult>();
+        var okResult = (Microsoft.AspNetCore.Mvc.OkObjectResult)result;
+        var returnedClaims = okResult.Value as Dictionary<string, object>;
+        returnedClaims.Should().NotBeNull();
+        returnedClaims![OpenIddictConstants.Claims.Subject].Should().Be("555");
+        returnedClaims[OpenIddictConstants.Claims.Email].Should().Be("member@vivid.local");
+        returnedClaims[OpenIddictConstants.Claims.PreferredUsername].Should().Be("member");
+        returnedClaims[OpenIddictConstants.Claims.Name].Should().Be("Vivid Member");
+        returnedClaims["safe_browsing_mode"].Should().Be("BlurSensitive");
+        returnedClaims[OpenIddictConstants.Claims.Role].Should().BeEquivalentTo(new[] { "User" });
     }
 
     [Fact]
-    public async Task GoogleSignInCommandHandler_WhenExistingUserMatchesEmail_ShouldLinkGoogleLogin()
+    public async Task AuthorizationController_Userinfo_WhenUserNotFound_ShouldReturnChallenge()
     {
         // Arrange
-        var existingUser = new User
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        userManagerMock.Setup(m => m.FindByIdAsync("999")).ReturnsAsync((User?)null);
+
+        var signInManagerMock = new Mock<SignInManager<User>>(
+            userManagerMock.Object,
+            new Mock<IHttpContextAccessor>().Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null!, null!, null!, null!);
+
+        var controller = new AuthorizationController(
+            userManagerMock.Object,
+            signInManagerMock.Object,
+            new Mock<IWebHelper>().Object,
+            new Mock<Microsoft.Extensions.Logging.ILogger<AuthorizationController>>().Object);
+
+        var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim(OpenIddictConstants.Claims.Subject, "999")], "Bearer"));
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
         {
-            Id = 888L,
-            Email = "existing@gmail.com",
-            UserName = "existing@gmail.com",
-            FirstName = "Existing",
-            LastName = "User"
+            HttpContext = new DefaultHttpContext { User = principal }
         };
 
-        var validatorMock = new Mock<VividImagination.Modules.Identity.Features.Auth.Services.IGoogleTokenValidator>();
-        validatorMock.Setup(v => v.ValidateAsync("valid_google_token", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new VividImagination.Modules.Identity.Features.Auth.Services.GoogleTokenPayload(
-                "google-sub-88888",
-                "existing@gmail.com",
-                true,
-                "Existing",
-                "User"));
+        // Act
+        var result = await controller.Userinfo();
 
+        // Assert
+        result.Should().BeOfType<Microsoft.AspNetCore.Mvc.ChallengeResult>();
+        var challenge = (Microsoft.AspNetCore.Mvc.ChallengeResult)result;
+        challenge.AuthenticationSchemes.Should().Contain(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    [Fact]
+    public async Task AuthorizationController_Userinfo_WhenSubjectClaimMissing_ShouldReturnChallenge()
+    {
+        // Arrange
         var userStoreMock = new Mock<IUserStore<User>>();
         var userManagerMock = new Mock<UserManager<User>>(
             userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        userManagerMock.Setup(m => m.FindByLoginAsync("Google", "google-sub-88888"))
-            .ReturnsAsync((User?)null);
-        userManagerMock.Setup(m => m.FindByEmailAsync("existing@gmail.com"))
-            .ReturnsAsync(existingUser);
+        var signInManagerMock = new Mock<SignInManager<User>>(
+            userManagerMock.Object,
+            new Mock<IHttpContextAccessor>().Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null!, null!, null!, null!);
 
-        userManagerMock.Setup(m => m.AddLoginAsync(existingUser, It.IsAny<UserLoginInfo>()))
-            .ReturnsAsync(IdentityResult.Success);
+        var controller = new AuthorizationController(
+            userManagerMock.Object,
+            signInManagerMock.Object,
+            new Mock<IWebHelper>().Object,
+            new Mock<Microsoft.Extensions.Logging.ILogger<AuthorizationController>>().Object);
 
-        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
-
-        var handler = new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommandHandler(
-            validatorMock.Object, userManagerMock.Object, publishEndpointMock.Object);
+        var principal = new ClaimsPrincipal(new ClaimsIdentity([], "Bearer"));
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = principal }
+        };
 
         // Act
-        var result = await handler.Handle(
-            new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommand("valid_google_token"),
-            CancellationToken.None);
+        var result = await controller.Userinfo();
 
         // Assert
-        result.Should().NotBeNull();
-        result.IsNewUser.Should().BeFalse();
-        result.UserId.Should().Be(888L);
-        result.Email.Should().Be("existing@gmail.com");
+        result.Should().BeOfType<Microsoft.AspNetCore.Mvc.ChallengeResult>();
+        var challenge = (Microsoft.AspNetCore.Mvc.ChallengeResult)result;
+        challenge.AuthenticationSchemes.Should().Contain(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
 
-        userManagerMock.Verify(m => m.AddLoginAsync(
-            existingUser,
-            It.Is<UserLoginInfo>(l => l.LoginProvider == "Google" && l.ProviderKey == "google-sub-88888")), Times.Once);
+    [Fact]
+    public async Task AuthorizationController_Logout_ShouldSignOutAndReturnSignOutResult()
+    {
+        // Arrange
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
 
-        // User already exists, should NOT publish registration event
-        publishEndpointMock.Verify(p => p.Publish(
-            It.IsAny<VividImagination.Modules.Identity.Contracts.Events.UserRegisteredIntegrationEvent>(),
-            It.IsAny<CancellationToken>()), Times.Never);
+        var signInManagerMock = new Mock<SignInManager<User>>(
+            userManagerMock.Object,
+            new Mock<IHttpContextAccessor>().Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null!, null!, null!, null!);
+        signInManagerMock.Setup(s => s.SignOutAsync()).Returns(Task.CompletedTask);
+
+        var controller = new AuthorizationController(
+            userManagerMock.Object,
+            signInManagerMock.Object,
+            new Mock<IWebHelper>().Object,
+            new Mock<Microsoft.Extensions.Logging.ILogger<AuthorizationController>>().Object);
+
+        // Act
+        var result = await controller.Logout();
+
+        // Assert
+        signInManagerMock.Verify(s => s.SignOutAsync(), Times.Once);
+        result.Should().BeOfType<Microsoft.AspNetCore.Mvc.SignOutResult>();
+        var signOut = (Microsoft.AspNetCore.Mvc.SignOutResult)result;
+        signOut.AuthenticationSchemes.Should().Contain(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    [Fact]
+    public async Task AuthorizationController_Exchange_WhenNoOpenIddictRequest_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var userStoreMock = new Mock<IUserStore<User>>();
+        var userManagerMock = new Mock<UserManager<User>>(
+            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+
+        var signInManagerMock = new Mock<SignInManager<User>>(
+            userManagerMock.Object,
+            new Mock<IHttpContextAccessor>().Object,
+            new Mock<IUserClaimsPrincipalFactory<User>>().Object,
+            null!, null!, null!, null!);
+
+        var controller = new AuthorizationController(
+            userManagerMock.Object,
+            signInManagerMock.Object,
+            new Mock<IWebHelper>().Object,
+            new Mock<Microsoft.Extensions.Logging.ILogger<AuthorizationController>>().Object);
+
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+
+        // Act & Assert
+        var act = () => controller.Exchange();
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*OpenID Connect request cannot be retrieved*");
     }
 
     private static Mock<RoleManager<IdentityRole<long>>> CreateRoleManagerMock()
@@ -552,91 +630,6 @@ public class IdentityFeatureTests
 
         // Assert
         result.Should().NotBeNull();
-        userManagerMock.Verify(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User), Times.Once);
-    }
-
-    [Fact]
-    public async Task GoogleSignInCommandHandler_WhenNewUserAndRoleDoesNotExist_ShouldThrowSystemErrorException()
-    {
-        // Arrange
-        var validatorMock = new Mock<VividImagination.Modules.Identity.Features.Auth.Services.IGoogleTokenValidator>();
-        validatorMock.Setup(v => v.ValidateAsync("valid_google_token", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new VividImagination.Modules.Identity.Features.Auth.Services.GoogleTokenPayload(
-                "google-sub-99999",
-                "brandnew@gmail.com",
-                true,
-                "New",
-                "User"));
-
-        var userStoreMock = new Mock<IUserStore<User>>();
-        var userManagerMock = new Mock<UserManager<User>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        userManagerMock.Setup(m => m.FindByLoginAsync("Google", "google-sub-99999"))
-            .ReturnsAsync((User?)null);
-        userManagerMock.Setup(m => m.FindByEmailAsync("brandnew@gmail.com"))
-            .ReturnsAsync((User?)null);
-
-        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
-
-        var roleManagerMock = CreateRoleManagerMock();
-        roleManagerMock.Setup(r => r.RoleExistsAsync(SystemRoleNames.User))
-            .ReturnsAsync(false);
-
-        var handler = new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommandHandler(
-            validatorMock.Object, userManagerMock.Object, publishEndpointMock.Object, roleManagerMock.Object);
-
-        // Act & Assert
-        var act = () => handler.Handle(
-            new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommand("valid_google_token"),
-            CancellationToken.None);
-
-        await act.Should().ThrowAsync<SystemErrorException>();
-    }
-
-    [Fact]
-    public async Task GoogleSignInCommandHandler_WhenNewUserAndRoleExists_ShouldAssignRole()
-    {
-        // Arrange
-        var validatorMock = new Mock<VividImagination.Modules.Identity.Features.Auth.Services.IGoogleTokenValidator>();
-        validatorMock.Setup(v => v.ValidateAsync("valid_google_token", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new VividImagination.Modules.Identity.Features.Auth.Services.GoogleTokenPayload(
-                "google-sub-99999",
-                "brandnew@gmail.com",
-                true,
-                "New",
-                "User"));
-
-        var userStoreMock = new Mock<IUserStore<User>>();
-        var userManagerMock = new Mock<UserManager<User>>(
-            userStoreMock.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        userManagerMock.Setup(m => m.FindByLoginAsync("Google", "google-sub-99999"))
-            .ReturnsAsync((User?)null);
-        userManagerMock.Setup(m => m.FindByEmailAsync("brandnew@gmail.com"))
-            .ReturnsAsync((User?)null);
-        userManagerMock.Setup(m => m.CreateAsync(It.IsAny<User>()))
-            .ReturnsAsync(IdentityResult.Success);
-        userManagerMock.Setup(m => m.AddLoginAsync(It.IsAny<User>(), It.IsAny<UserLoginInfo>()))
-            .ReturnsAsync(IdentityResult.Success);
-        userManagerMock.Setup(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User))
-            .ReturnsAsync(IdentityResult.Success);
-
-        var publishEndpointMock = new Mock<MassTransit.IPublishEndpoint>();
-
-        var roleManagerMock = CreateRoleManagerMock();
-        roleManagerMock.Setup(r => r.RoleExistsAsync(SystemRoleNames.User))
-            .ReturnsAsync(true);
-
-        var handler = new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommandHandler(
-            validatorMock.Object, userManagerMock.Object, publishEndpointMock.Object, roleManagerMock.Object);
-
-        // Act
-        var result = await handler.Handle(
-            new VividImagination.Modules.Identity.Features.Auth.Commands.GoogleSignInCommand("valid_google_token"),
-            CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.IsNewUser.Should().BeTrue();
         userManagerMock.Verify(m => m.AddToRoleAsync(It.IsAny<User>(), SystemRoleNames.User), Times.Once);
     }
 

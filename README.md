@@ -186,7 +186,7 @@ To sustain sub-millisecond query performance at scale, MongoDB collections lever
 
 ### 7. Deterministic Startup Role Seeding & Safety Gates
 System authorization roles (`User`, `Admin`, `Moderator`) are automatically seeded by `IdentityContextSeed` on application launch using distributed Snowflake IDs (`SnowFlakIdGenerator.NewId()`) and normalized uppercase names.
-Registration (`RegisterUserCommandHandler`) and OAuth2 JIT provisioning (`GoogleSignInCommandHandler`) enforce fail-fast verification: if roles have not been seeded into PostgreSQL, the API halts execution with a structured `SystemErrorException("ROLE_NOT_CONFIGURED")` rather than permitting unprivileged or corrupt state.
+Registration (`RegisterUserCommandHandler`) enforces fail-fast verification: if roles have not been seeded into PostgreSQL, the API halts execution with a structured `SystemErrorException("ROLE_NOT_CONFIGURED")` rather than permitting unprivileged or corrupt state.
 
 ### 8. Cross-Platform .NET MAUI 10 Mobile Client
 The solution provides a native cross-platform mobile client in `src/mobile/VividImagination.Mobile` built on **.NET MAUI 10**:

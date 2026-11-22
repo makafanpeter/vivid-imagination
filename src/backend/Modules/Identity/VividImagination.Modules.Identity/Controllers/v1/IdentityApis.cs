@@ -5,8 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using OpenIddict.Validation.AspNetCore;
-using VividImagination.Modules.Identity.Features.Auth.Commands;
-using VividImagination.Modules.Identity.Features.Auth.Dtos;
 using VividImagination.Modules.Identity.Features.Preferences.Commands;
 using VividImagination.Modules.Identity.Features.Preferences.Dtos;
 using VividImagination.Modules.Identity.Features.Preferences.Queries;
@@ -61,19 +59,6 @@ public static class IdentityApis
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status404NotFound);
 
-        var authGroup = app
-            .MapGroup($"{AppConstants.ApiRoute}{IdentityModule.ModuleConstants.ModuleNameForRouting}auth")
-            .WithTags(IdentityModule.ModuleConstants.FormattedModuleName)
-            .HasApiVersion(1.0);
-
-        authGroup.MapPost("/google", GoogleSignInAsync)
-            .WithName(nameof(GoogleSignInAsync))
-            .WithDescription("Sign in or auto-provision user with Google ID token")
-            .AllowAnonymous()
-            .Produces<GoogleSignInResult>(StatusCodes.Status200OK)
-            .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status400BadRequest);
-
         return app;
     }
 
@@ -95,18 +80,6 @@ public static class IdentityApis
             request.SafeBrowsingMode), ct);
 
         return Results.Created($"/api/v1/identity/users/{result.UserId}", result);
-    }
-
-    private static async Task<IResult> GoogleSignInAsync(
-        [FromBody] GoogleSignInRequest request,
-        [FromServices] IMediator mediator,
-        CancellationToken ct)
-    {
-        var result = await mediator.Send(new GoogleSignInCommand(
-            request.IdToken,
-            request.SafeBrowsingMode), ct);
-
-        return Results.Ok(result);
     }
 
     private static async Task<IResult> GetUserPreferencesAsync(
