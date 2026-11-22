@@ -4,7 +4,7 @@ using VividImagination.Mobile.Services;
 
 namespace VividImagination.Mobile.ViewModels;
 
-public partial class PhotoUploadViewModel(IVividImaginationClient apiClient) : ObservableObject
+public partial class PhotoUploadViewModel(IVividImaginationClient apiClient, IAuthService authService) : ObservableObject
 {
     private Stream? _selectedStream;
     private const long MaxFileSizeBytes = 15 * 1024 * 1024; // 15 MB
@@ -103,6 +103,13 @@ public partial class PhotoUploadViewModel(IVividImaginationClient apiClient) : O
     [RelayCommand]
     public async Task UploadAsync()
     {
+        if (authService.CurrentUser == null)
+        {
+            ToastService.Current.Show("Please sign in to upload photos.", ToastType.Info);
+            await Shell.Current.GoToAsync("login");
+            return;
+        }
+
         if (_selectedStream == null || !HasSelectedPhoto)
         {
             ToastService.Current.Show("Please choose a photo first.", ToastType.Warning);

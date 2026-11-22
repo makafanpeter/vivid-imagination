@@ -221,6 +221,13 @@ public partial class ProfileViewModel : ObservableObject
     [RelayCommand]
     public async Task NavigateToUploadAsync()
     {
+        if (!IsAuthenticated)
+        {
+            ToastService.Current.Show("Please sign in to upload photos.", ToastType.Info);
+            await Shell.Current.GoToAsync("login");
+            return;
+        }
+
         await Shell.Current.GoToAsync("//uploadpage");
     }
 

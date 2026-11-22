@@ -112,6 +112,14 @@ public partial class BottomNavBar : ContentView
 
     private async void OnUploadTapped(object? sender, TappedEventArgs e)
     {
+        var auth = Handler?.MauiContext?.Services.GetService<IAuthService>();
+        if (auth?.CurrentUser == null)
+        {
+            ToastService.Current.Show("Please sign in to upload photos.", ToastType.Info);
+            await Shell.Current.GoToAsync("login");
+            return;
+        }
+
         await Shell.Current.GoToAsync("//uploadpage");
     }
 

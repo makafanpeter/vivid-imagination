@@ -118,50 +118,64 @@
                                    TextColor="{StaticResource TextMuted}" />
 
                             <!-- Three-Way Capsule Segmented Control -->
-                            <Grid ColumnDefinitions="*,*,*"
-                                  BackgroundColor="{StaticResource AppSurfaceElevated}"
-                                  HeightRequest="38"
-                                  Padding="3">
+                            <Border StrokeShape="RoundRectangle 19"
+                                    BackgroundColor="{StaticResource AppSurfaceElevated}"
+                                    StrokeThickness="0"
+                                    HeightRequest="38"
+                                    Padding="3">
+                                <Grid ColumnDefinitions="*,*,*"
+                                      HorizontalOptions="Fill"
+                                      VerticalOptions="Fill">
 
-                                <!-- Option 1: Blur -->
-                                <Button Grid.Column="0"
-                                        Text="Blur"
-                                        Command="{Binding SetSafeBrowsingModeCommand}"
-                                        CommandParameter="0"
-                                        CornerRadius="16"
-                                        FontFamily="ManropeSemiBold"
-                                        FontSize="12"
-                                        HeightRequest="32"
-                                        Padding="0"
-                                        BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}"
-                                        TextColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}" />
+                                    <!-- Option 1: Blur -->
+                                    <Border Grid.Column="0"
+                                            StrokeShape="RoundRectangle 16"
+                                            StrokeThickness="0"
+                                            BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="0" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="Blur"
+                                               FontFamily="ManropeSemiBold"
+                                               FontSize="12"
+                                               TextColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
 
-                                <!-- Option 2: Hide -->
-                                <Button Grid.Column="1"
-                                        Text="Hide"
-                                        Command="{Binding SetSafeBrowsingModeCommand}"
-                                        CommandParameter="1"
-                                        CornerRadius="16"
-                                        FontFamily="ManropeSemiBold"
-                                        FontSize="12"
-                                        HeightRequest="32"
-                                        Padding="0"
-                                        BackgroundColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}"
-                                        TextColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}" />
+                                    <!-- Option 2: Hide -->
+                                    <Border Grid.Column="1"
+                                            StrokeShape="RoundRectangle 16"
+                                            StrokeThickness="0"
+                                            BackgroundColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="1" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="Hide"
+                                               FontFamily="ManropeSemiBold"
+                                               FontSize="12"
+                                               TextColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
 
-                                <!-- Option 3: Always Show -->
-                                <Button Grid.Column="2"
-                                        Text="Always show"
-                                        Command="{Binding SetSafeBrowsingModeCommand}"
-                                        CommandParameter="2"
-                                        CornerRadius="16"
-                                        FontFamily="ManropeSemiBold"
-                                        FontSize="12"
-                                        HeightRequest="32"
-                                        Padding="0"
-                                        BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}"
-                                        TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}" />
-                            </Grid>
+                                    <!-- Option 3: Always Show -->
+                                    <Border Grid.Column="2"
+                                            StrokeShape="RoundRectangle 16"
+                                            StrokeThickness="0"
+                                            BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="2" />
+                                        </Border.GestureRecognizers>
+                                        <Label Text="Always show"
+                                               FontFamily="ManropeSemiBold"
+                                               FontSize="12"
+                                               TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center" />
+                                    </Border>
+                                </Grid>
+                            </Border>
                         </VerticalStackLayout>
                     </Border>
 

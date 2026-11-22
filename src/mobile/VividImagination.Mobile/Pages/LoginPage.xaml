@@ -72,42 +72,58 @@
                             Margin="0,4,0,4">
                         <Grid ColumnDefinitions="*,*">
                             <!-- Sign In Tab -->
-                            <Button Grid.Column="0"
-                                    Text="Sign In"
-                                    Command="{Binding SetSignInModeCommand}"
-                                    CornerRadius="17"
-                                    FontFamily="ManropeSemiBold"
-                                    FontSize="13"
-                                    HeightRequest="36"
-                                    Padding="0"
-                                    BackgroundColor="{StaticResource AccentVermilion}"
-                                    TextColor="White">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsRegisterMode}" Value="True">
+                            <Border Grid.Column="0"
+                                    StrokeShape="RoundRectangle 17"
+                                    StrokeThickness="0"
+                                    BackgroundColor="{StaticResource AccentVermilion}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetSignInModeCommand}" />
+                                </Border.GestureRecognizers>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsRegisterMode}" Value="True">
                                         <Setter Property="BackgroundColor" Value="Transparent" />
-                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
                                     </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
+                                </Border.Triggers>
+                                <Label Text="Sign In"
+                                       FontFamily="ManropeSemiBold"
+                                       FontSize="13"
+                                       TextColor="White"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="True">
+                                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Border>
 
                             <!-- Register Tab -->
-                            <Button Grid.Column="1"
-                                    Text="Register"
-                                    Command="{Binding SetRegisterModeCommand}"
-                                    CornerRadius="17"
-                                    FontFamily="ManropeSemiBold"
-                                    FontSize="13"
-                                    HeightRequest="36"
-                                    Padding="0"
-                                    BackgroundColor="Transparent"
-                                    TextColor="{StaticResource TextSecondary}">
-                                <Button.Triggers>
-                                    <DataTrigger TargetType="Button" Binding="{Binding IsRegisterMode}" Value="True">
+                            <Border Grid.Column="1"
+                                    StrokeShape="RoundRectangle 17"
+                                    StrokeThickness="0"
+                                    BackgroundColor="Transparent">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetRegisterModeCommand}" />
+                                </Border.GestureRecognizers>
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding IsRegisterMode}" Value="True">
                                         <Setter Property="BackgroundColor" Value="{StaticResource AccentVermilion}" />
-                                        <Setter Property="TextColor" Value="White" />
                                     </DataTrigger>
-                                </Button.Triggers>
-                            </Button>
+                                </Border.Triggers>
+                                <Label Text="Register"
+                                       FontFamily="ManropeSemiBold"
+                                       FontSize="13"
+                                       TextColor="{StaticResource TextSecondary}"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="True">
+                                            <Setter Property="TextColor" Value="White" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Border>
                         </Grid>
                     </Border>
 
