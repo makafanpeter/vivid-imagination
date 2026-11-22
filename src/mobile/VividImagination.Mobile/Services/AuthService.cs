@@ -8,6 +8,7 @@ public interface IAuthService
 {
     UserProfile? CurrentUser { get; }
     Task<bool> LoginAsync(string username, string password, CancellationToken ct = default);
+    Task<bool> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default);
     Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken ct = default);
     Task LogoutAsync();
     Task<bool> IsAuthenticatedAsync();
@@ -72,6 +73,45 @@ public sealed class AuthService(
             CurrentUser = await GetCurrentUserProfileAsync(ct);
             AuthStateChanged?.Invoke(this, CurrentUser);
             return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default)
+    {
+        try
+        {
+            string? firstName = null;
+            string? lastName = null;
+            if (!string.IsNullOrWhiteSpace(fullName))
+            {
+                var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                firstName = parts[0];
+                if (parts.Length > 1)
+                {
+                    lastName = parts[1];
+                }
+            }
+
+            var request = new RegisterUserRequest
+            {
+                Email = email.Trim().ToLowerInvariant(),
+                Password = password,
+                FirstName = firstName,
+                LastName = lastName,
+                SafeBrowsingMode = safeBrowsingMode
+            };
+
+            var result = await apiClient.RegisterUserAsync(request, ct);
+            if (result == null || result.UserId <= 0)
+            {
+                return false;
+            }
+
+            return await LoginAsync(email, password, ct);
         }
         catch
         {

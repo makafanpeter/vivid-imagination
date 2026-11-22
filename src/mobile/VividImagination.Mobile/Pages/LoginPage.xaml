@@ -23,8 +23,8 @@
             </Grid.Background>
 
             <ScrollView HorizontalOptions="Fill" VerticalOptions="Fill">
-                <VerticalStackLayout Spacing="24"
-                                     Padding="24,40"
+                <VerticalStackLayout Spacing="20"
+                                     Padding="24,36"
                                      VerticalOptions="Center"
                                      HorizontalOptions="Fill">
 
@@ -34,34 +34,82 @@
                             <FormattedString>
                                 <Span Text="Vivid"
                                       FontFamily="SyneBold"
-                                      FontSize="30"
+                                      FontSize="32"
                                       FontAttributes="Bold"
                                       TextColor="{StaticResource TextPrimary}" />
                                 <Span Text="."
                                       FontFamily="SyneBold"
-                                      FontSize="30"
+                                      FontSize="32"
                                       FontAttributes="Bold"
                                       TextColor="{StaticResource AccentVermilion}" />
                             </FormattedString>
                         </Label.FormattedText>
                     </Label>
 
-                    <!-- 1. Large Headline: 'See the world more vividly.' -->
-                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                    <!-- Headline & Subtitle -->
+                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
                         <Label Text="See the world more vividly."
                                FontFamily="SyneBold"
-                               FontSize="22"
+                               FontSize="20"
                                FontAttributes="Bold"
                                HorizontalTextAlignment="Center"
                                TextColor="{StaticResource TextPrimary}" />
 
-                        <!-- Short line -->
-                        <Label Text="Join a community sharing authentic, freshly moderated photos."
+                        <Label Text="Authentic, freshly moderated photography."
                                FontFamily="ManropeRegular"
                                FontSize="13"
-                               TextColor="{StaticResource TextMuted}"
+                               TextColor="{StaticResource TextSecondary}"
                                HorizontalTextAlignment="Center" />
                     </VerticalStackLayout>
+
+                    <!-- Segmented Mode Switcher: Sign In | Register -->
+                    <Border StrokeShape="RoundRectangle 20"
+                            Stroke="{StaticResource BorderGlow}"
+                            StrokeThickness="1"
+                            BackgroundColor="{StaticResource AppSurfaceElevated}"
+                            Padding="3"
+                            HeightRequest="42"
+                            Margin="0,4,0,4">
+                        <Grid ColumnDefinitions="*,*">
+                            <!-- Sign In Tab -->
+                            <Button Grid.Column="0"
+                                    Text="Sign In"
+                                    Command="{Binding SetSignInModeCommand}"
+                                    CornerRadius="17"
+                                    FontFamily="ManropeSemiBold"
+                                    FontSize="13"
+                                    HeightRequest="36"
+                                    Padding="0"
+                                    BackgroundColor="{StaticResource AccentVermilion}"
+                                    TextColor="White">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsRegisterMode}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+
+                            <!-- Register Tab -->
+                            <Button Grid.Column="1"
+                                    Text="Register"
+                                    Command="{Binding SetRegisterModeCommand}"
+                                    CornerRadius="17"
+                                    FontFamily="ManropeSemiBold"
+                                    FontSize="13"
+                                    HeightRequest="36"
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource TextSecondary}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding IsRegisterMode}" Value="True">
+                                        <Setter Property="BackgroundColor" Value="{StaticResource AccentVermilion}" />
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                        </Grid>
+                    </Border>
 
                     <!-- Error Banner if any -->
                     <Border IsVisible="{Binding ErrorMessage, Converter={toolkit:IsNotNullConverter}}"
@@ -77,67 +125,250 @@
                                HorizontalTextAlignment="Center" />
                     </Border>
 
-                    <!-- 2. Two Full-Width White Pill Buttons: Google and Apple -->
-                    <VerticalStackLayout Spacing="12" Margin="0,8,0,0">
-                        <!-- White Google Button -->
-                        <Button Text="G  Sign in with Google"
-                                Command="{Binding GoogleLoginCommand}"
-                                BackgroundColor="#FFFFFF"
-                                TextColor="#1F1F1F"
-                                FontFamily="ManropeSemiBold"
+                    <!-- ================= SIGN IN FORM ================= -->
+                    <VerticalStackLayout Spacing="16"
+                                         IsVisible="{Binding IsRegisterMode, Converter={toolkit:InvertedBoolConverter}}">
+
+                        <!-- Email or Username Field -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Email or Username"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Border StrokeShape="RoundRectangle 16"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource AppSurface}"
+                                    Padding="14,0"
+                                    HeightRequest="48">
+                                <Entry Text="{Binding UsernameOrEmail}"
+                                       Placeholder="name@example.com or username"
+                                       PlaceholderColor="{StaticResource TextMuted}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontFamily="ManropeRegular"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Password Field -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Password"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Border StrokeShape="RoundRectangle 16"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource AppSurface}"
+                                    Padding="14,0"
+                                    HeightRequest="48">
+                                <Entry Text="{Binding Password}"
+                                       IsPassword="True"
+                                       Placeholder="Enter your password"
+                                       PlaceholderColor="{StaticResource TextMuted}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontFamily="ManropeRegular"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Sign In Button -->
+                        <Button Text="Sign In"
+                                Command="{Binding LoginCommand}"
+                                IsEnabled="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
+                                BackgroundColor="{StaticResource AccentVermilion}"
+                                TextColor="White"
+                                FontFamily="ManropeBold"
                                 FontSize="15"
-                                CornerRadius="28"
-                                HeightRequest="56"
-                                Padding="0">
+                                CornerRadius="24"
+                                HeightRequest="50"
+                                Margin="0,4,0,0">
                             <Button.Shadow>
-                                <Shadow Brush="#000000" Offset="0,4" Radius="10" Opacity="0.3" />
+                                <Shadow Brush="{StaticResource AccentVermilion}" Offset="0,3" Radius="8" Opacity="0.3" />
                             </Button.Shadow>
                         </Button>
 
-                        <!-- White Apple Button -->
-                        <Button Text="  Sign in with Apple"
-                                Command="{Binding AppleLoginCommand}"
-                                BackgroundColor="#FFFFFF"
-                                TextColor="#1F1F1F"
-                                FontFamily="ManropeSemiBold"
-                                FontSize="15"
-                                CornerRadius="28"
-                                HeightRequest="56"
-                                Padding="0">
-                            <Button.Shadow>
-                                <Shadow Brush="#000000" Offset="0,4" Radius="10" Opacity="0.3" />
-                            </Button.Shadow>
-                        </Button>
+                        <!-- Switch to Register Link -->
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="4" Margin="0,6,0,0">
+                            <Label Text="Don't have an account?"
+                                   FontFamily="ManropeRegular"
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   VerticalOptions="Center" />
+                            <Label Text="Register"
+                                   FontFamily="ManropeBold"
+                                   FontSize="13"
+                                   TextColor="{StaticResource AccentVermilion}"
+                                   VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetRegisterModeCommand}" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </HorizontalStackLayout>
+
                     </VerticalStackLayout>
 
-                    <!-- Quick Moderator Sign-in Button (to test the Review Queue!) -->
-                    <Button Text="🛡️ Sign in as Moderator (Demo Access)"
-                            Command="{Binding ModeratorLoginCommand}"
-                            BackgroundColor="{StaticResource AppSurfaceElevated}"
-                            TextColor="{StaticResource WarningAmber}"
-                            BorderColor="{StaticResource WarningAmber}"
-                            BorderWidth="1"
-                            FontFamily="ManropeSemiBold"
-                            FontSize="13"
-                            CornerRadius="24"
-                            HeightRequest="48"
-                            Margin="0,4,0,0" />
+                    <!-- ================= REGISTER FORM ================= -->
+                    <VerticalStackLayout Spacing="16"
+                                         IsVisible="{Binding IsRegisterMode}">
 
-                    <!-- 3. Note that browsing is free without an account -->
-                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center" Margin="0,12,0,0">
+                        <!-- Full Name Field -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Full Name"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Border StrokeShape="RoundRectangle 16"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource AppSurface}"
+                                    Padding="14,0"
+                                    HeightRequest="48">
+                                <Entry Text="{Binding FullName}"
+                                       Placeholder="e.g. Alex Morgan"
+                                       PlaceholderColor="{StaticResource TextMuted}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontFamily="ManropeRegular"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Email Address Field -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Email Address"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Border StrokeShape="RoundRectangle 16"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource AppSurface}"
+                                    Padding="14,0"
+                                    HeightRequest="48">
+                                <Entry Text="{Binding UsernameOrEmail}"
+                                       Keyboard="Email"
+                                       Placeholder="name@example.com"
+                                       PlaceholderColor="{StaticResource TextMuted}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontFamily="ManropeRegular"
+                                       FontSize="14"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Password Field -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Password"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Border StrokeShape="RoundRectangle 16"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource AppSurface}"
+                                    Padding="14,0"
+                                    HeightRequest="48">
+                                <Entry Text="{Binding Password}"
+                                       IsPassword="True"
+                                       Placeholder="Min 8 chars, 1 uppercase, 1 digit, 1 symbol"
+                                       PlaceholderColor="{StaticResource TextMuted}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontFamily="ManropeRegular"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Confirm Password Field -->
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Confirm Password"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="12"
+                                   TextColor="{StaticResource TextSecondary}" />
+
+                            <Border StrokeShape="RoundRectangle 16"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{StaticResource AppSurface}"
+                                    Padding="14,0"
+                                    HeightRequest="48">
+                                <Entry Text="{Binding ConfirmPassword}"
+                                       IsPassword="True"
+                                       Placeholder="Re-enter your password"
+                                       PlaceholderColor="{StaticResource TextMuted}"
+                                       TextColor="{StaticResource TextPrimary}"
+                                       FontFamily="ManropeRegular"
+                                       FontSize="13"
+                                       VerticalOptions="Center" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <!-- Create Account Button -->
+                        <Button Text="Create Account"
+                                Command="{Binding RegisterCommand}"
+                                IsEnabled="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
+                                BackgroundColor="{StaticResource AccentVermilion}"
+                                TextColor="White"
+                                FontFamily="ManropeBold"
+                                FontSize="15"
+                                CornerRadius="24"
+                                HeightRequest="50"
+                                Margin="0,4,0,0">
+                            <Button.Shadow>
+                                <Shadow Brush="{StaticResource AccentVermilion}" Offset="0,3" Radius="8" Opacity="0.3" />
+                            </Button.Shadow>
+                        </Button>
+
+                        <!-- Switch to Sign In Link -->
+                        <HorizontalStackLayout HorizontalOptions="Center" Spacing="4" Margin="0,6,0,0">
+                            <Label Text="Already have an account?"
+                                   FontFamily="ManropeRegular"
+                                   FontSize="13"
+                                   TextColor="{StaticResource TextSecondary}"
+                                   VerticalOptions="Center" />
+                            <Label Text="Sign In"
+                                   FontFamily="ManropeBold"
+                                   FontSize="13"
+                                   TextColor="{StaticResource AccentVermilion}"
+                                   VerticalOptions="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetSignInModeCommand}" />
+                                </Label.GestureRecognizers>
+                            </Label>
+                        </HorizontalStackLayout>
+
+                    </VerticalStackLayout>
+
+                    <!-- Busy Indicator -->
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="{StaticResource AccentVermilion}"
+                                       HeightRequest="36"
+                                       WidthRequest="36"
+                                       HorizontalOptions="Center" />
+
+                    <!-- Guest Browsing Link -->
+                    <VerticalStackLayout Spacing="4" HorizontalOptions="Center" Margin="0,10,0,0">
                         <Label Text="Browsing is free without an account."
                                FontFamily="ManropeRegular"
-                               FontSize="13"
+                               FontSize="12"
                                TextColor="{StaticResource TextMuted}"
                                HorizontalTextAlignment="Center" />
 
-                        <!-- Continue as Guest Pill Link -->
                         <Button Text="Continue Browsing Feed →"
                                 Command="{Binding BrowseAsGuestCommand}"
                                 BackgroundColor="Transparent"
                                 TextColor="{StaticResource AccentVermilion}"
                                 FontFamily="ManropeSemiBold"
-                                FontSize="14"
+                                FontSize="13"
                                 HeightRequest="36" />
                     </VerticalStackLayout>
 

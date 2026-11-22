@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
+using Moq;
 using VividImagination.Mobile.Models;
 using VividImagination.Mobile.OpenApi;
 using VividImagination.Mobile.Services;
@@ -560,5 +561,43 @@ public class MobileFeatureTests
         var visiblePhotos = photos.Where(p => !(mode == SafeBrowsingMode.HideSensitive && p.IsUnsafe)).ToList();
 
         visiblePhotos.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RegisterUserRequest_SerializesWithCorrectPropertyNames()
+    {
+        var request = new RegisterUserRequest
+        {
+            Email = "newuser@example.com",
+            Password = "SecurePassword123!",
+            FirstName = "Alex",
+            LastName = "Morgan",
+            SafeBrowsingMode = 0
+        };
+
+        var json = JsonSerializer.Serialize(request, JsonOptions);
+        json.Should().Contain("\"email\":\"newuser@example.com\"");
+        json.Should().Contain("\"password\":\"SecurePassword123!\"");
+        json.Should().Contain("\"firstName\":\"Alex\"");
+        json.Should().Contain("\"lastName\":\"Morgan\"");
+        json.Should().Contain("\"safeBrowsingMode\":0");
+    }
+
+    [Theory]
+    [InlineData("weak", false)]
+    [InlineData("NoSpecial123", false)]
+    [InlineData("no_upper_123!", false)]
+    [InlineData("NO_LOWER_123!", false)]
+    [InlineData("NoDigits!@#$", false)]
+    [InlineData("ValidP@ssword1", true)]
+    public void RegistrationPasswordPolicy_ValidatesComplexityRules(string password, bool expectedValid)
+    {
+        var isValid = password.Length >= 8
+            && password.Any(char.IsUpper)
+            && password.Any(char.IsLower)
+            && password.Any(char.IsDigit)
+            && password.Any(ch => !char.IsLetterOrDigit(ch));
+
+        isValid.Should().Be(expectedValid);
     }
 }
