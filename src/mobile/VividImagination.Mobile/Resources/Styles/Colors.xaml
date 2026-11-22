@@ -17,10 +17,11 @@
 
     <!-- Typography -->
     <Color x:Key="TextPrimary">#F5F0EB</Color>
-    <Color x:Key="TextMuted">#A89F95</Color>
+    <Color x:Key="TextSecondary">#C9C0B5</Color>
+    <Color x:Key="TextMuted">#B5ACA2</Color>
 
-    <!-- Faint Glow Border: White at 9% Opacity (0x17 = 23/255 ≈ 9%) -->
-    <Color x:Key="BorderGlow">#17FFFFFF</Color>
+    <!-- Faint Glow Border: White at 15% Opacity (0x26 = 38/255 ≈ 15%) -->
+    <Color x:Key="BorderGlow">#26FFFFFF</Color>
 
     <!-- Single Accent: Hot Orange-Vermilion -->
     <Color x:Key="AccentVermilion">#FF551C</Color>
@@ -67,6 +68,7 @@
     <SolidColorBrush x:Key="AppSurfaceBrush" Color="{StaticResource AppSurface}" />
     <SolidColorBrush x:Key="AppSurfaceElevatedBrush" Color="{StaticResource AppSurfaceElevated}" />
     <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}" />
     <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}" />
     <SolidColorBrush x:Key="BorderGlowBrush" Color="{StaticResource BorderGlow}" />
     <SolidColorBrush x:Key="AccentVermilionBrush" Color="{StaticResource AccentVermilion}" />

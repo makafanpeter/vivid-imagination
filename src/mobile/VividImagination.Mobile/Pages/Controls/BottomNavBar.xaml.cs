@@ -5,7 +5,7 @@ namespace VividImagination.Mobile.Pages.Controls;
 public partial class BottomNavBar : ContentView
 {
     private static readonly Color ActiveColor = Color.FromArgb("#FF551C");
-    private static readonly Color InactiveColor = Color.FromArgb("#8A827E");
+    private static readonly Color InactiveColor = Color.FromArgb("#BDB5AE");
 
     public static readonly BindableProperty ActiveTabProperty =
         BindableProperty.Create(

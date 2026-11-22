@@ -71,7 +71,15 @@
                                 Stroke="{StaticResource BorderGlow}"
                                 StrokeThickness="1"
                                 HorizontalOptions="Center">
-                            <Label Text="✨" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center" />
+                            <Image Source="review_shield_check.png"
+                                   WidthRequest="30"
+                                   HeightRequest="30"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center">
+                                <Image.Behaviors>
+                                    <toolkit:IconTintColorBehavior TintColor="{StaticResource TextPrimary}" />
+                                </Image.Behaviors>
+                            </Image>
                         </Border>
 
                         <Label Text="Review queue is clear"

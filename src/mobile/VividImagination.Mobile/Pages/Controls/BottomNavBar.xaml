@@ -2,6 +2,8 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:VividImagination.Mobile.Pages.Controls"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Name="BottomNavRoot"
              x:Class="VividImagination.Mobile.Pages.Controls.BottomNavBar">
 
     <Grid HeightRequest="68"
@@ -14,7 +16,10 @@
                  VerticalOptions="Start"
                  HorizontalOptions="Fill" />
 
+        <!-- Centered constrained nav cluster on wide panels; fills on mobile -->
         <Grid ColumnDefinitions="*, Auto, *"
+              MaximumWidthRequest="420"
+              HorizontalOptions="Center"
               VerticalOptions="Fill">
 
             <!-- Left Side: Feed -->
@@ -23,16 +28,21 @@
                                    VerticalOptions="Center"
                                    Spacing="16">
                 <VerticalStackLayout x:Name="FeedTabButton"
-                                     Spacing="2"
+                                     Spacing="3"
                                      VerticalOptions="Center"
                                      Padding="12,6">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnFeedTapped" />
                     </VerticalStackLayout.GestureRecognizers>
 
-                    <Label Text="📰"
-                           FontSize="18"
-                           HorizontalOptions="Center" />
+                    <Image Source="feed_flame.png"
+                           WidthRequest="22"
+                           HeightRequest="22"
+                           HorizontalOptions="Center">
+                        <Image.Behaviors>
+                            <toolkit:IconTintColorBehavior TintColor="{Binding FeedTextColor, Source={x:Reference BottomNavRoot}}" />
+                        </Image.Behaviors>
+                    </Image>
 
                     <Label Text="Feed"
                            FontFamily="ManropeSemiBold"
@@ -49,15 +59,15 @@
                 </VerticalStackLayout>
             </HorizontalStackLayout>
 
-            <!-- Center: Raised Round Orange ＋ Button -->
+            <!-- Center: Distinct Raised Round Orange ＋ Button with reduced glow -->
             <Border Grid.Column="1"
-                    WidthRequest="54"
-                    HeightRequest="54"
-                    StrokeShape="RoundRectangle 27"
+                    WidthRequest="50"
+                    HeightRequest="50"
+                    StrokeShape="RoundRectangle 25"
                     BackgroundColor="{StaticResource AccentVermilion}"
                     Stroke="#33FFFFFF"
                     StrokeThickness="1"
-                    Margin="0,-16,0,0"
+                    Margin="0,-14,0,0"
                     VerticalOptions="Center"
                     HorizontalOptions="Center">
                 <Border.GestureRecognizers>
@@ -66,17 +76,20 @@
 
                 <Border.Shadow>
                     <Shadow Brush="{StaticResource AccentVermilion}"
-                            Offset="0,4"
-                            Radius="12"
-                            Opacity="0.45" />
+                            Offset="0,2"
+                            Radius="6"
+                            Opacity="0.25" />
                 </Border.Shadow>
 
-                <Label Text="＋"
-                       FontSize="26"
-                       FontFamily="SyneBold"
-                       TextColor="White"
+                <Image Source="upload_plus.png"
+                       WidthRequest="22"
+                       HeightRequest="22"
                        HorizontalOptions="Center"
-                       VerticalOptions="Center" />
+                       VerticalOptions="Center">
+                    <Image.Behaviors>
+                        <toolkit:IconTintColorBehavior TintColor="White" />
+                    </Image.Behaviors>
+                </Image>
             </Border>
 
             <!-- Right Side: Review (if moderator) and Me -->
@@ -87,7 +100,7 @@
 
                 <!-- Review Tab (Moderators only) -->
                 <VerticalStackLayout x:Name="ReviewTabButton"
-                                     Spacing="2"
+                                     Spacing="3"
                                      VerticalOptions="Center"
                                      Padding="10,6"
                                      IsVisible="{Binding IsModerator, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}">
@@ -95,9 +108,14 @@
                         <TapGestureRecognizer Tapped="OnReviewTapped" />
                     </VerticalStackLayout.GestureRecognizers>
 
-                    <Label Text="🛡️"
-                           FontSize="18"
-                           HorizontalOptions="Center" />
+                    <Image Source="review_shield_check.png"
+                           WidthRequest="22"
+                           HeightRequest="22"
+                           HorizontalOptions="Center">
+                        <Image.Behaviors>
+                            <toolkit:IconTintColorBehavior TintColor="{Binding ReviewTextColor, Source={x:Reference BottomNavRoot}}" />
+                        </Image.Behaviors>
+                    </Image>
 
                     <Label Text="Review"
                            FontFamily="ManropeSemiBold"
@@ -115,16 +133,21 @@
 
                 <!-- Me Tab -->
                 <VerticalStackLayout x:Name="MeTabButton"
-                                     Spacing="2"
+                                     Spacing="3"
                                      VerticalOptions="Center"
                                      Padding="12,6">
                     <VerticalStackLayout.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnProfileTapped" />
                     </VerticalStackLayout.GestureRecognizers>
 
-                    <Label Text="👤"
-                           FontSize="18"
-                           HorizontalOptions="Center" />
+                    <Image Source="profile_user.png"
+                           WidthRequest="22"
+                           HeightRequest="22"
+                           HorizontalOptions="Center">
+                        <Image.Behaviors>
+                            <toolkit:IconTintColorBehavior TintColor="{Binding MeTextColor, Source={x:Reference BottomNavRoot}}" />
+                        </Image.Behaviors>
+                    </Image>
 
                     <Label Text="Me"
                            FontFamily="ManropeSemiBold"

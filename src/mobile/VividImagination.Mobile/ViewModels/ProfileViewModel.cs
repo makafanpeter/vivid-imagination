@@ -219,6 +219,12 @@ public partial class ProfileViewModel : ObservableObject
     }
 
     [RelayCommand]
+    public async Task NavigateToUploadAsync()
+    {
+        await Shell.Current.GoToAsync("//uploadpage");
+    }
+
+    [RelayCommand]
     public async Task OpenLoginAsync()
     {
         await Shell.Current.GoToAsync("login");

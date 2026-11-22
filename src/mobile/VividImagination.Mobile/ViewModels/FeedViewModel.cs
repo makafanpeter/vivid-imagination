@@ -40,6 +40,12 @@ public partial class FeedViewModel : ObservableObject
     private bool _isEmpty;
 
     [RelayCommand]
+    public async Task NavigateToUploadAsync()
+    {
+        await Shell.Current.GoToAsync("//uploadpage");
+    }
+
+    [RelayCommand]
     public async Task LoadFeedAsync()
     {
         if (IsBusy) return;
@@ -89,12 +95,6 @@ public partial class FeedViewModel : ObservableObject
     {
         IsRefreshing = true;
         await LoadFeedAsync();
-    }
-
-    [RelayCommand]
-    public async Task NavigateToUploadAsync()
-    {
-        await Shell.Current.GoToAsync("//uploadpage");
     }
 
     [RelayCommand]

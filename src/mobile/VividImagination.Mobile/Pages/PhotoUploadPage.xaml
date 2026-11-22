@@ -57,9 +57,14 @@
                                                  Spacing="12"
                                                  Padding="20"
                                                  IsVisible="{Binding HasSelectedPhoto, Converter={toolkit:InvertedBoolConverter}}">
-                                <Label Text="🖼️"
-                                       FontSize="40"
-                                       HorizontalOptions="Center" />
+                                <Image Source="pick_image.png"
+                                       WidthRequest="44"
+                                       HeightRequest="44"
+                                       HorizontalOptions="Center">
+                                    <Image.Behaviors>
+                                        <toolkit:IconTintColorBehavior TintColor="{StaticResource AccentVermilion}" />
+                                    </Image.Behaviors>
+                                </Image>
 
                                 <Label Text="Tap to choose a photo"
                                        FontFamily="SyneBold"

@@ -14,21 +14,21 @@
     <controls:ResponsiveContainer ActiveTab="Feed">
         <Grid HorizontalOptions="Fill" VerticalOptions="Fill">
 
-            <!-- 1. Pinned Header: Stays pinned while scrolling, frosted translucent with orange top glow -->
+            <!-- 1. Pinned Header: Stays pinned while scrolling, frosted translucent with subtle orange top glow -->
             <Grid ZIndex="10"
                   VerticalOptions="Start"
                   HorizontalOptions="Fill"
                   BackgroundColor="#E60D0B0A"
-                  Padding="16,14,16,10">
+                  Padding="22,18,22,16">
 
                 <Grid.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#38FF551C" Offset="0.0" />
+                        <GradientStop Color="#28FF551C" Offset="0.0" />
                         <GradientStop Color="#000D0B0A" Offset="1.0" />
                     </LinearGradientBrush>
                 </Grid.Background>
 
-                <VerticalStackLayout Spacing="3">
+                <VerticalStackLayout Spacing="5">
                     <!-- 'Vivid.' in bold display type with the full stop picked out in orange -->
                     <Label>
                         <Label.FormattedText>
@@ -47,11 +47,11 @@
                         </Label.FormattedText>
                     </Label>
 
-                    <!-- In small grey type: 'Ranked by the community, fresh every hour.' -->
+                    <!-- Subtitle in brightened readable secondary typography -->
                     <Label Text="Ranked by the community, fresh every hour."
                            FontFamily="ManropeRegular"
-                           FontSize="12"
-                           TextColor="{StaticResource TextMuted}" />
+                           FontSize="13"
+                           TextColor="{StaticResource TextSecondary}" />
                 </VerticalStackLayout>
 
                 <!-- Bottom glow border of the frosted header -->
@@ -60,11 +60,11 @@
                          VerticalOptions="End" />
             </Grid>
 
-            <!-- 2. Loading State: Two grey portrait-shaped blocks that pulse in place (no spinner) -->
+            <!-- 2. Loading State: Two grey portrait-shaped blocks that pulse in place -->
             <VerticalStackLayout x:Name="SkeletonView"
                                  IsVisible="{Binding IsBusy}"
                                  Spacing="20"
-                                 Margin="0,80,0,84"
+                                 Margin="0,96,0,84"
                                  ZIndex="5">
                 <Border HeightRequest="360"
                         StrokeShape="RoundRectangle 20"
@@ -81,56 +81,92 @@
                         Margin="14,0" />
             </VerticalStackLayout>
 
-            <!-- Scrolling Stream of Full-Width Photos: Glides behind frosted header and bottom bar -->
+            <!-- 3. Centered Empty State View: Vertically and Horizontally Centered in Content Area -->
+            <Grid IsVisible="{Binding IsEmpty}"
+                  HorizontalOptions="Center"
+                  VerticalOptions="Center"
+                  Margin="24,80,24,84"
+                  ZIndex="4">
+
+                <VerticalStackLayout Spacing="14"
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     MaximumWidthRequest="380">
+
+                    <!-- Camera Icon Badge using pick_image.png -->
+                    <Border StrokeShape="RoundRectangle 28"
+                            WidthRequest="64"
+                            HeightRequest="64"
+                            BackgroundColor="{StaticResource AppSurfaceElevated}"
+                            Stroke="{StaticResource BorderGlow}"
+                            StrokeThickness="1"
+                            HorizontalOptions="Center">
+                        <Image Source="pick_image.png"
+                               WidthRequest="28"
+                               HeightRequest="28"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center">
+                            <Image.Behaviors>
+                                <toolkit:IconTintColorBehavior TintColor="{StaticResource TextPrimary}" />
+                            </Image.Behaviors>
+                        </Image>
+                    </Border>
+
+                    <!-- Title -->
+                    <Label Text="No photos yet"
+                           FontFamily="SyneBold"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           HorizontalTextAlignment="Center"
+                           TextColor="{StaticResource TextPrimary}" />
+
+                    <!-- Supporting Message (direct, input-neutral) -->
+                    <Label Text="Share the first photo to get things started."
+                           FontFamily="ManropeRegular"
+                           FontSize="14"
+                           TextColor="{StaticResource TextSecondary}"
+                           HorizontalTextAlignment="Center" />
+
+                    <!-- Primary Action Button (Directly beneath the text) -->
+                    <Button Text="+ Upload photo"
+                            Command="{Binding NavigateToUploadCommand}"
+                            CornerRadius="23"
+                            HeightRequest="46"
+                            Padding="28,0"
+                            Margin="0,8,0,0"
+                            BackgroundColor="{StaticResource AccentVermilion}"
+                            TextColor="White"
+                            FontFamily="ManropeBold"
+                            FontSize="14"
+                            HorizontalOptions="Center">
+                        <Button.Shadow>
+                            <Shadow Brush="{StaticResource AccentVermilion}"
+                                    Offset="0,2"
+                                    Radius="8"
+                                    Opacity="0.25" />
+                        </Button.Shadow>
+                    </Button>
+
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- 4. Scrolling Stream of Full-Width Photos: Glides behind frosted header and bottom bar -->
             <RefreshView IsRefreshing="{Binding IsRefreshing}"
                          Command="{Binding RefreshFeedCommand}"
-                         RefreshColor="{StaticResource AccentVermilion}">
+                         RefreshColor="{StaticResource AccentVermilion}"
+                         IsVisible="{Binding IsEmpty, Converter={toolkit:InvertedBoolConverter}}">
 
                 <CollectionView ItemsSource="{Binding Items}"
                                 RemainingItemsThreshold="3"
                                 RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
                                 ItemSizingStrategy="MeasureAllItems"
-                                Margin="0,74,0,76">
+                                Margin="0,90,0,76">
 
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="vm:FeedItemViewModel">
                             <controls:FeedItemCard />
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
-
-                    <!-- 3. Empty State: Centred 'Nothing here yet' with 'Be the first to share a photo — tap the + below.' -->
-                    <CollectionView.EmptyView>
-                        <VerticalStackLayout HorizontalOptions="Center"
-                                             VerticalOptions="Center"
-                                             Spacing="14"
-                                             Padding="32">
-                            <Border StrokeShape="RoundRectangle 28"
-                                    WidthRequest="64"
-                                    HeightRequest="64"
-                                    BackgroundColor="{StaticResource AppSurfaceElevated}"
-                                    Stroke="{StaticResource BorderGlow}"
-                                    StrokeThickness="1"
-                                    HorizontalOptions="Center">
-                                <Label Text="📷"
-                                       FontSize="28"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center" />
-                            </Border>
-
-                            <Label Text="Nothing here yet"
-                                   FontFamily="SyneBold"
-                                   FontSize="20"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center"
-                                   TextColor="{StaticResource TextPrimary}" />
-
-                            <Label Text="Be the first to share a photo — tap the + below."
-                                   FontFamily="ManropeRegular"
-                                   FontSize="14"
-                                   TextColor="{StaticResource TextMuted}"
-                                   HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
-                    </CollectionView.EmptyView>
 
                     <!-- Footer: Small 'Loading more…' while quietly fetching next 10 -->
                     <CollectionView.Footer>
