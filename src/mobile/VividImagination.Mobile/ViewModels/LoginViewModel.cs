@@ -25,7 +25,7 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
         await Task.Delay(350);
         IsBusy = false;
         ToastService.Current.Show("Signed in with Google", ToastType.Success);
-        await Shell.Current.GoToAsync("//feed");
+        await Shell.Current.GoToAsync("//feedpage");
     }
 
     [RelayCommand]
@@ -35,7 +35,7 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
         await Task.Delay(350);
         IsBusy = false;
         ToastService.Current.Show("Signed in with Apple", ToastType.Success);
-        await Shell.Current.GoToAsync("//feed");
+        await Shell.Current.GoToAsync("//feedpage");
     }
 
     [RelayCommand]
@@ -62,13 +62,13 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
         }
 
         ToastService.Current.Show("Signed in as Moderator — Review queue unlocked!", ToastType.Success);
-        await Shell.Current.GoToAsync("//feed");
+        await Shell.Current.GoToAsync("//feedpage");
     }
 
     [RelayCommand]
     public async Task BrowseAsGuestAsync()
     {
-        await Shell.Current.GoToAsync("//feed");
+        await Shell.Current.GoToAsync("//feedpage");
     }
 
     [RelayCommand]
@@ -89,7 +89,7 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
             if (success)
             {
                 ToastService.Current.Show("Welcome back!", ToastType.Success);
-                await Shell.Current.GoToAsync("//feed");
+                await Shell.Current.GoToAsync("//feedpage");
             }
             else
             {
@@ -109,6 +109,6 @@ public partial class LoginViewModel(IAuthService authService) : ObservableObject
     [RelayCommand]
     public async Task CancelAsync()
     {
-        await Shell.Current.GoToAsync("//feed");
+        await Shell.Current.GoToAsync("//feedpage");
     }
 }

@@ -5,6 +5,9 @@ namespace VividImagination.Mobile.Pages.Controls;
 [ContentProperty(nameof(BodyContent))]
 public partial class ResponsiveContainer : ContentView
 {
+    private const double DesktopColumnMaxWidth = 960;
+    private const double DesktopColumnMargin = 16;
+
     public static readonly BindableProperty BodyContentProperty =
         BindableProperty.Create(
             nameof(BodyContent),
@@ -101,10 +104,10 @@ public partial class ResponsiveContainer : ContentView
         }
         else
         {
-            ColumnFrame.WidthRequest = 460;
-            ColumnFrame.MaximumWidthRequest = 500;
+            ColumnFrame.WidthRequest = Math.Min(DesktopColumnMaxWidth, Width - (DesktopColumnMargin * 2));
+            ColumnFrame.MaximumWidthRequest = DesktopColumnMaxWidth;
             ColumnFrame.HorizontalOptions = LayoutOptions.Center;
-            ColumnFrame.Margin = new Thickness(0, 16);
+            ColumnFrame.Margin = new Thickness(DesktopColumnMargin);
             ColumnFrame.StrokeThickness = 1;
             ColumnFrame.StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24) };
         }

@@ -148,7 +148,7 @@ public partial class PhotoUploadViewModel(IVividImaginationClient apiClient) : O
             Clear();
 
             // After posting, return to profile
-            await Shell.Current.GoToAsync("//profile");
+            await Shell.Current.GoToAsync("//profilepage");
         }
         catch (Exception)
         {
@@ -156,7 +156,7 @@ public partial class PhotoUploadViewModel(IVividImaginationClient apiClient) : O
             ToastService.Current.Show("Photo posted to profile!", ToastType.Success);
             await Task.Delay(400);
             Clear();
-            await Shell.Current.GoToAsync("//profile");
+            await Shell.Current.GoToAsync("//profilepage");
         }
         finally
         {

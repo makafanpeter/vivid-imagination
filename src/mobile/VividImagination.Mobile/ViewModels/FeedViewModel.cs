@@ -94,7 +94,7 @@ public partial class FeedViewModel : ObservableObject
     [RelayCommand]
     public async Task NavigateToUploadAsync()
     {
-        await Shell.Current.GoToAsync("//upload");
+        await Shell.Current.GoToAsync("//uploadpage");
     }
 
     [RelayCommand]

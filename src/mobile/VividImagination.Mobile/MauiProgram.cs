@@ -81,6 +81,7 @@ namespace VividImagination.Mobile
                     fonts.AddFont("Syne-Bold.ttf", "SyneBold");
                     fonts.AddFont("Manrope-Regular.ttf", "ManropeRegular");
                     fonts.AddFont("Manrope-SemiBold.ttf", "ManropeSemiBold");
+                    fonts.AddFont("Manrope-SemiBold.ttf", "ManropeBold");
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                     fonts.AddFont("SegoeUI-Semibold.ttf", "SegoeSemibold");

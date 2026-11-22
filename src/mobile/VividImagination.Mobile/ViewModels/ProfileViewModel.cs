@@ -215,12 +215,12 @@ public partial class ProfileViewModel : ObservableObject
         MyUploads.Clear();
         NotifyUploadsChanged();
         ToastService.Current.Show("Signed out", ToastType.Info);
-        await Shell.Current.GoToAsync("//login");
+        await Shell.Current.GoToAsync("login");
     }
 
     [RelayCommand]
     public async Task OpenLoginAsync()
     {
-        await Shell.Current.GoToAsync("//login");
+        await Shell.Current.GoToAsync("login");
     }
 }
