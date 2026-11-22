@@ -193,6 +193,32 @@
                                     </Label>
                                 </Grid>
                             </Border>
+
+                            <!-- Personalized Recommendations Toggle -->
+                            <Border StrokeShape="RoundRectangle 14"
+                                    Stroke="{StaticResource BorderGlow}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="#0DFFFFFF"
+                                    Padding="14,10"
+                                    Margin="0,14,0,0">
+                                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                                    <VerticalStackLayout Grid.Column="0" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="Personalized Recommendations"
+                                               FontFamily="ManropeBold"
+                                               FontSize="13"
+                                               TextColor="{StaticResource TextPrimary}" />
+                                        <Label Text="Tailor your feed based on your votes, views, and interests"
+                                               FontFamily="ManropeRegular"
+                                               FontSize="11"
+                                               TextColor="{StaticResource TextMuted}" />
+                                    </VerticalStackLayout>
+                                    <Switch Grid.Column="1"
+                                            IsToggled="{Binding IsPersonalisationEnabled}"
+                                            OnColor="{StaticResource AccentVermilion}"
+                                            ThumbColor="White"
+                                            VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
                         </VerticalStackLayout>
                     </Border>
 

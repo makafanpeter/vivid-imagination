@@ -760,4 +760,68 @@ public class MobileFeatureTests
 
         model.BlurHash.Should().BeNull();
     }
+
+    [Fact]
+    public void UserProfile_IsPersonalisationEnabled_DefaultsToTrue()
+    {
+        var profile = new UserProfile();
+        profile.IsPersonalisationEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task FeedTelemetryService_WhenUserIsNull_DoesNotCallApi()
+    {
+        var mockClient = new Mock<IVividImaginationClient>();
+        var mockAuth = new Mock<IAuthService>();
+        mockAuth.Setup(a => a.CurrentUser).Returns((UserProfile?)null);
+
+        var telemetryService = new FeedTelemetryService(mockClient.Object, mockAuth.Object);
+        await telemetryService.RecordInteractionAsync(Guid.NewGuid(), Guid.NewGuid(), "upvote");
+
+        mockClient.Verify(c => c.RecordFeedInteractionAsync(
+            It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<ICollection<string>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task FeedTelemetryService_WhenPersonalisationDisabled_DoesNotCallApi()
+    {
+        var mockClient = new Mock<IVividImaginationClient>();
+        var mockAuth = new Mock<IAuthService>();
+        mockAuth.Setup(a => a.CurrentUser).Returns(new UserProfile
+        {
+            Sub = "user-123",
+            IsPersonalisationEnabled = false
+        });
+
+        var telemetryService = new FeedTelemetryService(mockClient.Object, mockAuth.Object);
+        await telemetryService.RecordInteractionAsync(Guid.NewGuid(), Guid.NewGuid(), "downvote");
+
+        mockClient.Verify(c => c.RecordFeedInteractionAsync(
+            It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<ICollection<string>?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task FeedTelemetryService_WhenPersonalisationEnabled_CallsRecordFeedInteractionAsync()
+    {
+        var mockClient = new Mock<IVividImaginationClient>();
+        var mockAuth = new Mock<IAuthService>();
+        mockAuth.Setup(a => a.CurrentUser).Returns(new UserProfile
+        {
+            Sub = "user-123",
+            IsPersonalisationEnabled = true
+        });
+
+        var photoId = Guid.NewGuid();
+        var creatorId = Guid.NewGuid();
+        var tags = new List<string> { "nature", "mountains" };
+
+        var telemetryService = new FeedTelemetryService(mockClient.Object, mockAuth.Object);
+        await telemetryService.RecordInteractionAsync(photoId, creatorId, "upvote", 2, 0, tags);
+
+        mockClient.Verify(c => c.RecordFeedInteractionAsync(
+            photoId, creatorId, "upvote", 2, 0, It.Is<ICollection<string>>(t => t.Contains("nature")), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
 }

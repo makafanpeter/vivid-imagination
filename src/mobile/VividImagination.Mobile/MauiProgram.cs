@@ -134,6 +134,9 @@ namespace VividImagination.Mobile
             // Photo Loader & Cache Service
             builder.Services.AddSingleton<IPhotoLoaderService, PhotoLoaderService>();
 
+            // Feed Telemetry Service
+            builder.Services.AddSingleton<IFeedTelemetryService, FeedTelemetryService>();
+
             // ViewModels
             builder.Services.AddSingleton<IToastService>(ToastService.Current);
             builder.Services.AddSingleton<FeedViewModel>();

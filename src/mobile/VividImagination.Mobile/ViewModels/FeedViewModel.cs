@@ -11,6 +11,7 @@ public partial class FeedViewModel : ObservableObject
     private readonly IVividImaginationClient _apiClient;
     private readonly IAuthService _authService;
     private readonly IPhotoLoaderService _photoLoader;
+    private readonly IFeedTelemetryService _telemetryService;
     private int _currentPage = 1;
     private const int PageSize = 10;
     private bool _hasMoreItems = true;
@@ -18,11 +19,13 @@ public partial class FeedViewModel : ObservableObject
     public FeedViewModel(
         IVividImaginationClient apiClient,
         IAuthService authService,
-        IPhotoLoaderService photoLoader)
+        IPhotoLoaderService photoLoader,
+        IFeedTelemetryService telemetryService)
     {
         _apiClient = apiClient;
         _authService = authService;
         _photoLoader = photoLoader;
+        _telemetryService = telemetryService;
         Items = [];
 
         _authService.AuthStateChanged += (s, e) =>
@@ -93,6 +96,7 @@ public partial class FeedViewModel : ObservableObject
 
             if (rawItems.Count > 0)
             {
+                var newItems = new List<FeedItemViewModel>();
                 foreach (var item in rawItems)
                 {
                     if (safeMode == SafeBrowsingMode.HideSensitive && item.IsUnsafe)
@@ -101,8 +105,11 @@ public partial class FeedViewModel : ObservableObject
                     }
 
                     var vm = CreateFeedItemViewModel(item, safeMode);
+                    newItems.Add(vm);
                     Items.Add(vm);
                 }
+
+                RecordImpressions(newItems, 0);
             }
 
             IsEmpty = Items.Count == 0;
@@ -163,6 +170,8 @@ public partial class FeedViewModel : ObservableObject
                 return;
             }
 
+            var startPosition = Items.Count;
+            var newItems = new List<FeedItemViewModel>();
             foreach (var item in rawItems)
             {
                 if (safeMode == SafeBrowsingMode.HideSensitive && item.IsUnsafe)
@@ -171,8 +180,11 @@ public partial class FeedViewModel : ObservableObject
                 }
 
                 var vm = CreateFeedItemViewModel(item, safeMode);
+                newItems.Add(vm);
                 Items.Add(vm);
             }
+
+            RecordImpressions(newItems, startPosition);
         }
         catch (Exception ex)
         {
@@ -181,6 +193,20 @@ public partial class FeedViewModel : ObservableObject
         finally
         {
             IsLoadingMore = false;
+        }
+    }
+
+    private void RecordImpressions(IEnumerable<FeedItemViewModel> newItems, int startingPosition)
+    {
+        var position = startingPosition;
+        foreach (var item in newItems)
+        {
+            _ = _telemetryService.RecordInteractionAsync(
+                item.PhotoId,
+                item.UserId,
+                "impression",
+                feedPosition: position++,
+                tags: item.TagsList);
         }
     }
 
@@ -196,6 +222,13 @@ public partial class FeedViewModel : ObservableObject
             return;
         }
 
+        _ = _telemetryService.RecordInteractionAsync(
+            item.PhotoId,
+            item.UserId,
+            "upvote",
+            feedPosition: Items.IndexOf(item),
+            tags: item.TagsList);
+
         await VoteInternalAsync(item, 1);
     }
 
@@ -210,6 +243,13 @@ public partial class FeedViewModel : ObservableObject
             ToastService.Current.Show("Sign in to vote or report", ToastType.Info);
             return;
         }
+
+        _ = _telemetryService.RecordInteractionAsync(
+            item.PhotoId,
+            item.UserId,
+            "downvote",
+            feedPosition: Items.IndexOf(item),
+            tags: item.TagsList);
 
         await VoteInternalAsync(item, -1);
 

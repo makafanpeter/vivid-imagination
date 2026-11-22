@@ -130,6 +130,23 @@ public partial class FeedItemViewModel : ObservableObject
     [ObservableProperty]
     private string _tagsLine = string.Empty;
 
+    public IReadOnlyList<string> TagsList
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(Caption))
+                return ["vivid", "community"];
+
+            var matches = Regex.Matches(Caption, @"#(\w+)");
+            if (matches.Count > 0)
+            {
+                return matches.Select(m => m.Groups[1].Value.ToLowerInvariant()).Distinct().ToList();
+            }
+
+            return ["vivid", "moments"];
+        }
+    }
+
     public string FormattedDate
     {
         get

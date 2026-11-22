@@ -52,6 +52,9 @@ public partial class ProfileViewModel : ObservableObject
     private bool _isAuthenticated;
 
     [ObservableProperty]
+    private bool _isPersonalisationEnabled = true;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsBlurSelected))]
     [NotifyPropertyChangedFor(nameof(IsHideSelected))]
     [NotifyPropertyChangedFor(nameof(IsAlwaysShowSelected))]
@@ -77,6 +80,7 @@ public partial class ProfileViewModel : ObservableObject
         if (Profile != null)
         {
             SafeBrowsingIndex = (int)Profile.SafeBrowsingMode;
+            IsPersonalisationEnabled = Profile.IsPersonalisationEnabled;
         }
         OnPropertyChanged(nameof(DisplayName));
         NotifyUploadsChanged();
@@ -207,6 +211,45 @@ public partial class ProfileViewModel : ObservableObject
         {
             Interlocked.Exchange(ref _isUpdatingPreference, 0);
         }
+    }
+
+    private int _isUpdatingPersonalisation;
+
+    partial void OnIsPersonalisationEnabledChanged(bool oldValue, bool newValue)
+    {
+        if (Profile == null || Profile.IsPersonalisationEnabled == newValue)
+            return;
+
+        Profile.IsPersonalisationEnabled = newValue;
+        _ = UpdatePersonalisationInternalAsync(newValue);
+    }
+
+    private async Task UpdatePersonalisationInternalAsync(bool enabled)
+    {
+        if (Interlocked.CompareExchange(ref _isUpdatingPersonalisation, 1, 0) != 0)
+            return;
+
+        try
+        {
+            await _apiClient.UpdatePersonalisationAsync(enabled);
+            ToastService.Current.Show(
+                enabled ? "Personalized recommendations enabled" : "Personalized recommendations disabled",
+                ToastType.Info);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to persist personalisation preference: {ex.Message}");
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isUpdatingPersonalisation, 0);
+        }
+    }
+
+    [RelayCommand]
+    public void TogglePersonalisation()
+    {
+        IsPersonalisationEnabled = !IsPersonalisationEnabled;
     }
 
     [RelayCommand]

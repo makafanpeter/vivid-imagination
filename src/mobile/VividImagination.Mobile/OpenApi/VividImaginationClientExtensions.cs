@@ -25,6 +25,17 @@ public partial interface IVividImaginationClient
     System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(string safeBrowsingMode, bool? isPersonalisationEnabled = null, System.Threading.CancellationToken cancellationToken = default);
     System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(int safeBrowsingMode, bool? isPersonalisationEnabled = null, System.Threading.CancellationToken cancellationToken = default);
     System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(Models.SafeBrowsingMode safeBrowsingMode, bool? isPersonalisationEnabled = null, System.Threading.CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(Models.SafeBrowsingMode safeBrowsingMode, bool isPersonalisationEnabled, System.Threading.CancellationToken cancellationToken = default);
+    System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdatePersonalisationAsync(bool isPersonalisationEnabled, System.Threading.CancellationToken cancellationToken = default);
+
+    System.Threading.Tasks.Task RecordFeedInteractionAsync(
+        System.Guid photoId,
+        System.Guid creatorId,
+        string interactionType,
+        int feedPosition = 0,
+        int dwellDurationMs = 0,
+        System.Collections.Generic.ICollection<string>? tags = null,
+        System.Threading.CancellationToken cancellationToken = default);
 
     System.Threading.Tasks.Task<FileResponse> DownloadPhotoAsync(System.Guid id, string? variant, System.Threading.CancellationToken cancellationToken = default);
 }
@@ -161,6 +172,45 @@ public partial class VividImaginationClient
             ? ((Models.SafeBrowsingMode)safeBrowsingMode).ToString()
             : safeBrowsingMode.ToString();
         return UpdateUserPreferencesAsync(modeEnum, isPersonalisationEnabled, cancellationToken);
+    }
+
+    public virtual System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdatePersonalisationAsync(bool isPersonalisationEnabled, System.Threading.CancellationToken cancellationToken = default)
+    {
+        return UpdateUserPreferencesAsync(new UpdatePreferencesRequest
+        {
+            IsPersonalisationEnabled = isPersonalisationEnabled
+        }, cancellationToken);
+    }
+
+    public virtual System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(Models.SafeBrowsingMode safeBrowsingMode, bool isPersonalisationEnabled, System.Threading.CancellationToken cancellationToken = default)
+    {
+        return UpdateUserPreferencesAsync(new UpdatePreferencesRequest
+        {
+            SafeBrowsingMode = safeBrowsingMode.ToString(),
+            IsPersonalisationEnabled = isPersonalisationEnabled
+        }, cancellationToken);
+    }
+
+    public virtual System.Threading.Tasks.Task RecordFeedInteractionAsync(
+        System.Guid photoId,
+        System.Guid creatorId,
+        string interactionType,
+        int feedPosition = 0,
+        int dwellDurationMs = 0,
+        System.Collections.Generic.ICollection<string>? tags = null,
+        System.Threading.CancellationToken cancellationToken = default)
+    {
+        var request = new RecordInteractionRequest
+        {
+            PhotoId = photoId,
+            CreatorId = creatorId,
+            InteractionType = interactionType,
+            FeedPosition = feedPosition,
+            DwellDurationMs = dwellDurationMs,
+            Tags = tags
+        };
+
+        return RecordFeedInteractionAsync(request, cancellationToken);
     }
 
     public virtual async System.Threading.Tasks.Task<FileResponse> DownloadPhotoAsync(System.Guid id, string? variant, System.Threading.CancellationToken cancellationToken = default)

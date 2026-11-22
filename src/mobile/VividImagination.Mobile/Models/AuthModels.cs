@@ -41,6 +41,9 @@ public sealed class UserProfile
     [JsonPropertyName("isModerator")]
     public bool IsModerator { get; set; }
 
+    [JsonPropertyName("isPersonalisationEnabled")]
+    public bool IsPersonalisationEnabled { get; set; } = true;
+
     public string DisplayName =>
         !string.IsNullOrWhiteSpace(FullName)
             ? FullName
