@@ -72,7 +72,7 @@ public partial class FeedViewModel : ObservableObject
             _currentPage = 1;
             _hasMoreItems = true;
 
-            var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
+            var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.AlwaysShowSensitive;
             var isAuthenticated = _authService.CurrentUser != null || await _authService.IsAuthenticatedAsync();
 
             ICollection<FeedItemDto> rawItems;
