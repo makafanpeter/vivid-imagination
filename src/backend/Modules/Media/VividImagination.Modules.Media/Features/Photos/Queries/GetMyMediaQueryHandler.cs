@@ -35,6 +35,6 @@ public class GetMyMediaQueryHandler(
             sort,
             cancellationToken);
 
-        return pagedItems.Select(mapper.Map<UploadDocumentViewModel>).ToList();
+        return [.. pagedItems.Select(mapper.Map<UploadDocumentViewModel>)];
     }
 }

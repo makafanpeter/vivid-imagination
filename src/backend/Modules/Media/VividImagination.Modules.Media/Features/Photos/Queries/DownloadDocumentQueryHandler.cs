@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VividImagination.Modules.Media.Contracts;
+using VividImagination.Modules.Media.Features.Photos.ViewModels;
 using VividImagination.Modules.Media.Persistence.Entities;
 using VividImagination.Modules.Media.Services.FileService;
 using VividImagination.Shared.Contract.Identity;
@@ -12,15 +13,14 @@ namespace VividImagination.Modules.Media.Features.Photos.Queries
 {
     public class DownloadDocumentQueryHandler(
         IFileServiceManager fileServiceManager,
-        IMongoRepository<FileEntry, Guid> dynamoDbContext,
+        IMongoRepository<FileEntry, Guid> dbContext,
         ICurrentUser identityService,
         IAuthorizationService authorizationService)
         : IRequestHandler<DownloadDocumentQuery, FileViewModel>
     {
         public async Task<FileViewModel> Handle(DownloadDocumentQuery request, CancellationToken cancellationToken)
         {
-            var file = await dynamoDbContext.FindByIdAsync(request.Id,cancellationToken);
-
+            var file = await dbContext.FindByIdAsync(request.Id, cancellationToken);
 
             if (file == null || file.Deleted)
             {
@@ -36,20 +36,42 @@ namespace VividImagination.Modules.Media.Features.Photos.Queries
             {
                 throw new ForbiddenException(identityService.GetUserName());
             }
-            
 
-            var rawData = await fileServiceManager.ReadAsync(file, cancellationToken);
+            IFileEntry targetFile = file;
+            var contentType = file.ContentType;
+            var fileName = file.FileName;
+
+            if (!string.IsNullOrWhiteSpace(request.Variant) &&
+                file.Variants != null &&
+                file.Variants.TryGetValue(request.Variant.Trim().ToLowerInvariant(), out var variantInfo))
+            {
+                targetFile = new FileEntryModel
+                {
+                    Id = file.Id,
+                    Name = file.Name,
+                    ContainerName = file.ContainerName,
+                    FileName = Path.GetFileName(variantInfo.StorageKey),
+                    FileLocation = variantInfo.StorageKey,
+                    ContentType = variantInfo.ContentType,
+                    FileExtension = Path.GetExtension(variantInfo.StorageKey),
+                    Size = variantInfo.Size
+                };
+                contentType = variantInfo.ContentType;
+                fileName = Path.GetFileName(variantInfo.StorageKey);
+            }
+
+            var rawData = await fileServiceManager.ReadAsync(targetFile, cancellationToken);
 
             if (rawData == null)
             {
                 throw new BadRequestException($"File is not available any more. Document GD={file.Id}");
             }
-            var content= rawData;
+            var content = rawData;
             var response = new FileViewModel()
             {
-                ContentType = file.ContentType,
+                ContentType = contentType,
                 Content = content,
-                FileName = file.FileName
+                FileName = fileName
             };
 
             return response;

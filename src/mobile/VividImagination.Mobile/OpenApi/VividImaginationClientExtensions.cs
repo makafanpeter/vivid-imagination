@@ -25,6 +25,8 @@ public partial interface IVividImaginationClient
     System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(string safeBrowsingMode, bool? isPersonalisationEnabled = null, System.Threading.CancellationToken cancellationToken = default);
     System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(int safeBrowsingMode, bool? isPersonalisationEnabled = null, System.Threading.CancellationToken cancellationToken = default);
     System.Threading.Tasks.Task<SafeBrowsingPreferenceDto> UpdateUserPreferencesAsync(Models.SafeBrowsingMode safeBrowsingMode, bool? isPersonalisationEnabled = null, System.Threading.CancellationToken cancellationToken = default);
+
+    System.Threading.Tasks.Task<FileResponse> DownloadPhotoAsync(System.Guid id, string? variant, System.Threading.CancellationToken cancellationToken = default);
 }
 
 public partial class VividImaginationClient
@@ -159,6 +161,76 @@ public partial class VividImaginationClient
             ? ((Models.SafeBrowsingMode)safeBrowsingMode).ToString()
             : safeBrowsingMode.ToString();
         return UpdateUserPreferencesAsync(modeEnum, isPersonalisationEnabled, cancellationToken);
+    }
+
+    public virtual async System.Threading.Tasks.Task<FileResponse> DownloadPhotoAsync(System.Guid id, string? variant, System.Threading.CancellationToken cancellationToken = default)
+    {
+        if (id == System.Guid.Empty)
+            throw new System.ArgumentNullException(nameof(id));
+
+        var urlBuilder_ = new System.Text.StringBuilder();
+        if (!string.IsNullOrEmpty(BaseUrl)) urlBuilder_.Append(BaseUrl);
+        // Operation Path: "api/v1/media/{id}/download"
+        urlBuilder_.Append("api/v1/media/");
+        urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+        urlBuilder_.Append("/download");
+
+        if (!string.IsNullOrWhiteSpace(variant))
+        {
+            urlBuilder_.Append('?').Append("variant=").Append(System.Uri.EscapeDataString(variant));
+        }
+
+        var client_ = _httpClient;
+        var disposeClient_ = false;
+        try
+        {
+            using (var request_ = new System.Net.Http.HttpRequestMessage())
+            {
+                request_.Method = new System.Net.Http.HttpMethod("GET");
+                request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/octet-stream"));
+
+                var url_ = urlBuilder_.ToString();
+                request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                var disposeResponse_ = true;
+                try
+                {
+                    var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                    foreach (var item_ in response_.Headers)
+                        headers_[item_.Key] = item_.Value;
+                    if (response_.Content != null && response_.Content.Headers != null)
+                    {
+                        foreach (var item_ in response_.Content.Headers)
+                            headers_[item_.Key] = item_.Value;
+                    }
+
+                    var status_ = (int)response_.StatusCode;
+                    if (status_ == 200)
+                    {
+                        var responseStream_ = response_.Content == null ? System.IO.Stream.Null : await response_.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                        var fileResponse_ = new FileResponse(status_, headers_, responseStream_, client_, response_);
+                        disposeResponse_ = false;
+                        return fileResponse_;
+                    }
+                    else
+                    {
+                        var responseData_ = response_.Content == null ? null : await response_.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                        throw new ApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                    }
+                }
+                finally
+                {
+                    if (disposeResponse_)
+                        response_.Dispose();
+                }
+            }
+        }
+        finally
+        {
+            if (disposeClient_)
+                client_.Dispose();
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.OpenApi;
 using VividImagination.Mobile.Services;
 
 namespace VividImagination.Mobile.ViewModels;
@@ -23,6 +24,14 @@ public partial class FeedViewModel : ObservableObject
         _authService = authService;
         _photoLoader = photoLoader;
         Items = [];
+
+        _authService.AuthStateChanged += (s, e) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                _ = LoadFeedAsync();
+            });
+        };
     }
 
     public ObservableCollection<FeedItemViewModel> Items { get; }
@@ -61,7 +70,25 @@ public partial class FeedViewModel : ObservableObject
             _hasMoreItems = true;
 
             var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
-            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+            var isAuthenticated = _authService.CurrentUser != null || await _authService.IsAuthenticatedAsync();
+
+            ICollection<FeedItemDto> rawItems;
+            if (isAuthenticated)
+            {
+                try
+                {
+                    rawItems = await _apiClient.GetPersonalizedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+                }
+                catch (ApiException ex) when (ex.StatusCode == 401)
+                {
+                    rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+                }
+            }
+            else
+            {
+                rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+            }
+
             Items.Clear();
 
             if (rawItems.Count > 0)
@@ -111,7 +138,25 @@ public partial class FeedViewModel : ObservableObject
             _currentPage++;
 
             var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
-            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+            var isAuthenticated = _authService.CurrentUser != null || await _authService.IsAuthenticatedAsync();
+
+            ICollection<FeedItemDto> rawItems;
+            if (isAuthenticated)
+            {
+                try
+                {
+                    rawItems = await _apiClient.GetPersonalizedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+                }
+                catch (ApiException ex) when (ex.StatusCode == 401)
+                {
+                    rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+                }
+            }
+            else
+            {
+                rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
+            }
+
             if (rawItems.Count == 0)
             {
                 _hasMoreItems = false;

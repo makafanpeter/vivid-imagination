@@ -27,6 +27,7 @@
     <Compile Include="..\..\src\mobile\VividImagination.Mobile\OpenApi\VividImaginationClient.cs" Link="Mobile\VividImaginationClient.cs" />
     <Compile Include="..\..\src\mobile\VividImagination.Mobile\OpenApi\VividImaginationClientExtensions.cs" Link="Mobile\VividImaginationClientExtensions.cs" />
     <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\AuthModels.cs" Link="Mobile\AuthModels.cs" />
+    <Compile Include="..\..\src\mobile\VividImagination.Mobile\Models\PhotoVariant.cs" Link="Mobile\PhotoVariant.cs" />
   </ItemGroup>
 
   <ItemGroup>

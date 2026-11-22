@@ -1,20 +1,26 @@
+using VividImagination.Mobile.Models;
 using VividImagination.Mobile.OpenApi;
 
 namespace VividImagination.Mobile.Services;
 
 public interface IPhotoLoaderService
 {
-    Task<ImageSource?> LoadPhotoAsync(Guid photoId, string? blurHash = null, CancellationToken ct = default);
-    string GetCachedFilePath(Guid photoId);
+    Task<ImageSource?> LoadPhotoAsync(Guid photoId, PhotoVariant variant = PhotoVariant.Medium, string? blurHash = null, CancellationToken ct = default);
+    Task<ImageSource?> LoadPhotoAsync(Guid photoId, string? blurHash, CancellationToken ct = default);
+    string GetCachedFilePath(Guid photoId, PhotoVariant variant = PhotoVariant.Medium);
 }
 
 public sealed class PhotoLoaderService(IVividImaginationClient apiClient) : IPhotoLoaderService
 {
     private readonly string _cacheDir = Path.Combine(FileSystem.CacheDirectory, "photos");
 
-    public string GetCachedFilePath(Guid photoId) => Path.Combine(_cacheDir, $"{photoId}.bin");
+    public string GetCachedFilePath(Guid photoId, PhotoVariant variant = PhotoVariant.Medium) =>
+        Path.Combine(_cacheDir, $"{photoId}_{variant.ToString().ToLowerInvariant()}.bin");
 
-    public async Task<ImageSource?> LoadPhotoAsync(Guid photoId, string? blurHash = null, CancellationToken ct = default)
+    public Task<ImageSource?> LoadPhotoAsync(Guid photoId, string? blurHash, CancellationToken ct = default) =>
+        LoadPhotoAsync(photoId, PhotoVariant.Medium, blurHash, ct);
+
+    public async Task<ImageSource?> LoadPhotoAsync(Guid photoId, PhotoVariant variant = PhotoVariant.Medium, string? blurHash = null, CancellationToken ct = default)
     {
         try
         {
@@ -23,7 +29,7 @@ public sealed class PhotoLoaderService(IVividImaginationClient apiClient) : IPho
                 Directory.CreateDirectory(_cacheDir);
             }
 
-            var filePath = GetCachedFilePath(photoId);
+            var filePath = GetCachedFilePath(photoId, variant);
 
             if (File.Exists(filePath) && new FileInfo(filePath).Length > 0)
             {
@@ -31,8 +37,10 @@ public sealed class PhotoLoaderService(IVividImaginationClient apiClient) : IPho
                 return ImageSource.FromStream(() => new MemoryStream(cachedBytes));
             }
 
-            // Download using authenticated OpenAPI client
-            using var response = await apiClient.DownloadPhotoAsync(photoId, ct);
+            var variantName = variant.ToString().ToLowerInvariant();
+
+            // Download using authenticated OpenAPI client with variant query parameter
+            using var response = await apiClient.DownloadPhotoAsync(photoId, variantName, ct);
             if (response?.Stream != null)
             {
                 using var ms = new MemoryStream();
@@ -55,7 +63,7 @@ public sealed class PhotoLoaderService(IVividImaginationClient apiClient) : IPho
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to download photo {photoId}: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to download photo {photoId} (variant {variant}): {ex.Message}");
         }
 
         // Graceful fallback to BlurHash placeholder

@@ -13,7 +13,7 @@ namespace VividImagination.Modules.Media.Features.Photos.Queries
 
 
     public class GetDocumentQueryHandler(
-        IMongoRepository<FileEntry, Guid> dynamoDbContext,
+        IMongoRepository<FileEntry, Guid> dbContext,
         IMapper mapper,
         ICurrentUser identityService,
         IAuthorizationService authorizationService)
@@ -24,7 +24,7 @@ namespace VividImagination.Modules.Media.Features.Photos.Queries
 
         public async Task<UploadDocumentViewModel> Handle(GetDocumentQuery request, CancellationToken cancellationToken)
         {
-            var file = await dynamoDbContext.FindByIdAsync(request.Id, cancellationToken);
+            var file = await dbContext.FindByIdAsync(request.Id, cancellationToken);
 
 
             if (file == null || file.Deleted)

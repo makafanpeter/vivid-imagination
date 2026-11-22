@@ -6,6 +6,7 @@ namespace VividImagination.Modules.Media.Features.Photos.Queries
     public class DownloadDocumentQuery : IRequest<FileViewModel>
     {
         public Guid Id { get; set; }
+        public string? Variant { get; set; }
     }
 
 

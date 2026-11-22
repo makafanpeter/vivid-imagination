@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using VividImagination.Mobile.Models;
 using VividImagination.Mobile.OpenApi;
 using VividImagination.Mobile.Services;
 using VividImagination.Mobile.Services.Configuration;
@@ -140,7 +141,7 @@ public partial class ProfileViewModel : ObservableObject
     {
         try
         {
-            var source = await _photoLoader.LoadPhotoAsync(photoId, blurHash);
+            var source = await _photoLoader.LoadPhotoAsync(photoId, PhotoVariant.Thumbnail, blurHash);
             if (source != null)
             {
                 MainThread.BeginInvokeOnMainThread(() =>

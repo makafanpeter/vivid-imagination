@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Text.RegularExpressions;
+using VividImagination.Mobile.Models;
 using VividImagination.Mobile.Services;
 
 namespace VividImagination.Mobile.ViewModels;
@@ -41,7 +42,8 @@ public partial class FeedItemViewModel : ObservableObject
 
         try
         {
-            var source = await _photoLoader.LoadPhotoAsync(PhotoId, BlurHash, ct);
+            var variant = DisplayResolutionHelper.GetFeedVariant();
+            var source = await _photoLoader.LoadPhotoAsync(PhotoId, variant, BlurHash, ct);
             if (source != null)
             {
                 MainThread.BeginInvokeOnMainThread(() =>

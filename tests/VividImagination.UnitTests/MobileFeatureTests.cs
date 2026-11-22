@@ -711,4 +711,53 @@ public class MobileFeatureTests
         var userProfile = UserProfile.FromDto(profile);
         userProfile.IsModerator.Should().BeTrue();
     }
+
+    [Fact]
+    public void PhotoVariant_Enum_ContainsExpectedVariants()
+    {
+        Enum.GetNames<PhotoVariant>().Should().Contain(["Thumbnail", "Medium", "Original"]);
+    }
+
+    [Fact]
+    public void DownloadDocumentQuery_VariantProperty_CanBeSetAndRead()
+    {
+        var photoId = Guid.NewGuid();
+        var query = new VividImagination.Modules.Media.Features.Photos.Queries.DownloadDocumentQuery
+        {
+            Id = photoId,
+            Variant = "thumbnail"
+        };
+
+        query.Id.Should().Be(photoId);
+        query.Variant.Should().Be("thumbnail");
+    }
+
+    [Fact]
+    public void UploadDocumentViewModel_BlurHash_ExtractsFromAdditionalProperties()
+    {
+        var model = new UploadDocumentViewModel
+        {
+            Id = Guid.NewGuid(),
+            FileName = "test.jpg",
+            ContentType = "image/jpeg",
+            FileExtension = ".jpg"
+        };
+        model.AdditionalProperties["blurHash"] = "LEHV6nWB2yk8pyo0adR*.7kCMdnj";
+
+        model.BlurHash.Should().Be("LEHV6nWB2yk8pyo0adR*.7kCMdnj");
+    }
+
+    [Fact]
+    public void UploadDocumentViewModel_BlurHash_ReturnsNullWhenNotPresent()
+    {
+        var model = new UploadDocumentViewModel
+        {
+            Id = Guid.NewGuid(),
+            FileName = "test.jpg",
+            ContentType = "image/jpeg",
+            FileExtension = ".jpg"
+        };
+
+        model.BlurHash.Should().BeNull();
+    }
 }

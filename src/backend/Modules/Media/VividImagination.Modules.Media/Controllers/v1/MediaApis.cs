@@ -142,10 +142,11 @@ public static class MediaApis
 
     private static async Task<IResult> DownloadAsync(
         Guid id,
+        [FromQuery] string? variant,
         [FromServices] IMediator mediator,
         CancellationToken ct)
     {
-        var response = await mediator.Send(new DownloadDocumentQuery { Id = id }, ct);
+        var response = await mediator.Send(new DownloadDocumentQuery { Id = id, Variant = variant }, ct);
 
         return Results.File(
             response.Content,
