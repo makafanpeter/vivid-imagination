@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using VividImagination.Mobile.Models;
 using VividImagination.Mobile.Services.Configuration;
 
 namespace VividImagination.Mobile.Services;
@@ -8,7 +9,7 @@ public interface IAuthService
 {
     UserProfile? CurrentUser { get; }
     Task<bool> LoginAsync(string username, string password, CancellationToken ct = default);
-    Task<bool> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default);
+    Task<RegisterResult> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default);
     Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken ct = default);
     Task LogoutAsync();
     Task<bool> IsAuthenticatedAsync();
@@ -80,43 +81,95 @@ public sealed class AuthService(
         }
     }
 
-    public async Task<bool> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default)
+    public async Task<RegisterResult> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default)
     {
+        string? firstName = null;
+        string? lastName = null;
+        if (!string.IsNullOrWhiteSpace(fullName))
+        {
+            var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            firstName = parts[0];
+            if (parts.Length > 1)
+            {
+                lastName = parts[1];
+            }
+        }
+
+        var request = new RegisterUserRequest
+        {
+            Email = email.Trim().ToLowerInvariant(),
+            Password = password,
+            FirstName = firstName,
+            LastName = lastName,
+            SafeBrowsingMode = safeBrowsingMode
+        };
+
+        RegisterUserResult? result;
         try
         {
-            string? firstName = null;
-            string? lastName = null;
-            if (!string.IsNullOrWhiteSpace(fullName))
+            result = await apiClient.RegisterUserAsync(request, ct);
+        }
+        catch (ApiException apiEx)
+        {
+            var resp = apiEx.Response ?? string.Empty;
+            if (apiEx.StatusCode == 400 && resp.Contains("already exists", StringComparison.OrdinalIgnoreCase))
             {
-                var parts = fullName.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                firstName = parts[0];
-                if (parts.Length > 1)
-                {
-                    lastName = parts[1];
-                }
+                return new RegisterResult(RegisterStatus.EmailAlreadyExists, "An account with this email address already exists.");
             }
 
-            var request = new RegisterUserRequest
-            {
-                Email = email.Trim().ToLowerInvariant(),
-                Password = password,
-                FirstName = firstName,
-                LastName = lastName,
-                SafeBrowsingMode = safeBrowsingMode
-            };
+            var errorMsg = ExtractErrorMessage(resp) ?? apiEx.Message;
+            return new RegisterResult(RegisterStatus.Failed, errorMsg);
+        }
+        catch (Exception ex)
+        {
+            return new RegisterResult(RegisterStatus.Failed, ex.Message);
+        }
 
-            var result = await apiClient.RegisterUserAsync(request, ct);
-            if (result == null || result.UserId <= 0)
+        if (result == null || result.UserId <= 0)
+        {
+            return new RegisterResult(RegisterStatus.Failed, "Failed to create user account.");
+        }
+
+        // Account was created successfully! Now attempt auto-login
+        try
+        {
+            var loggedIn = await LoginAsync(email, password, ct);
+            if (loggedIn && CurrentUser != null)
             {
-                return false;
+                return new RegisterResult(RegisterStatus.Success, Profile: CurrentUser);
             }
-
-            return await LoginAsync(email, password, ct);
         }
         catch
         {
-            return false;
+            // Login failed or was interrupted, but account was successfully created!
         }
+
+        return new RegisterResult(RegisterStatus.CreatedLoginRequired);
+    }
+
+    private static string? ExtractErrorMessage(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("detail", out var detail))
+            {
+                return detail.GetString();
+            }
+            if (doc.RootElement.TryGetProperty("message", out var msg))
+            {
+                return msg.GetString();
+            }
+            if (doc.RootElement.TryGetProperty("title", out var title))
+            {
+                return title.GetString();
+            }
+        }
+        catch
+        {
+        }
+        return null;
     }
 
     public async Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken ct = default)

@@ -601,4 +601,29 @@ public class MobileFeatureTests
 
         isValid.Should().Be(expectedValid);
     }
+
+    [Fact]
+    public void RegisterResult_RecordsStatusAndMessageCorrectly()
+    {
+        var success = new RegisterResult(RegisterStatus.Success);
+        success.Status.Should().Be(RegisterStatus.Success);
+        success.ErrorMessage.Should().BeNull();
+
+        var loginRequired = new RegisterResult(RegisterStatus.CreatedLoginRequired);
+        loginRequired.Status.Should().Be(RegisterStatus.CreatedLoginRequired);
+
+        var emailExists = new RegisterResult(RegisterStatus.EmailAlreadyExists, "An account with this email address already exists.");
+        emailExists.Status.Should().Be(RegisterStatus.EmailAlreadyExists);
+        emailExists.ErrorMessage.Should().Contain("already exists");
+
+        var failed = new RegisterResult(RegisterStatus.Failed, "Server error");
+        failed.Status.Should().Be(RegisterStatus.Failed);
+        failed.ErrorMessage.Should().Be("Server error");
+    }
+
+    [Fact]
+    public void RegisterStatus_HasAllExpectedEnumValues()
+    {
+        Enum.GetNames<RegisterStatus>().Should().Contain(["Success", "CreatedLoginRequired", "EmailAlreadyExists", "Failed"]);
+    }
 }

@@ -198,7 +198,7 @@
                         </VerticalStackLayout>
 
                         <!-- Sign In Button -->
-                        <Button Text="Sign In"
+                        <Button Text="{Binding SignInButtonText}"
                                 Command="{Binding LoginCommand}"
                                 IsEnabled="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
                                 BackgroundColor="{StaticResource AccentVermilion}"
@@ -333,7 +333,7 @@
                         </VerticalStackLayout>
 
                         <!-- Create Account Button -->
-                        <Button Text="Create Account"
+                        <Button Text="{Binding RegisterButtonText}"
                                 Command="{Binding RegisterCommand}"
                                 IsEnabled="{Binding IsBusy, Converter={toolkit:InvertedBoolConverter}}"
                                 BackgroundColor="{StaticResource AccentVermilion}"

@@ -60,3 +60,13 @@ public sealed class UserProfile
         };
     }
 }
+
+public enum RegisterStatus
+{
+    Success,
+    CreatedLoginRequired,
+    EmailAlreadyExists,
+    Failed
+}
+
+public sealed record RegisterResult(RegisterStatus Status, string? ErrorMessage = null, UserProfile? Profile = null);
