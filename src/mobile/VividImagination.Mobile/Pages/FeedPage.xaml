@@ -19,7 +19,7 @@
                   VerticalOptions="Start"
                   HorizontalOptions="Fill"
                   BackgroundColor="#E60D0B0A"
-                  Padding="22,18,22,16">
+                  Padding="20,16">
 
                 <Grid.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">

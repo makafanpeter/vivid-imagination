@@ -1,13 +1,8 @@
-using Microsoft.Maui.Controls.Shapes;
-
 namespace VividImagination.Mobile.Pages.Controls;
 
 [ContentProperty(nameof(BodyContent))]
 public partial class ResponsiveContainer : ContentView
 {
-    private const double DesktopColumnMaxWidth = 960;
-    private const double DesktopColumnMargin = 16;
-
     public static readonly BindableProperty BodyContentProperty =
         BindableProperty.Create(
             nameof(BodyContent),
@@ -71,8 +66,6 @@ public partial class ResponsiveContainer : ContentView
     {
         InitializeComponent();
 
-        ApplyLayoutMetrics();
-
         if (PageBodyPresenter != null && BodyContent != null)
         {
             PageBodyPresenter.Content = BodyContent;
@@ -83,39 +76,5 @@ public partial class ResponsiveContainer : ContentView
             BottomNavControl.ActiveTab = ActiveTab;
             BottomNavControl.IsVisible = ShowBottomNav;
         }
-
-        SizeChanged += OnContainerSizeChanged;
-    }
-
-    private void ApplyLayoutMetrics()
-    {
-        if (ColumnFrame == null) return;
-
-        bool isMobile = DeviceInfo.Platform == DevicePlatform.Android || DeviceInfo.Platform == DevicePlatform.iOS;
-
-        if (isMobile || Width < 500)
-        {
-            ColumnFrame.WidthRequest = -1;
-            ColumnFrame.MaximumWidthRequest = double.PositiveInfinity;
-            ColumnFrame.HorizontalOptions = LayoutOptions.Fill;
-            ColumnFrame.Margin = new Thickness(0);
-            ColumnFrame.StrokeThickness = 0;
-            ColumnFrame.StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(0) };
-        }
-        else
-        {
-            ColumnFrame.WidthRequest = Math.Min(DesktopColumnMaxWidth, Width - (DesktopColumnMargin * 2));
-            ColumnFrame.MaximumWidthRequest = DesktopColumnMaxWidth;
-            ColumnFrame.HorizontalOptions = LayoutOptions.Center;
-            ColumnFrame.Margin = new Thickness(DesktopColumnMargin);
-            ColumnFrame.StrokeThickness = 1;
-            ColumnFrame.StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24) };
-        }
-    }
-
-    private void OnContainerSizeChanged(object? sender, EventArgs e)
-    {
-        if (Width <= 0) return;
-        ApplyLayoutMetrics();
     }
 }

@@ -19,8 +19,9 @@
             <!-- 1. Header: 'Review queue' with waiting count -->
             <Grid Grid.Row="0"
                   BackgroundColor="#E60D0B0A"
-                  Padding="20,16,20,14"
+                  Padding="20,16"
                   ColumnDefinitions="*,Auto"
+                  HorizontalOptions="Fill"
                   ZIndex="10">
 
                 <VerticalStackLayout Grid.Column="0" Spacing="2">
@@ -56,8 +57,13 @@
             </Grid>
 
             <!-- 2. Vertical list of photos awaiting review -->
-            <ScrollView Grid.Row="1" Margin="0,0,0,72">
-                <VerticalStackLayout Spacing="20" Padding="14,16,14,24">
+            <ScrollView Grid.Row="1"
+                        Margin="0,0,0,72"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill">
+                <VerticalStackLayout Spacing="20"
+                                     Padding="20"
+                                     HorizontalOptions="Fill">
 
                     <!-- Empty Queue State -->
                     <VerticalStackLayout HorizontalOptions="Center"

@@ -19,7 +19,8 @@
             <!-- Header: 'New photo' -->
             <Grid Grid.Row="0"
                   BackgroundColor="#E60D0B0A"
-                  Padding="20,16,20,12"
+                  Padding="20,16"
+                  HorizontalOptions="Fill"
                   ZIndex="10">
                 <Label Text="New photo"
                        FontFamily="SyneBold"
@@ -32,8 +33,13 @@
             </Grid>
 
             <!-- Form Body -->
-            <ScrollView Grid.Row="1" Margin="0,0,0,72">
-                <VerticalStackLayout Spacing="20" Padding="20">
+            <ScrollView Grid.Row="1"
+                        Margin="0,0,0,72"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill">
+                <VerticalStackLayout Spacing="20"
+                                     Padding="20"
+                                     HorizontalOptions="Fill">
 
                     <!-- Big Dashed Square: 'Tap to choose a photo' with format & size limits -->
                     <Border StrokeShape="RoundRectangle 24"

@@ -19,8 +19,9 @@
             <!-- 1. Header: Avatar, Name, Photo Count across the top with a Sign-out Icon -->
             <Grid Grid.Row="0"
                   BackgroundColor="#E60D0B0A"
-                  Padding="18,14,18,14"
+                  Padding="20,16"
                   ColumnDefinitions="Auto,*,Auto"
+                  HorizontalOptions="Fill"
                   VerticalOptions="Center"
                   ZIndex="10">
 
@@ -89,8 +90,13 @@
             </Grid>
 
             <!-- Body: Sensitive Content Card & 3-Column Square Grid -->
-            <ScrollView Grid.Row="1" Margin="0,0,0,72">
-                <VerticalStackLayout Spacing="18" Padding="14,16,14,24">
+            <ScrollView Grid.Row="1"
+                        Margin="0,0,0,72"
+                        HorizontalOptions="Fill"
+                        VerticalOptions="Fill">
+                <VerticalStackLayout Spacing="20"
+                                     Padding="20"
+                                     HorizontalOptions="Fill">
 
                     <!-- 2. 'Sensitive content' Card with a Three-Option Control (Blur / Hide / Always show) -->
                     <Border StrokeShape="RoundRectangle 20"
@@ -127,8 +133,8 @@
                                         FontSize="12"
                                         HeightRequest="32"
                                         Padding="0"
-                                        BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
-                                        TextColor="{Binding IsBlurSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+                                        BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}"
+                                        TextColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}" />
 
                                 <!-- Option 2: Hide -->
                                 <Button Grid.Column="1"
@@ -140,8 +146,8 @@
                                         FontSize="12"
                                         HeightRequest="32"
                                         Padding="0"
-                                        BackgroundColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
-                                        TextColor="{Binding IsHideSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+                                        BackgroundColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}"
+                                        TextColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}" />
 
                                 <!-- Option 3: Always Show -->
                                 <Button Grid.Column="2"
@@ -153,8 +159,8 @@
                                         FontSize="12"
                                         HeightRequest="32"
                                         Padding="0"
-                                        BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}"
-                                        TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource AccentVermilionOrMutedConverter}}" />
+                                        BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}"
+                                        TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>

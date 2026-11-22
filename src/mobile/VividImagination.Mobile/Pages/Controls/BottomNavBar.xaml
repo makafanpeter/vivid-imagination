@@ -16,50 +16,46 @@
                  VerticalOptions="Start"
                  HorizontalOptions="Fill" />
 
-        <!-- Centered constrained nav cluster on wide panels; fills on mobile -->
-        <Grid ColumnDefinitions="*, Auto, *"
-              MaximumWidthRequest="420"
-              HorizontalOptions="Center"
+        <!-- Full-width 3-equal-column Grid; each item centered within its 1/3 column -->
+        <Grid ColumnDefinitions="*, *, *"
+              HorizontalOptions="Fill"
               VerticalOptions="Fill">
 
-            <!-- Left Side: Feed -->
-            <HorizontalStackLayout Grid.Column="0"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"
-                                   Spacing="16">
-                <VerticalStackLayout x:Name="FeedTabButton"
-                                     Spacing="3"
-                                     VerticalOptions="Center"
-                                     Padding="12,6">
-                    <VerticalStackLayout.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnFeedTapped" />
-                    </VerticalStackLayout.GestureRecognizers>
+            <!-- Column 0: Feed (centered in left 1/3) -->
+            <VerticalStackLayout Grid.Column="0"
+                                 x:Name="FeedTabButton"
+                                 Spacing="3"
+                                 HorizontalOptions="Center"
+                                 VerticalOptions="Center"
+                                 Padding="12,6">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnFeedTapped" />
+                </VerticalStackLayout.GestureRecognizers>
 
-                    <Image Source="feed_flame.png"
-                           WidthRequest="22"
-                           HeightRequest="22"
-                           HorizontalOptions="Center">
-                        <Image.Behaviors>
-                            <toolkit:IconTintColorBehavior TintColor="{Binding FeedTextColor, Source={x:Reference BottomNavRoot}}" />
-                        </Image.Behaviors>
-                    </Image>
+                <Image Source="feed_flame.png"
+                       WidthRequest="22"
+                       HeightRequest="22"
+                       HorizontalOptions="Center">
+                    <Image.Behaviors>
+                        <toolkit:IconTintColorBehavior TintColor="{Binding FeedTextColor, Source={x:Reference BottomNavRoot}}" />
+                    </Image.Behaviors>
+                </Image>
 
-                    <Label Text="Feed"
-                           FontFamily="ManropeSemiBold"
-                           FontSize="11"
-                           TextColor="{Binding FeedTextColor, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}"
-                           HorizontalOptions="Center" />
+                <Label Text="Feed"
+                       FontFamily="ManropeSemiBold"
+                       FontSize="11"
+                       TextColor="{Binding FeedTextColor, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}"
+                       HorizontalOptions="Center" />
 
-                    <BoxView WidthRequest="4"
-                             HeightRequest="4"
-                             CornerRadius="2"
-                             Color="{StaticResource AccentVermilion}"
-                             HorizontalOptions="Center"
-                             IsVisible="{Binding IsFeedActive, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}" />
-                </VerticalStackLayout>
-            </HorizontalStackLayout>
+                <BoxView WidthRequest="4"
+                         HeightRequest="4"
+                         CornerRadius="2"
+                         Color="{StaticResource AccentVermilion}"
+                         HorizontalOptions="Center"
+                         IsVisible="{Binding IsFeedActive, Source={RelativeSource AncestorType={x:Type local:BottomNavBar}}}" />
+            </VerticalStackLayout>
 
-            <!-- Center: Distinct Raised Round Orange ＋ Button with reduced glow -->
+            <!-- Column 1: Central Add Button (centered in middle 1/3) -->
             <Border Grid.Column="1"
                     WidthRequest="50"
                     HeightRequest="50"
@@ -92,7 +88,7 @@
                 </Image>
             </Border>
 
-            <!-- Right Side: Review (if moderator) and Me -->
+            <!-- Column 2: Me Tab & Review Tab (centered in right 1/3) -->
             <HorizontalStackLayout Grid.Column="2"
                                    HorizontalOptions="Center"
                                    VerticalOptions="Center"

@@ -22,10 +22,11 @@
                 </RadialGradientBrush>
             </Grid.Background>
 
-            <ScrollView>
+            <ScrollView HorizontalOptions="Fill" VerticalOptions="Fill">
                 <VerticalStackLayout Spacing="24"
                                      Padding="24,40"
-                                     VerticalOptions="Center">
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Fill">
 
                     <!-- Header Wordmark with Hot Orange Dot -->
                     <Label HorizontalOptions="Center">

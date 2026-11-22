@@ -5,41 +5,26 @@
              x:Class="VividImagination.Mobile.Pages.Controls.ResponsiveContainer">
 
     <ContentView.Content>
-        <!-- Outermost background canvas -->
+        <!-- Root grid fills window client area edge-to-edge -->
         <Grid BackgroundColor="{StaticResource AppBackground}"
               HorizontalOptions="Fill"
               VerticalOptions="Fill">
 
-            <!-- Centered Responsive Column Frame -->
-            <Border x:Name="ColumnFrame"
-                    BackgroundColor="{StaticResource AppBackground}"
-                    Stroke="{StaticResource BorderGlow}"
-                    StrokeThickness="0"
-                    Padding="0"
-                    VerticalOptions="Fill"
-                    HorizontalOptions="Fill">
+            <!-- Page Body Slot (Fills 100% of window) -->
+            <ContentView x:Name="PageBodyPresenter"
+                         HorizontalOptions="Fill"
+                         VerticalOptions="Fill" />
 
-                <Grid x:Name="ColumnContainer"
-                      VerticalOptions="Fill"
-                      HorizontalOptions="Fill">
+            <!-- Pinned Frosted Bottom Navigation Bar (Fills 100% width, docked to bottom) -->
+            <controls:BottomNavBar x:Name="BottomNavControl"
+                                   VerticalOptions="End"
+                                   HorizontalOptions="Fill"
+                                   ZIndex="20" />
 
-                    <!-- Page Body Slot -->
-                    <ContentView x:Name="PageBodyPresenter"
-                                 HorizontalOptions="Fill"
-                                 VerticalOptions="Fill" />
-
-                    <!-- Pinned Frosted Bottom Navigation Bar -->
-                    <controls:BottomNavBar x:Name="BottomNavControl"
-                                           VerticalOptions="End"
-                                           HorizontalOptions="Fill"
-                                           ZIndex="20" />
-
-                    <!-- Top Toast Overlay -->
-                    <controls:TopToastView VerticalOptions="Start"
-                                           HorizontalOptions="Fill"
-                                           ZIndex="100" />
-                </Grid>
-            </Border>
+            <!-- Top Toast Overlay -->
+            <controls:TopToastView VerticalOptions="Start"
+                                   HorizontalOptions="Fill"
+                                   ZIndex="100" />
         </Grid>
     </ContentView.Content>
 
