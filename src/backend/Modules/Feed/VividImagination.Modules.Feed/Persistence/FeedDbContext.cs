@@ -21,18 +21,20 @@ public class FeedDbContext : MongoDbContext
 
     public override async Task InitializeAsync(CancellationToken ct = default)
     {
-        var feedIndexes = new[]
+      
+
+        try
         {
+            var feedIndexes = new[]
+      {
             new CreateIndexModel<FeedItem>(
                 Builders<FeedItem>.IndexKeys
                     .Descending(x => x.Score)
                     .Descending(x => x.CreatedOn),
                 new CreateIndexOptions { Name = "idx_score_desc_uploadedAt_desc" })
         };
-        await FeedItems.Indexes.CreateManyAsync(feedIndexes, ct);
+            await FeedItems.Indexes.CreateManyAsync(feedIndexes, ct);
 
-        try
-        {
             var profileIndexes = new[]
             {
                 new CreateIndexModel<UserInterestProfile>(

@@ -1,6 +1,7 @@
 using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using VividImagination.Modules.Identity.Contracts.Events;
 using VividImagination.Modules.Identity.Features.Users.Dtos;
 using VividImagination.Modules.Identity.Persistence.Entities;
@@ -14,6 +15,7 @@ namespace VividImagination.Modules.Identity.Features.Users.Commands;
 public class RegisterUserCommandHandler(
     UserManager<User> userManager,
     IPublishEndpoint publishEndpoint,
+    ILogger<RegisterUserCommandHandler> logger,
     RoleManager<IdentityRole<long>>? roleManager = null)
     : IRequestHandler<RegisterUserCommand, RegisterUserResult>
 {
@@ -31,9 +33,8 @@ public class RegisterUserCommandHandler(
         // 2. Validate default 'User' role exists if roleManager is configured
         if (roleManager != null && !await roleManager.RoleExistsAsync(SystemRoleNames.User))
         {
-            throw new SystemErrorException(
-                $"Default role '{SystemRoleNames.User}' does not exist. Ensure database seeding has completed.",
-                "ROLE_NOT_CONFIGURED");
+            logger.LogError("Default role '{RoleName}' does not exist. Ensure database seeding has completed.", SystemRoleNames.User);   
+            throw new SystemErrorException();
         }
 
         // 3. Create user entity with UserName = normalized email
