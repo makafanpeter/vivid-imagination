@@ -138,16 +138,34 @@ public partial class ProfileViewModel : ObservableObject
         await LoadUploadsAsync();
     }
 
-    [RelayCommand]
+    private int _isUpdatingPreference;
+
+    [RelayCommand(AllowConcurrentExecutions = false)]
     public async Task SetSafeBrowsingMode(string modeStr)
     {
-        if (int.TryParse(modeStr, out var mode))
+        if (!int.TryParse(modeStr, out var mode))
+        {
+            return;
+        }
+
+        if (SafeBrowsingIndex == mode && Profile?.SafeBrowsingMode == (SafeBrowsingMode)mode)
+        {
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref _isUpdatingPreference, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
         {
             SafeBrowsingIndex = mode;
             if (Profile != null)
             {
                 Profile.SafeBrowsingMode = (SafeBrowsingMode)mode;
             }
+
             try
             {
                 await _apiClient.UpdateUserPreferencesAsync((SafeBrowsingMode)mode);
@@ -156,7 +174,12 @@ public partial class ProfileViewModel : ObservableObject
             {
                 System.Diagnostics.Debug.WriteLine($"Failed to persist safe browsing preference: {ex.Message}");
             }
+
             ToastService.Current.Show($"Browsing mode set to {(SafeBrowsingMode)mode}", ToastType.Info);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _isUpdatingPreference, 0);
         }
     }
 

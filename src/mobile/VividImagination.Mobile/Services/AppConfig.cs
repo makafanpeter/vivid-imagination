@@ -10,7 +10,7 @@ public static class AppConfig
     public static string FeedApiUrl => $"{BaseApiUrl}/api/v1/feed";
     public static string MediaApiUrl => $"{BaseApiUrl}/api/v1/media";
     public static string IdentityApiUrl => $"{BaseApiUrl}/api/v1/identity";
-    public static string ConnectTokenUrl => Service?.GetTokenUrl() ?? $"{BaseApiUrl}/v1/connect/token";
+    public static string ConnectTokenUrl => Service?.GetTokenUrl() ?? $"{BaseApiUrl}/connect/token";
     public static string AuthClientId => Service?.Options.Auth.ClientId ?? "VividImagination-client";
     public static string? AuthClientSecret => Service?.Options.Auth.ClientSecret;
 

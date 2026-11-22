@@ -659,4 +659,20 @@ public class MobileFeatureTests
         userProfile.SafeBrowsingMode.Should().Be(SafeBrowsingMode.AlwaysShowSensitive);
         userProfile.DisplayName.Should().Be("Test User");
     }
+
+    [Fact]
+    public void VividImaginationClient_WhenConstructedWithHttpClientHavingBaseAddress_InitializesBaseUrl()
+    {
+        var httpClient = new HttpClient { BaseAddress = new Uri("https://api-vivid-imagination-prod.lumenarclabs.co/") };
+        var client = new VividImaginationClient(httpClient);
+        client.BaseUrl.Should().Be("https://api-vivid-imagination-prod.lumenarclabs.co/");
+    }
+
+    [Fact]
+    public void VividImaginationClient_WhenConstructedWithHttpClientWithoutBaseAddress_DefaultsToLocalhost()
+    {
+        var httpClient = new HttpClient();
+        var client = new VividImaginationClient(httpClient);
+        client.BaseUrl.Should().Be("http://localhost:5101/");
+    }
 }

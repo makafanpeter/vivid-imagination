@@ -9,7 +9,20 @@ public partial class TopToastView : ContentView
     public TopToastView()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
+    }
+
+    private void OnLoaded(object? sender, EventArgs e)
+    {
+        ToastService.Current.ToastRequested -= OnToastRequested;
         ToastService.Current.ToastRequested += OnToastRequested;
+    }
+
+    private void OnUnloaded(object? sender, EventArgs e)
+    {
+        ToastService.Current.ToastRequested -= OnToastRequested;
+        _dismissCts?.Cancel();
     }
 
     private async void OnToastRequested(object? sender, ToastMessage msg)

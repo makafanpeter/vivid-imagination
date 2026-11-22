@@ -101,7 +101,7 @@ public sealed class ConfigurationService : IConfigurationService
 
     public string GetDownloadUrl(Guid photoId) => $"{ActiveBaseUrl}/api/v1/media/{photoId}/download";
 
-    public string GetTokenUrl() => $"{ActiveBaseUrl}/v1/connect/token";
+    public string GetTokenUrl() => $"{ActiveBaseUrl}/connect/token";
 
     public event EventHandler<AppEnvironment>? EnvironmentChanged;
 }

@@ -29,6 +29,14 @@ public partial interface IVividImaginationClient
 
 public partial class VividImaginationClient
 {
+    partial void Initialize()
+    {
+        if (_httpClient?.BaseAddress != null)
+        {
+            BaseUrl = _httpClient.BaseAddress.ToString();
+        }
+    }
+
     static partial void UpdateJsonSerializerSettings(System.Text.Json.JsonSerializerOptions settings)
     {
         settings.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
