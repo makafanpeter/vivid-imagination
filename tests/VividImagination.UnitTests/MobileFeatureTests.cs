@@ -165,14 +165,14 @@ public class MobileFeatureTests
         var prefJson = """
         {
             "userId": 123456789012345678,
-            "safeBrowsingMode": 1,
+            "safeBrowsingMode": "HideSensitive",
             "isPersonalisationEnabled": true
         }
         """;
         var pref = JsonSerializer.Deserialize<SafeBrowsingPreferenceDto>(prefJson, JsonOptions);
         pref.Should().NotBeNull();
         pref!.UserId.Should().Be(123456789012345678L);
-        pref.SafeBrowsingMode.Should().Be(1);
+        pref.SafeBrowsingMode.Should().Be("HideSensitive");
         pref.IsPersonalisationEnabled.Should().BeTrue();
 
         var interactionRequest = new RecordInteractionRequest
@@ -196,7 +196,7 @@ public class MobileFeatureTests
             "userId": 987654321098765432,
             "email": "creator@example.com",
             "fullName": "Creative User",
-            "safeBrowsingMode": 0,
+            "safeBrowsingMode": "BlurSensitive",
             "createdOn": "2026-11-21T12:00:00Z"
         }
         """;
@@ -205,7 +205,7 @@ public class MobileFeatureTests
         regResult!.UserId.Should().Be(987654321098765432L);
         regResult.Email.Should().Be("creator@example.com");
         regResult.FullName.Should().Be("Creative User");
-        regResult.SafeBrowsingMode.Should().Be(0);
+        regResult.SafeBrowsingMode.Should().Be("BlurSensitive");
 
         var tokenResponseJson = """
         {
@@ -573,7 +573,7 @@ public class MobileFeatureTests
             Password = "SecurePassword123!",
             FirstName = "Alex",
             LastName = "Morgan",
-            SafeBrowsingMode = 0
+            SafeBrowsingMode = "BlurSensitive"
         };
 
         var json = JsonSerializer.Serialize(request, JsonOptions);
@@ -581,7 +581,7 @@ public class MobileFeatureTests
         json.Should().Contain("\"password\":\"SecurePassword123!\"");
         json.Should().Contain("\"firstName\":\"Alex\"");
         json.Should().Contain("\"lastName\":\"Morgan\"");
-        json.Should().Contain("\"safeBrowsingMode\":0");
+        json.Should().Contain("\"safeBrowsingMode\":\"BlurSensitive\"");
     }
 
     [Theory]
@@ -625,5 +625,38 @@ public class MobileFeatureTests
     public void RegisterStatus_HasAllExpectedEnumValues()
     {
         Enum.GetNames<RegisterStatus>().Should().Contain(["Success", "CreatedLoginRequired", "EmailAlreadyExists", "Failed"]);
+    }
+
+    [Theory]
+    [InlineData("BlurSensitive", SafeBrowsingMode.BlurSensitive)]
+    [InlineData("blursensitive", SafeBrowsingMode.BlurSensitive)]
+    [InlineData("HideSensitive", SafeBrowsingMode.HideSensitive)]
+    [InlineData("AlwaysShowSensitive", SafeBrowsingMode.AlwaysShowSensitive)]
+    [InlineData("0", SafeBrowsingMode.BlurSensitive)]
+    [InlineData("1", SafeBrowsingMode.HideSensitive)]
+    [InlineData("2", SafeBrowsingMode.AlwaysShowSensitive)]
+    [InlineData("", SafeBrowsingMode.BlurSensitive)]
+    [InlineData(null, SafeBrowsingMode.BlurSensitive)]
+    [InlineData("unknown_mode", SafeBrowsingMode.BlurSensitive)]
+    public void UserProfile_ParseSafeBrowsingMode_HandlesStringsAndNumbers(string? input, SafeBrowsingMode expected)
+    {
+        var result = UserProfile.ParseSafeBrowsingMode(input);
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void UserProfile_FromDto_ParsesStringSafeBrowsingMode()
+    {
+        var profile = new Profile
+        {
+            Sub = "user-123",
+            Email = "test@example.com",
+            FullName = "Test User",
+            SafeBrowsingMode = "AlwaysShowSensitive"
+        };
+
+        var userProfile = UserProfile.FromDto(profile);
+        userProfile.SafeBrowsingMode.Should().Be(SafeBrowsingMode.AlwaysShowSensitive);
+        userProfile.DisplayName.Should().Be("Test User");
     }
 }

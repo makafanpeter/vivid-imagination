@@ -150,7 +150,7 @@ public partial class ProfileViewModel : ObservableObject
             }
             try
             {
-                await _apiClient.UpdateUserPreferencesAsync(mode);
+                await _apiClient.UpdateUserPreferencesAsync((SafeBrowsingMode)mode);
             }
             catch (Exception ex)
             {

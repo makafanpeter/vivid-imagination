@@ -34,7 +34,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -42,7 +42,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Upload a document/photo
@@ -214,7 +214,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode);
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -222,7 +222,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode, System.Threading.CancellationToken cancellationToken);
 
         /// <summary>
         /// Record feed interaction telemetry (dwell time, share, hide, impression)
@@ -384,7 +384,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode)
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode)
         {
             return GetRankedFeedAsync(page, pageSize, safeBrowsingMode, System.Threading.CancellationToken.None);
         }
@@ -395,7 +395,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetRankedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -1517,7 +1517,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode)
+        public virtual System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode)
         {
             return GetPersonalizedFeedAsync(page, pageSize, safeBrowsingMode, System.Threading.CancellationToken.None);
         }
@@ -1528,7 +1528,7 @@ namespace VividImagination.Mobile.OpenApi
         /// </summary>
         /// <returns>Success</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, int? safeBrowsingMode, System.Threading.CancellationToken cancellationToken)
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<FeedItemDto>> GetPersonalizedFeedAsync(int? page, int? pageSize, string? safeBrowsingMode, System.Threading.CancellationToken cancellationToken)
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -2538,7 +2538,7 @@ namespace VividImagination.Mobile.OpenApi
         public string? Reason { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("reasonType")]
-        public int? ReasonType { get; set; } = 0;
+        public string? ReasonType { get; set; } = "Other";
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2616,10 +2616,10 @@ namespace VividImagination.Mobile.OpenApi
         public string? Role { get; set; } = default!;
 
         /// <summary>
-        /// 0 = BlurSensitive, 1 = HideSensitive, 2 = AlwaysShowSensitive
+        /// BlurSensitive, HideSensitive, AlwaysShowSensitive
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
-        public int? SafeBrowsingMode { get; set; } = default!;
+        public string? SafeBrowsingMode { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2682,7 +2682,7 @@ namespace VividImagination.Mobile.OpenApi
         public string? LastName { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
-        public int? SafeBrowsingMode { get; set; } = default!;
+        public string? SafeBrowsingMode { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2709,7 +2709,7 @@ namespace VividImagination.Mobile.OpenApi
         public string? FullName { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
-        public int SafeBrowsingMode { get; set; } = default!;
+        public string? SafeBrowsingMode { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("createdOn")]
         public System.DateTime CreatedOn { get; set; } = default!;
@@ -2733,7 +2733,7 @@ namespace VividImagination.Mobile.OpenApi
         public long UserId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
-        public int SafeBrowsingMode { get; set; } = default!;
+        public string? SafeBrowsingMode { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("isPersonalisationEnabled")]
         public bool? IsPersonalisationEnabled { get; set; } = true;
@@ -2754,7 +2754,7 @@ namespace VividImagination.Mobile.OpenApi
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
-        public int SafeBrowsingMode { get; set; } = default!;
+        public string? SafeBrowsingMode { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("isPersonalisationEnabled")]
         public bool? IsPersonalisationEnabled { get; set; } = default!;
@@ -2877,7 +2877,7 @@ namespace VividImagination.Mobile.OpenApi
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("safeBrowsingMode")]
-        public int SafeBrowsingMode { get; set; } = default!;
+        public string? SafeBrowsingMode { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("isPersonalisationEnabled")]
         public bool? IsPersonalisationEnabled { get; set; } = default!;

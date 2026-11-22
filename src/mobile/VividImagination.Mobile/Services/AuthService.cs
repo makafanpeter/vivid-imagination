@@ -9,7 +9,8 @@ public interface IAuthService
 {
     UserProfile? CurrentUser { get; }
     Task<bool> LoginAsync(string username, string password, CancellationToken ct = default);
-    Task<RegisterResult> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default);
+    Task<RegisterResult> RegisterAsync(string email, string password, string? fullName = null, SafeBrowsingMode safeBrowsingMode = SafeBrowsingMode.BlurSensitive, CancellationToken ct = default);
+    Task<RegisterResult> RegisterAsync(string email, string password, string? fullName, int safeBrowsingMode, CancellationToken ct = default);
     Task<UserProfile?> GetCurrentUserProfileAsync(CancellationToken ct = default);
     Task LogoutAsync();
     Task<bool> IsAuthenticatedAsync();
@@ -81,7 +82,15 @@ public sealed class AuthService(
         }
     }
 
-    public async Task<RegisterResult> RegisterAsync(string email, string password, string? fullName = null, int safeBrowsingMode = 0, CancellationToken ct = default)
+    public Task<RegisterResult> RegisterAsync(string email, string password, string? fullName, int safeBrowsingMode, CancellationToken ct = default)
+    {
+        var mode = Enum.IsDefined(typeof(SafeBrowsingMode), safeBrowsingMode)
+            ? (SafeBrowsingMode)safeBrowsingMode
+            : SafeBrowsingMode.BlurSensitive;
+        return RegisterAsync(email, password, fullName, mode, ct);
+    }
+
+    public async Task<RegisterResult> RegisterAsync(string email, string password, string? fullName = null, SafeBrowsingMode safeBrowsingMode = SafeBrowsingMode.BlurSensitive, CancellationToken ct = default)
     {
         string? firstName = null;
         string? lastName = null;
@@ -101,7 +110,7 @@ public sealed class AuthService(
             Password = password,
             FirstName = firstName,
             LastName = lastName,
-            SafeBrowsingMode = safeBrowsingMode
+            SafeBrowsingMode = safeBrowsingMode.ToString()
         };
 
         RegisterUserResult? result;

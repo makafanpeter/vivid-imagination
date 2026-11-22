@@ -46,6 +46,20 @@ public sealed class UserProfile
             ? FullName
             : (!string.IsNullOrWhiteSpace(PreferredUsername) ? PreferredUsername : (Email ?? "Anonymous"));
 
+    public static SafeBrowsingMode ParseSafeBrowsingMode(string? modeStr)
+    {
+        if (string.IsNullOrWhiteSpace(modeStr))
+            return SafeBrowsingMode.BlurSensitive;
+
+        if (Enum.TryParse<SafeBrowsingMode>(modeStr, true, out var mode))
+            return mode;
+
+        if (int.TryParse(modeStr, out var intVal) && Enum.IsDefined(typeof(SafeBrowsingMode), intVal))
+            return (SafeBrowsingMode)intVal;
+
+        return SafeBrowsingMode.BlurSensitive;
+    }
+
     public static UserProfile FromDto(Profile profile)
     {
         return new UserProfile
@@ -54,7 +68,7 @@ public sealed class UserProfile
             PreferredUsername = profile.PreferredUsername,
             Email = profile.Email,
             FullName = profile.FullName,
-            SafeBrowsingMode = (SafeBrowsingMode)(profile.SafeBrowsingMode ?? 0),
+            SafeBrowsingMode = ParseSafeBrowsingMode(profile.SafeBrowsingMode),
             IsModerator = profile.Role?.Equals("Moderator", StringComparison.OrdinalIgnoreCase) == true ||
                           profile.PreferredUsername?.Contains("mod", StringComparison.OrdinalIgnoreCase) == true
         };

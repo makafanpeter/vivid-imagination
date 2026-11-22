@@ -58,7 +58,7 @@ public partial class FeedViewModel : ObservableObject
             _hasMoreItems = true;
 
             var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
-            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, (int?)safeMode);
+            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
             Items.Clear();
 
             if (rawItems.Count > 0)
@@ -108,7 +108,7 @@ public partial class FeedViewModel : ObservableObject
             _currentPage++;
 
             var safeMode = _authService.CurrentUser?.SafeBrowsingMode ?? SafeBrowsingMode.BlurSensitive;
-            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, (int?)safeMode);
+            var rawItems = await _apiClient.GetRankedFeedAsync(_currentPage, PageSize, safeMode.ToString());
             if (rawItems.Count == 0)
             {
                 _hasMoreItems = false;
