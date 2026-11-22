@@ -13,5 +13,23 @@ public partial class AppShell : Shell
         _authService = authService;
 
         Routing.RegisterRoute("login", typeof(LoginPage));
+
+        if (_authService != null)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    if (await _authService.IsAuthenticatedAsync())
+                    {
+                        await _authService.GetCurrentUserProfileAsync();
+                    }
+                }
+                catch
+                {
+                    // Ignore startup connectivity or token expiration errors
+                }
+            });
+        }
     }
 }

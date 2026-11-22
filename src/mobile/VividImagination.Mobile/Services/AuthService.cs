@@ -199,6 +199,7 @@ public sealed class AuthService(
             }
 
             CurrentUser = UserProfile.FromDto(profileDto);
+            AuthStateChanged?.Invoke(this, CurrentUser);
             return CurrentUser;
         }
         catch

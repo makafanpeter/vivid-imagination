@@ -141,7 +141,8 @@ public partial class FeedViewModel : ObservableObject
     {
         if (item == null) return;
 
-        if (_authService.CurrentUser == null)
+        var user = _authService.CurrentUser ?? await _authService.GetCurrentUserProfileAsync();
+        if (user == null)
         {
             ToastService.Current.Show("Sign in to vote or report", ToastType.Info);
             return;
@@ -155,7 +156,8 @@ public partial class FeedViewModel : ObservableObject
     {
         if (item == null) return;
 
-        if (_authService.CurrentUser == null)
+        var user = _authService.CurrentUser ?? await _authService.GetCurrentUserProfileAsync();
+        if (user == null)
         {
             ToastService.Current.Show("Sign in to vote or report", ToastType.Info);
             return;
@@ -219,7 +221,8 @@ public partial class FeedViewModel : ObservableObject
     {
         if (item == null) return;
 
-        if (_authService.CurrentUser == null)
+        var user = _authService.CurrentUser ?? await _authService.GetCurrentUserProfileAsync();
+        if (user == null)
         {
             ToastService.Current.Show("Sign in to vote or report", ToastType.Info);
             return;

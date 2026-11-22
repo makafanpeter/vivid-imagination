@@ -112,14 +112,24 @@ namespace VividImagination.Mobile
             .AddHttpMessageHandler<DynamicBaseAddressHandler>()
             .AddHttpMessageHandler<AuthenticationHeaderHandler>();
 
-            // Authentication Service
-            builder.Services.AddHttpClient<IAuthService, AuthService>((sp, client) =>
+            // Authentication Service (Registered as Singleton so all ViewModels and Pages share authentication state)
+            builder.Services.AddHttpClient("AuthService", (sp, client) =>
             {
                 var config = sp.GetRequiredService<IConfigurationService>();
                 client.Timeout = TimeSpan.FromSeconds(config.Options.Api.TimeoutSeconds);
             })
             .AddHttpMessageHandler<DynamicBaseAddressHandler>()
             .AddHttpMessageHandler<AuthenticationHeaderHandler>();
+
+            builder.Services.AddSingleton<IAuthService>(sp =>
+            {
+                var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                var httpClient = httpClientFactory.CreateClient("AuthService");
+                var tokenStorage = sp.GetRequiredService<ITokenStorageService>();
+                var configService = sp.GetRequiredService<IConfigurationService>();
+                var apiClient = sp.GetRequiredService<IVividImaginationClient>();
+                return new AuthService(httpClient, tokenStorage, configService, apiClient);
+            });
 
             // ViewModels
             builder.Services.AddSingleton<IToastService>(ToastService.Current);

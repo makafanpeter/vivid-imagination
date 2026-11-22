@@ -103,7 +103,8 @@ public partial class PhotoUploadViewModel(IVividImaginationClient apiClient, IAu
     [RelayCommand]
     public async Task UploadAsync()
     {
-        if (authService.CurrentUser == null)
+        var user = authService.CurrentUser ?? await authService.GetCurrentUserProfileAsync();
+        if (user == null)
         {
             ToastService.Current.Show("Please sign in to upload photos.", ToastType.Info);
             await Shell.Current.GoToAsync("login");

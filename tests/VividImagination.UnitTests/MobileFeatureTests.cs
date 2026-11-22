@@ -675,4 +675,40 @@ public class MobileFeatureTests
         var client = new VividImaginationClient(httpClient);
         client.BaseUrl.Should().Be("http://localhost:5101/");
     }
+
+    [Fact]
+    public void UserProfile_WhenHydrated_HasExpectedProperties()
+    {
+        var profile = new Profile
+        {
+            Sub = "user-abc-123",
+            Email = "creator@vivid.app",
+            FullName = "Vivid Creator",
+            Role = "User",
+            SafeBrowsingMode = "HideSensitive"
+        };
+
+        var userProfile = UserProfile.FromDto(profile);
+        userProfile.Sub.Should().Be("user-abc-123");
+        userProfile.Email.Should().Be("creator@vivid.app");
+        userProfile.FullName.Should().Be("Vivid Creator");
+        userProfile.SafeBrowsingMode.Should().Be(SafeBrowsingMode.HideSensitive);
+        userProfile.IsModerator.Should().BeFalse();
+    }
+
+    [Fact]
+    public void UserProfile_WhenRoleIsModerator_SetsIsModeratorTrue()
+    {
+        var profile = new Profile
+        {
+            Sub = "mod-123",
+            Email = "mod@vivid.app",
+            FullName = "Community Moderator",
+            Role = "Moderator",
+            SafeBrowsingMode = "BlurSensitive"
+        };
+
+        var userProfile = UserProfile.FromDto(profile);
+        userProfile.IsModerator.Should().BeTrue();
+    }
 }
