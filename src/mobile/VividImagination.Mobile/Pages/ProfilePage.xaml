@@ -124,56 +124,73 @@
                                     HeightRequest="38"
                                     Padding="3">
                                 <Grid ColumnDefinitions="*,*,*"
-                                      HorizontalOptions="Fill"
-                                      VerticalOptions="Fill">
+                                      HeightRequest="32">
 
-                                    <!-- Option 1: Blur -->
+                                    <!-- Option 1: Blur Active Pill -->
                                     <Border Grid.Column="0"
                                             StrokeShape="RoundRectangle 16"
                                             StrokeThickness="0"
-                                            BackgroundColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="0" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="Blur"
-                                               FontFamily="ManropeSemiBold"
-                                               FontSize="12"
-                                               TextColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center" />
-                                    </Border>
+                                            BackgroundColor="{StaticResource AccentVermilion}"
+                                            IsVisible="{Binding IsBlurSelected}" />
 
-                                    <!-- Option 2: Hide -->
+                                    <!-- Option 2: Hide Active Pill -->
                                     <Border Grid.Column="1"
                                             StrokeShape="RoundRectangle 16"
                                             StrokeThickness="0"
-                                            BackgroundColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}">
-                                        <Border.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="1" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="Hide"
-                                               FontFamily="ManropeSemiBold"
-                                               FontSize="12"
-                                               TextColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center" />
-                                    </Border>
+                                            BackgroundColor="{StaticResource AccentVermilion}"
+                                            IsVisible="{Binding IsHideSelected}" />
 
-                                    <!-- Option 3: Always Show -->
+                                    <!-- Option 3: Always Show Active Pill -->
                                     <Border Grid.Column="2"
                                             StrokeShape="RoundRectangle 16"
                                             StrokeThickness="0"
-                                            BackgroundColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentBackgroundConverter}}">
-                                        <Border.GestureRecognizers>
+                                            BackgroundColor="{StaticResource AccentVermilion}"
+                                            IsVisible="{Binding IsAlwaysShowSelected}" />
+
+                                    <!-- Option 1: Blur Label -->
+                                    <Label Grid.Column="0"
+                                           Text="Blur"
+                                           FontFamily="ManropeSemiBold"
+                                           FontSize="12"
+                                           TextColor="{Binding IsBlurSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
+                                           HorizontalOptions="Fill"
+                                           VerticalOptions="Fill"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="0" />
+                                        </Label.GestureRecognizers>
+                                    </Label>
+
+                                    <!-- Option 2: Hide Label -->
+                                    <Label Grid.Column="1"
+                                           Text="Hide"
+                                           FontFamily="ManropeSemiBold"
+                                           FontSize="12"
+                                           TextColor="{Binding IsHideSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
+                                           HorizontalOptions="Fill"
+                                           VerticalOptions="Fill"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center">
+                                        <Label.GestureRecognizers>
+                                            <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="1" />
+                                        </Label.GestureRecognizers>
+                                    </Label>
+
+                                    <!-- Option 3: Always Show Label -->
+                                    <Label Grid.Column="2"
+                                           Text="Always show"
+                                           FontFamily="ManropeSemiBold"
+                                           FontSize="12"
+                                           TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
+                                           HorizontalOptions="Fill"
+                                           VerticalOptions="Fill"
+                                           HorizontalTextAlignment="Center"
+                                           VerticalTextAlignment="Center">
+                                        <Label.GestureRecognizers>
                                             <TapGestureRecognizer Command="{Binding SetSafeBrowsingModeCommand}" CommandParameter="2" />
-                                        </Border.GestureRecognizers>
-                                        <Label Text="Always show"
-                                               FontFamily="ManropeSemiBold"
-                                               FontSize="12"
-                                               TextColor="{Binding IsAlwaysShowSelected, Converter={StaticResource SelectedSegmentTextColorConverter}}"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center" />
-                                    </Border>
+                                        </Label.GestureRecognizers>
+                                    </Label>
                                 </Grid>
                             </Border>
                         </VerticalStackLayout>

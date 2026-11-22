@@ -26,7 +26,8 @@
                 <VerticalStackLayout Spacing="20"
                                      Padding="24,36"
                                      VerticalOptions="Center"
-                                     HorizontalOptions="Fill">
+                                     HorizontalOptions="Fill"
+                                     MaximumWidthRequest="460">
 
                     <!-- Header Wordmark with Hot Orange Dot -->
                     <Label HorizontalOptions="Center">
@@ -63,67 +64,71 @@
                     </VerticalStackLayout>
 
                     <!-- Segmented Mode Switcher: Sign In | Register -->
-                    <Border StrokeShape="RoundRectangle 20"
+                    <Border StrokeShape="RoundRectangle 21"
                             Stroke="{StaticResource BorderGlow}"
                             StrokeThickness="1"
                             BackgroundColor="{StaticResource AppSurfaceElevated}"
                             Padding="3"
                             HeightRequest="42"
                             Margin="0,4,0,4">
-                        <Grid ColumnDefinitions="*,*">
-                            <!-- Sign In Tab -->
+                        <Grid ColumnDefinitions="*,*" HeightRequest="36">
+                            <!-- Sign In Active Pill -->
                             <Border Grid.Column="0"
-                                    StrokeShape="RoundRectangle 17"
+                                    StrokeShape="RoundRectangle 18"
                                     StrokeThickness="0"
-                                    BackgroundColor="{StaticResource AccentVermilion}">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SetSignInModeCommand}" />
-                                </Border.GestureRecognizers>
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsRegisterMode}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="Transparent" />
-                                    </DataTrigger>
-                                </Border.Triggers>
-                                <Label Text="Sign In"
-                                       FontFamily="ManropeSemiBold"
-                                       FontSize="13"
-                                       TextColor="White"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center">
-                                    <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="True">
-                                            <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
-                                        </DataTrigger>
-                                    </Label.Triggers>
-                                </Label>
-                            </Border>
+                                    BackgroundColor="{StaticResource AccentVermilion}"
+                                    IsVisible="{Binding IsRegisterMode, Converter={toolkit:InvertedBoolConverter}}" />
 
-                            <!-- Register Tab -->
+                            <!-- Register Active Pill -->
                             <Border Grid.Column="1"
-                                    StrokeShape="RoundRectangle 17"
+                                    StrokeShape="RoundRectangle 18"
                                     StrokeThickness="0"
-                                    BackgroundColor="Transparent">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Command="{Binding SetRegisterModeCommand}" />
-                                </Border.GestureRecognizers>
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding IsRegisterMode}" Value="True">
-                                        <Setter Property="BackgroundColor" Value="{StaticResource AccentVermilion}" />
+                                    BackgroundColor="{StaticResource AccentVermilion}"
+                                    IsVisible="{Binding IsRegisterMode}" />
+
+                            <!-- Sign In Label -->
+                            <Label Grid.Column="0"
+                                   Text="Sign In"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="13"
+                                   HorizontalOptions="Fill"
+                                   VerticalOptions="Fill"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalTextAlignment="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetSignInModeCommand}" />
+                                </Label.GestureRecognizers>
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="False">
+                                        <Setter Property="TextColor" Value="White" />
                                     </DataTrigger>
-                                </Border.Triggers>
-                                <Label Text="Register"
-                                       FontFamily="ManropeSemiBold"
-                                       FontSize="13"
-                                       TextColor="{StaticResource TextSecondary}"
-                                       HorizontalOptions="Center"
-                                       VerticalOptions="Center">
-                                    <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="True">
-                                            <Setter Property="TextColor" Value="White" />
-                                        </DataTrigger>
-                                    </Label.Triggers>
-                                </Label>
-                            </Border>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="True">
+                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+
+                            <!-- Register Label -->
+                            <Label Grid.Column="1"
+                                   Text="Register"
+                                   FontFamily="ManropeSemiBold"
+                                   FontSize="13"
+                                   HorizontalOptions="Fill"
+                                   VerticalOptions="Fill"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalTextAlignment="Center">
+                                <Label.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding SetRegisterModeCommand}" />
+                                </Label.GestureRecognizers>
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="True">
+                                        <Setter Property="TextColor" Value="White" />
+                                    </DataTrigger>
+                                    <DataTrigger TargetType="Label" Binding="{Binding IsRegisterMode}" Value="False">
+                                        <Setter Property="TextColor" Value="{StaticResource TextSecondary}" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
                         </Grid>
                     </Border>
 
