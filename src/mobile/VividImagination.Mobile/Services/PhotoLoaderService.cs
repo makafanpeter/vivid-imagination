@@ -63,7 +63,7 @@ public sealed class PhotoLoaderService(IVividImaginationClient apiClient) : IPho
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Failed to download photo {photoId} (variant {variant}): {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Failed to download photo {photoId} (variant {variant}): {ex}");
         }
 
         // Graceful fallback to BlurHash placeholder

@@ -72,7 +72,9 @@ public static class BlurHashCore
     {
         const int fileHeaderSize = 14;
         const int dibHeaderSize = 40;
-        var imageSize = bgraPixels.Length;
+        var rowSize = ((width * 3 + 3) / 4) * 4;
+        var padding = rowSize - (width * 3);
+        var imageSize = rowSize * height;
         var fileSize = fileHeaderSize + dibHeaderSize + imageSize;
 
         var bmp = new byte[fileSize];
@@ -90,9 +92,9 @@ public static class BlurHashCore
         // BITMAPINFOHEADER
         writer.Write(dibHeaderSize);
         writer.Write(width);
-        writer.Write(-height); // negative height for top-down DIB
+        writer.Write(height); // standard bottom-up DIB
         writer.Write((short)1); // planes
-        writer.Write((short)32); // 32 bits per pixel (BGRA)
+        writer.Write((short)24); // 24 bits per pixel (BGR)
         writer.Write(0); // BI_RGB (uncompressed)
         writer.Write(imageSize);
         writer.Write(2835); // horizontal resolution (pixels/meter)
@@ -100,8 +102,23 @@ public static class BlurHashCore
         writer.Write(0); // colors in palette
         writer.Write(0); // important colors
 
-        // Pixel data
-        writer.Write(bgraPixels);
+        // Pixel data (bottom-up: start with bottom row y = height - 1)
+        for (var y = height - 1; y >= 0; y--)
+        {
+            var rowStart = y * width * 4;
+            for (var x = 0; x < width; x++)
+            {
+                var pixelIndex = rowStart + (x * 4);
+                writer.Write(bgraPixels[pixelIndex + 0]); // Blue
+                writer.Write(bgraPixels[pixelIndex + 1]); // Green
+                writer.Write(bgraPixels[pixelIndex + 2]); // Red
+            }
+
+            for (var p = 0; p < padding; p++)
+            {
+                writer.Write((byte)0);
+            }
+        }
 
         return bmp;
     }

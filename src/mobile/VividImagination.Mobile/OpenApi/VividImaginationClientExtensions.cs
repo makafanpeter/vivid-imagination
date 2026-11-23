@@ -286,6 +286,28 @@ public partial class VividImaginationClient
 
 public partial class UploadDocumentViewModel
 {
+    public string? Status
+    {
+        get
+        {
+            if (AdditionalProperties != null &&
+                AdditionalProperties.TryGetValue("status", out var val))
+            {
+                if (val is System.Text.Json.JsonElement element && element.ValueKind == System.Text.Json.JsonValueKind.String)
+                {
+                    return element.GetString();
+                }
+
+                if (val is string s)
+                {
+                    return s;
+                }
+            }
+
+            return null;
+        }
+    }
+
     public string? BlurHash
     {
         get

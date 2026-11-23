@@ -43,8 +43,8 @@ public class MobileFeatureTests
         // BMP magic header 'B' 'M'
         bmpBytes[0].Should().Be((byte)'B');
         bmpBytes[1].Should().Be((byte)'M');
-        // Total size = 54 header + (16 * 16 * 4) = 54 + 1024 = 1078 bytes
-        bmpBytes.Length.Should().Be(54 + 16 * 16 * 4);
+        // Total size = 54 header + (16 * 16 * 3) = 54 + 768 = 822 bytes
+        bmpBytes.Length.Should().Be(54 + 16 * 16 * 3);
     }
 
     [Theory]

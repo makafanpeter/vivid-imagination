@@ -123,7 +123,12 @@ public partial class ProfileViewModel : ObservableObject
                         PhotoId = media.Id,
                         ImageUrl = media.Url ?? string.Empty,
                         Caption = media.Description ?? media.Name ?? string.Empty,
-                        Status = (media.Public == true) ? "Live" : "Checking"
+                        Status = media.Status switch
+                        {
+                            "Processing" or "Pending" => "Checking",
+                            "Failed" => "Removed",
+                            _ => (media.Public != false || string.Equals(media.Status, "Optimized", StringComparison.OrdinalIgnoreCase)) ? "Live" : "Checking"
+                        }
                     };
 
                     _ = LoadUploadPhotoAsync(uploadItem, media.Id, media.BlurHash);
